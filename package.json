@@ -7,6 +7,7 @@
     "spm": "./build/bin/sasdn-pm.js"
   },
   "scripts": {
+    "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -20,15 +21,31 @@
   },
   "homepage": "https://github.com/agreatfool/SPM#readme",
   "dependencies": {
+    "@types/underscore": "^1.8.1",
+    "archiver": "^2.0.0",
     "commander": "^2.9.0",
+    "debug": "^2.6.8",
+    "fs-promise": "^2.0.3",
     "gulp": "^3.9.1",
     "gulp-typescript": "^3.1.7",
     "koa": "^2.3.0",
-    "merge2": "^1.0.3"
+    "koa-body": "^2.3.0",
+    "koa-bodyparser": "^4.2.0",
+    "koa-router": "^7.2.1",
+    "merge2": "^1.0.3",
+    "mz": "^2.6.0",
+    "reflect-metadata": "^0.1.10",
+    "sqlite3": "^3.1.8",
+    "typeorm": "0.1.0-alpha.29",
+    "underscore": "^1.8.3"
   },
   "devDependencies": {
     "@types/commander": "^2.9.1",
+    "@types/fs-promise": "^1.0.3",
     "@types/koa": "^2.0.39",
+    "@types/koa-bodyparser": "^3.0.23",
+    "@types/koa-router": "^7.0.22",
+    "@types/mz": "0.0.31",
     "@types/node": "^8.0.3"
   }
 }
