@@ -33,7 +33,10 @@ class PostPublish {
                     yield next();
                 }
                 catch (err) {
-                    _this.handleErrMsg(ctx, err);
+                    let res = {};
+                    res.code = -1;
+                    res.msg = err.message;
+                    ctx.body = res;
                 }
             });
         };
@@ -49,15 +52,15 @@ class PostPublish {
     }
     paramsValidate(ctx, options) {
         return __awaiter(this, void 0, void 0, function* () {
-            const query = ctx.query;
             const body = ctx.request.body;
-            if (!query.secret || query.secret != options.secret) {
+            const params = body.fields;
+            if (!params.secret || params.secret != options.secret) {
                 throw new Error("Secret is required!");
             }
-            if (!query.name || _.isEmpty(query.name)) {
+            if (!params.name || _.isEmpty(params.name)) {
                 throw new Error("Name is required!");
             }
-            if (!query.version || _.isEmpty(query.version)) {
+            if (!params.version || _.isEmpty(params.version)) {
                 throw new Error("Version is required!");
             }
             if (!body.hasOwnProperty("files") || !body.files.hasOwnProperty("fileUpload")) {
@@ -74,20 +77,20 @@ class PostPublish {
             const stream = LibFs.createWriteStream(filePath);
             yield reader.pipe(stream);
             yield LibFs.unlink(fileUpload.path);
+            let res = {};
             try {
-                const query = ctx.query;
-                const [major, minor, patch] = ctx.query.version.split('.');
+                const params = ctx.request.body.fields;
+                const [major, minor, patch] = params.version.split('.');
                 // find package
                 let spmPackage = yield conn
                     .getRepository(SpmPackage_1.SpmPackage)
                     .createQueryBuilder("package")
-                    .where('package.name=:name', { name: query.name })
+                    .where('package.name=:name', { name: params.name })
                     .getOne();
                 // if package is not found, create package
                 if (_.isEmpty(spmPackage)) {
-                    console.log("Create package entity!");
                     let entity = new SpmPackage_1.SpmPackage();
-                    entity.name = query.name;
+                    entity.name = params.name;
                     spmPackage = yield conn.manager.persist(entity);
                 }
                 // find package version
@@ -95,13 +98,12 @@ class PostPublish {
                     .getRepository(SpmPackageVersion_1.SpmPackageVersion)
                     .createQueryBuilder("version")
                     .where('version.pid=:pid', { pid: spmPackage.id })
-                    .andWhere('version.major=:major', { major: major | 0 })
-                    .andWhere('version.minor=:minor', { minor: minor | 0 })
-                    .andWhere('version.patch=:patch', { patch: patch | 0 })
+                    .andWhere('version.major=:major', { major: major })
+                    .andWhere('version.minor=:minor', { minor: minor })
+                    .andWhere('version.patch=:patch', { patch: patch })
                     .getOne();
                 // if version is not found, create version
                 if (_.isEmpty(spmPackageVersion)) {
-                    console.log("Create package version entity!");
                     let entity = new SpmPackageVersion_1.SpmPackageVersion();
                     entity.pid = spmPackage.id;
                     entity.major = major | 0;
@@ -109,25 +111,19 @@ class PostPublish {
                     entity.patch = patch | 0;
                     entity.filePath = filePath;
                     entity.time = new Date().getTime();
-                    yield conn.manager.persist(entity);
+                    spmPackageVersion = yield conn.manager.persist(entity);
                 }
+                res.code = 0;
+                res.msg = { spmPackage: spmPackage, spmPackageVersion: spmPackageVersion };
             }
             catch (err) {
-                this.handleErrMsg(ctx, err);
+                res.code = -1;
+                res.msg = err.message;
             }
-            let res = {};
-            res.code = 0;
-            res.msg = "succeed";
             return res;
         });
     }
     ;
-    handleErrMsg(ctx, err) {
-        let res = {};
-        res.code = -1;
-        res.msg = err.message;
-        ctx.body = res;
-    }
 }
 exports.api = new PostPublish();
 //# sourceMappingURL=postPublish.js.map

@@ -1,6 +1,6 @@
 import * as Koa from "koa";
 import * as koaBody from "koa-body";
-// import * as koaBodyParser from "koa-bodyparser";
+import * as koaBodyParser from "koa-bodyparser";
 import Config from "./Config";
 import Database from "./Database";
 import Router from "./Router";
@@ -26,6 +26,7 @@ export default class App {
         await this.router.init(this.config.options, this.database.conn);
 
         this.app.use(koaBody({ multipart: true }));
+        this.app.use(koaBodyParser({formLimit: '2048kb'})); // post body parser
         this.app.use(Router.instance().getRouter().routes());
         this._initialized = true;
     }

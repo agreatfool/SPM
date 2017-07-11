@@ -10,7 +10,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 const LibPath = require("path");
 const LibFs = require("mz/fs");
-const _ = require("underscore");
 var RequestMethod;
 (function (RequestMethod) {
     RequestMethod[RequestMethod["post"] = 0] = "post";
@@ -66,43 +65,18 @@ var SpmHttp;
      *
      * @returns {Promise<SpmConfig>}
      */
-    function getRequestOption(path, params, method = RequestMethod.get) {
+    function getRequestOption(path, method = RequestMethod.get) {
         return __awaiter(this, void 0, void 0, function* () {
             let spmHttpConfig = yield SpmHttp.getConfig();
-            let spmSecretValue = yield SpmSecret.load();
             let requestConfig = {};
             requestConfig.host = spmHttpConfig.host;
             requestConfig.port = spmHttpConfig.port;
             requestConfig.method = RequestMethod[method];
-            requestConfig.path = (_.isEmpty(params)) ? path + "?secret=" + spmSecretValue : path + "?secret=" + spmSecretValue + "&" + buildParam(params);
+            requestConfig.path = path;
             return requestConfig;
         });
     }
     SpmHttp.getRequestOption = getRequestOption;
-    function uploadFiles(filePath, fileInfo, req) {
-        return __awaiter(this, void 0, void 0, function* () {
-            let boundaryKey = Math.random().toString(16);
-            let enddata = '\r\n----' + boundaryKey + '--';
-            let content = '\r\n----' + boundaryKey + '\r\n'
-                + 'Content-Type: application/octet-stream\r\n'
-                + 'Content-Disposition: form-data; name="fileUpload"; filename="' + `${fileInfo.name}@${fileInfo.version}.zip` + '"\r\n'
-                + "Content-Transfer-Encoding: binary\r\n\r\n";
-            let contentBinary = new Buffer(content, 'utf-8');
-            let contentLength = LibFs.statSync(filePath).size + contentBinary.length;
-            // write headers
-            req.setHeader('Content-Type', 'multipart/form-data; boundary=--' + boundaryKey);
-            req.setHeader('Content-Length', `${contentLength + Buffer.byteLength(enddata)}`);
-            req.write(contentBinary);
-            // send stream
-            let fileStream = LibFs.createReadStream(filePath);
-            fileStream.pipe(req, { end: false });
-            fileStream.on('end', function () {
-                req.end(enddata);
-            });
-            req.end(enddata);
-        });
-    }
-    SpmHttp.uploadFiles = uploadFiles;
 })(SpmHttp = exports.SpmHttp || (exports.SpmHttp = {}));
 var SpmSecret;
 (function (SpmSecret) {
@@ -122,9 +96,7 @@ var SpmSecret;
      * @returns {string}
      */
     function load() {
-        return __awaiter(this, void 0, void 0, function* () {
-            return yield LibFs.readFileSync(SpmSecret.SPM_LRC_PATH).toString();
-        });
+        return LibFs.readFileSync(SpmSecret.SPM_LRC_PATH).toString();
     }
     SpmSecret.load = load;
 })(SpmSecret = exports.SpmSecret || (exports.SpmSecret = {}));

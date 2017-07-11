@@ -31,7 +31,10 @@ class PostPublish {
                 await _this.paramsValidate(ctx, options);
                 await next();
             } catch (err) {
-                _this.handleErrMsg(ctx, err);
+                let res = {} as ResponseSchema;
+                res.code = -1;
+                res.msg = err.message;
+                ctx.body = res;
             }
         }
     }
@@ -45,54 +48,51 @@ class PostPublish {
     }
 
     public async paramsValidate(ctx: KoaContext, options: ConfigOptions) {
-        const query = ctx.query;
         const body = ctx.request.body;
+        const params = body.fields;
 
-        if (!query.secret || query.secret != options.secret) {
+        if (!params.secret || params.secret != options.secret) {
             throw new Error("Secret is required!")
         }
 
-        if (!query.name || _.isEmpty(query.name)) {
+        if (!params.name || _.isEmpty(params.name)) {
             throw new Error("Name is required!")
         }
 
-        if (!query.version || _.isEmpty(query.version)) {
+        if (!params.version || _.isEmpty(params.version)) {
             throw new Error("Version is required!")
         }
 
         if (!body.hasOwnProperty("files") || !body.files.hasOwnProperty("fileUpload")) {
             throw new Error("fileUpload is required!");
         }
-
     }
 
     public async handle(ctx: KoaContext, next: MiddlewareNext, conn?: Connection): Promise<ResponseSchema> {
-
         // file upload
         const fileUpload = ctx.request.body.files['fileUpload'];
         const filePath = LibPath.join(__dirname, '..', '..', '..', 'store', fileUpload.name);
         const reader = LibFs.createReadStream(fileUpload.path);
         const stream = LibFs.createWriteStream(filePath);
-
         await reader.pipe(stream);
         await LibFs.unlink(fileUpload.path);
 
+        let res = {} as ResponseSchema;
         try {
-            const query = ctx.query;
-            const [major, minor, patch] = ctx.query.version.split('.');
+            const params = ctx.request.body.fields;
+            const [major, minor, patch] = params.version.split('.');
 
             // find package
             let spmPackage = await conn
                 .getRepository(SpmPackage)
                 .createQueryBuilder("package")
-                .where('package.name=:name', { name: query.name })
+                .where('package.name=:name', { name: params.name })
                 .getOne();
 
             // if package is not found, create package
             if (_.isEmpty(spmPackage)) {
-                console.log("Create package entity!");
                 let entity = new SpmPackage();
-                entity.name = query.name;
+                entity.name = params.name;
                 spmPackage = await conn.manager.persist(entity);
             }
             // find package version
@@ -100,14 +100,13 @@ class PostPublish {
                 .getRepository(SpmPackageVersion)
                 .createQueryBuilder("version")
                 .where('version.pid=:pid', { pid: spmPackage.id })
-                .andWhere('version.major=:major', { major: major | 0 })
-                .andWhere('version.minor=:minor', { minor: minor | 0 })
-                .andWhere('version.patch=:patch', { patch: patch | 0 })
+                .andWhere('version.major=:major', { major: major })
+                .andWhere('version.minor=:minor', { minor: minor })
+                .andWhere('version.patch=:patch', { patch: patch })
                 .getOne();
 
             // if version is not found, create version
             if (_.isEmpty(spmPackageVersion)) {
-                console.log("Create package version entity!");
                 let entity = new SpmPackageVersion();
                 entity.pid = spmPackage.id;
                 entity.major = major | 0;
@@ -115,24 +114,18 @@ class PostPublish {
                 entity.patch = patch | 0;
                 entity.filePath = filePath;
                 entity.time = new Date().getTime();
-                await conn.manager.persist(entity);
+                spmPackageVersion = await conn.manager.persist(entity);
             }
+
+            res.code = 0;
+            res.msg = {spmPackage: spmPackage, spmPackageVersion: spmPackageVersion};
         } catch (err) {
-            this.handleErrMsg(ctx, err);
+            res.code = -1;
+            res.msg = err.message;
         }
 
-        let res = {} as ResponseSchema;
-        res.code = 0;
-        res.msg = "succeed";
         return res;
     };
-
-    public handleErrMsg (ctx: KoaContext, err: Error) {
-        let res = {} as ResponseSchema;
-        res.code = -1;
-        res.msg = err.message;
-        ctx.body = res;
-    }
 }
 
 export const api = new PostPublish();

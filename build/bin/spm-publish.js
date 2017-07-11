@@ -48,6 +48,7 @@ class PublishCLI {
     }
     _load() {
         return __awaiter(this, void 0, void 0, function* () {
+            debug('PublishCLI load.');
             let importFiles = yield LibFs.readdir(IMPORT_DIR);
             if (importFiles.indexOf('spm.json') < 0) {
                 throw new Error('File: `spm.json` not found in import dir:' + IMPORT_DIR);
@@ -65,47 +66,81 @@ class PublishCLI {
             if (!this._packageOption.version || _.isEmpty(this._packageOption.version) || typeof this._packageOption.version !== 'string') {
                 throw new Error('Package param: `version` is required');
             }
-            this._tmpZipPath = LibPath.join(__dirname, '..', '..', 'tmp', `${this._packageOption.name}@${this._packageOption.version}.zip`);
+            this._tmpZipPath = LibPath.join(__dirname, '..', '..', 'tmp', Math.random().toString(16) + ".zip");
         });
     }
     _compress() {
         return __awaiter(this, void 0, void 0, function* () {
             debug('PublishCLI compress.');
             // create a file to stream archive data to.
-            let archive = archiver('zip', { zlib: { level: 9 } });
-            archive.on('warning', (err) => {
-                if (err.code === 'ENOENT') {
-                    debug("Archive waring:" + err.message);
-                }
-                else {
-                    throw err;
-                }
+            yield new Promise((resolve, reject) => {
+                let output = LibFs.createWriteStream(this._tmpZipPath).on("close", () => {
+                    debug('PublishCLI compress finish.');
+                    resolve();
+                });
+                let archive = archiver('zip', { zlib: { level: 9 } });
+                archive.on('warning', (err) => {
+                    if (err.code === 'ENOENT') {
+                        debug("Archive waring:" + err.message);
+                    }
+                    else {
+                        reject(err);
+                    }
+                });
+                archive.on('error', (err) => {
+                    reject(err);
+                });
+                archive.pipe(output);
+                archive.directory(IMPORT_DIR, false);
+                archive.finalize();
             });
-            archive.on('error', (err) => {
-                throw err;
-            });
-            archive.pipe(LibFs.createWriteStream(this._tmpZipPath));
-            archive.directory(IMPORT_DIR, false);
-            archive.finalize();
         });
     }
     _publish() {
         return __awaiter(this, void 0, void 0, function* () {
             debug('PublishCLI publish.');
-            let reqParams = {
-                name: this._packageOption.name,
-                version: this._packageOption.version,
-            };
-            let reqOptions = yield lib_1.SpmHttp.getRequestOption("/v1/publish", reqParams, lib_1.RequestMethod.post);
-            let req = http.request(reqOptions, (res) => {
-                res.on('data', (chunk) => {
-                    debug('PublishCLI publish result: ' + chunk);
+            yield new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
+                // build header
+                let reqParams = {
+                    name: this._packageOption.name,
+                    version: this._packageOption.version,
+                    secret: lib_1.SpmSecret.load(),
+                };
+                let boundaryKey = Math.random().toString(16);
+                let enddata = '\r\n----' + boundaryKey + '--';
+                let content = '';
+                for (let key in reqParams) {
+                    content += '\r\n----' + boundaryKey + '\r\n'
+                        + 'Content-Disposition: form-data; name="' + key + '" \r\n\r\n'
+                        + encodeURIComponent(reqParams[key]);
+                }
+                content += '\r\n----' + boundaryKey + '\r\n'
+                    + 'Content-Type: application/octet-stream\r\n'
+                    + 'Content-Disposition: form-data; name="fileUpload"; filename="' + `${reqParams.name}@${reqParams.version}.zip` + '"\r\n'
+                    + "Content-Transfer-Encoding: binary\r\n\r\n";
+                let contentBinary = new Buffer(content, 'utf-8');
+                let contentLength = LibFs.statSync(this._tmpZipPath).size + contentBinary.length;
+                // create request
+                let reqOptions = yield lib_1.SpmHttp.getRequestOption('/v1/publish', lib_1.RequestMethod.post);
+                let req = http.request(reqOptions, (res) => {
+                    res.on('data', (chunk) => __awaiter(this, void 0, void 0, function* () {
+                        debug(`PublishCLI publish: [Response] - ${chunk}`);
+                        yield LibFs.unlink(this._tmpZipPath);
+                        resolve();
+                    }));
+                }).on('error', (e) => reject(e));
+                // send request headers
+                req.setHeader('Content-Type', 'multipart/form-data; boundary=--' + boundaryKey);
+                req.setHeader('Content-Length', `${contentLength + Buffer.byteLength(enddata)}`);
+                req.write(contentBinary);
+                // send request stream
+                let fileStream = LibFs.createReadStream(this._tmpZipPath);
+                fileStream.on('end', () => {
+                    req.end(enddata);
+                    debug(`PublishCLI publish finish.`);
                 });
-            });
-            req.on('error', (e) => {
-                debug('PublishCLI publish failed: ' + e.message);
-            });
-            yield lib_1.SpmHttp.uploadFiles(this._tmpZipPath, this._packageOption, req);
+                fileStream.pipe(req, { end: false });
+            }));
         });
     }
     ;

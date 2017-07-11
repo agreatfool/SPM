@@ -10,7 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 const Koa = require("koa");
 const koaBody = require("koa-body");
-// import * as koaBodyParser from "koa-bodyparser";
+const koaBodyParser = require("koa-bodyparser");
 const Config_1 = require("./Config");
 const Database_1 = require("./Database");
 const Router_1 = require("./Router");
@@ -28,6 +28,7 @@ class App {
             yield this.database.init();
             yield this.router.init(this.config.options, this.database.conn);
             this.app.use(koaBody({ multipart: true }));
+            this.app.use(koaBodyParser({ formLimit: '2048kb' })); // post body parser
             this.app.use(Router_1.default.instance().getRouter().routes());
             this._initialized = true;
         });
