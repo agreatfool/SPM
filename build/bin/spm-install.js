@@ -39,7 +39,6 @@ class InstallCLI {
             yield this._initLocaleInfo();
             yield this._initRemoteInfo();
             yield this._deploy();
-            // await this._uncompress();
         });
     }
     _validate() {

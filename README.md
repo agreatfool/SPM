@@ -105,7 +105,7 @@ proto 管理工具的版本定义使用 Sem Ver 定义
 	* spm help         							            // 命令帮助工具
 	* spm version     							            // 显示版本号
 	* spm list            						          // 显示本地依赖包结构与版本
-	* spm search [--keyword 关键字@<version>] 	  // 从中心节点搜索依赖包名
+	* spm search [--keyword 关键字] 	            // 从中心节点搜索依赖包名
 	* spm install [--name spm包名@<version>]    // 从中心节点安装依赖包 
 	* spm uninstall [--name spm包名@<version>]  // 卸载包
 	* spm secret [--secret 密钥]                // 设置密钥

@@ -128,7 +128,6 @@ class PostPublish {
             entity.dependencies = params.dependencies;
             spmPackageVersion = await conn.manager.persist(entity);
 
-            console.log(params);
             res.code = 0;
             res.msg = {spmPackage: spmPackage, spmPackageVersion: spmPackageVersion};
         } catch (err) {

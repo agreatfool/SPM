@@ -10,7 +10,6 @@ import * as unzip from "unzip";
 import * as qs from "querystring";
 import * as _ from "underscore";
 import {ResponseSchema} from "../lib/Router";
-import {worker} from "cluster";
 
 const mkdir = bluebird.promisify<string, string>(LibMkdirP);
 const pkg = require('../../package.json');
@@ -54,7 +53,6 @@ class InstallCLI {
         await this._initLocaleInfo();
         await this._initRemoteInfo();
         await this._deploy();
-        // await this._uncompress();
     }
 
     private async _validate() {

@@ -121,7 +121,6 @@ class PostPublish {
                 entity.time = new Date().getTime();
                 entity.dependencies = params.dependencies;
                 spmPackageVersion = yield conn.manager.persist(entity);
-                console.log(params);
                 res.code = 0;
                 res.msg = { spmPackage: spmPackage, spmPackageVersion: spmPackageVersion };
             }
