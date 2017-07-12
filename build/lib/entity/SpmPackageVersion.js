@@ -40,6 +40,10 @@ __decorate([
     typeorm_1.Column("int"),
     __metadata("design:type", Number)
 ], SpmPackageVersion.prototype, "time", void 0);
+__decorate([
+    typeorm_1.Column("text"),
+    __metadata("design:type", String)
+], SpmPackageVersion.prototype, "dependencies", void 0);
 SpmPackageVersion = __decorate([
     typeorm_1.Entity()
 ], SpmPackageVersion);

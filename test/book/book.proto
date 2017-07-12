@@ -1,9 +1,9 @@
 syntax = "proto3";
 
 import "google/api/annotations.proto";
-import "userPb/user.proto";
+import "user/user.proto";
 
-package booksPb;
+package book;
 
 message Book {
     int64 isbn = 1;
@@ -20,6 +20,7 @@ message BookCategory {
     int64 id = 1;
     string name = 2;
     bool isParent = 3;
+    user.User user = 4;
 }
 
 message BookMap {
@@ -70,7 +71,7 @@ service BookApiService {
         };
     }
 
-    rpc GetBookUserApi (userPb.GetUserRequest) returns (Book) {
+    rpc GetBookUserApi (user.GetUserRequest) returns (Book) {
         option (google.api.http) = {
             post: "/v1/getBookUser/{id}"
             body: "*"

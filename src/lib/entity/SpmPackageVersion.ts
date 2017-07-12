@@ -22,4 +22,7 @@ export class SpmPackageVersion {
 
     @Column("int")
     time: number;
+
+    @Column("text")
+    dependencies: string;
 }

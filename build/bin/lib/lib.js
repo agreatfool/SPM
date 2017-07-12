@@ -15,6 +15,22 @@ var RequestMethod;
     RequestMethod[RequestMethod["post"] = 0] = "post";
     RequestMethod[RequestMethod["get"] = 1] = "get";
 })(RequestMethod = exports.RequestMethod || (exports.RequestMethod = {}));
+exports.rmdir = (dirPath) => __awaiter(this, void 0, void 0, function* () {
+    let files = yield LibFs.readdir(dirPath);
+    if (files.length > 0) {
+        for (let i = 0; i < files.length; i++) {
+            let filePath = LibPath.join(dirPath, files[i]);
+            let fileStat = yield LibFs.stat(filePath);
+            if (fileStat.isFile()) {
+                yield LibFs.unlink(filePath);
+            }
+            else {
+                yield exports.rmdir(filePath);
+            }
+        }
+    }
+    yield LibFs.rmdir(dirPath);
+});
 const buildParam = (condition) => {
     let data = null;
     if (condition != null) {
@@ -34,6 +50,16 @@ const buildParam = (condition) => {
         }
     }
     return data;
+};
+exports.findProjectDir = (path) => {
+    const pkg = require('../../../package.json');
+    if (path.indexOf('node_modules') >= 0) {
+        return LibPath.join(path.substr(0, path.indexOf('node_modules')));
+    }
+    if (path.indexOf(pkg.name) >= 0) {
+        return LibPath.join(__dirname.substr(0, __dirname.indexOf(pkg.name)), '..');
+    }
+    return LibPath.join(path, '..', '..', '..', '..');
 };
 var SpmHttp;
 (function (SpmHttp) {

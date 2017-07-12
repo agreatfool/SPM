@@ -104,6 +104,7 @@ class PublishCLI {
                 let reqParams = {
                     name: this._packageOption.name,
                     version: this._packageOption.version,
+                    dependencies: JSON.stringify(this._packageOption.dependencies),
                     secret: lib_1.SpmSecret.load(),
                 };
                 let boundaryKey = Math.random().toString(16);

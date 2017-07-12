@@ -17,6 +17,21 @@ export interface SpmPackageOption {
         [key: string]: string
     }
 }
+export const rmdir = async (dirPath) => {
+    let files = await LibFs.readdir(dirPath);
+    if (files.length > 0) {
+        for (let i = 0; i < files.length; i++) {
+            let filePath = LibPath.join(dirPath, files[i]);
+            let fileStat = await LibFs.stat(filePath);
+            if (fileStat.isFile()) {
+                await LibFs.unlink(filePath);
+            } else {
+                await rmdir(filePath);
+            }
+        }
+    }
+    await LibFs.rmdir(dirPath);
+};
 
 const buildParam = (condition) => {
     let data = null;
@@ -38,6 +53,31 @@ const buildParam = (condition) => {
     }
     return data;
 };
+
+export const findProjectDir = (path: string): string => {
+    const pkg = require('../../../package.json');
+    if (path.indexOf('node_modules') >= 0) {
+        return LibPath.join(path.substr(0, path.indexOf('node_modules')));
+    }
+
+    if (path.indexOf(pkg.name) >= 0) {
+        return LibPath.join(__dirname.substr(0, __dirname.indexOf(pkg.name)), '..');
+    }
+
+    return LibPath.join(path, '..', '..', '..', '..')
+};
+
+export interface ProtoDependencies {
+    name: string,
+    version: string,
+    dependencies: {
+        [key: string]: string
+    }
+}
+
+export interface ProtoDependenciesList {
+    [key: string]: ProtoDependencies;
+}
 
 export namespace SpmHttp {
 

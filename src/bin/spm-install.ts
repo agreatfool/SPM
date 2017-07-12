@@ -1,22 +1,48 @@
 import * as program from "commander";
 import * as LibPath from "path";
 import * as LibFs from "mz/fs";
-import {RequestMethod, SpmHttp} from "./lib/lib";
+import * as bluebird from "bluebird";
+import * as LibMkdirP from "mkdirp";
+import {findProjectDir, RequestMethod, rmdir, SpmHttp, SpmPackageOption} from "./lib/lib";
 import * as http from "http";
+import * as recursive from "recursive-readdir";
+import * as unzip from "unzip";
 import * as qs from "querystring";
+import * as _ from "underscore";
+import {ResponseSchema} from "../lib/Router";
+import {worker} from "cluster";
 
+const mkdir = bluebird.promisify<string, string>(LibMkdirP);
 const pkg = require('../../package.json');
 const debug = require('debug')('SPM:CLI:install');
 
 program.version(pkg.version)
     .option('-n, --name <item>', 'package name')
+    .option('-p, --projectDir <dir>', 'project dir')
     .parse(process.argv);
 
 const NAME_VALUE = (program as any).name === undefined ? undefined : (program as any).name;
+const PROJECT_DIR_VALUE = (program as any).projectDir === undefined ? undefined : (program as any).projectDir;
+
+interface InstallPackageSchema {
+    version: [string, string, string],
+    path: string,
+    dependencies?: {
+        [key: string]: string
+    }
+    dependenciesChangeMap?: {
+        [key: string]: string
+    }
+    originalName?: string
+}
 
 class InstallCLI {
-
-    private _tmpZipPath: string;
+    private _tmpDir: string;
+    private _tmpFileName: string;
+    private _projectDir: string;
+    private _projectProtoDir: string;
+    private _projectInstalled: { [dirName: string]: [string, string, string] };
+    private _installList: { [dirName: string]: InstallPackageSchema };
 
     static instance() {
         return new InstallCLI();
@@ -25,8 +51,10 @@ class InstallCLI {
     public async run() {
         debug('InstallCLI start.');
         await this._validate();
-        await this._download();
-        await this._uncompress();
+        await this._initLocaleInfo();
+        await this._initRemoteInfo();
+        await this._deploy();
+        // await this._uncompress();
     }
 
     private async _validate() {
@@ -35,47 +63,256 @@ class InstallCLI {
         if (!NAME_VALUE) {
             throw new Error('--name is required');
         }
-    }
 
-    private async _download() {
-        debug('InstallCLI download.');
-
-        this._tmpZipPath = LibPath.join(__dirname, '..', '..', 'tmp', Math.random().toString(16) + ".zip");
-        let stream = LibFs.createWriteStream(this._tmpZipPath).on("close", () => {
-            debug("InstallCLI download finish!")
-        });
-        let reqOptions = await SpmHttp.getRequestOption('/v1/install', RequestMethod.post);
-        let req = await http.request(reqOptions, (res) => {
-            if (res.headers['content-type'] == 'application/octet-stream') {
-                res.pipe(stream);
-            } else {
-                res.on("data", (chunk) => {
-                    debug(`[Request] - chunk:${chunk}`);
-                })
-            }
-        }).on('error', (e) => {
-            debug(`[RequestError] - error:${e.message}`);
-        });
-
-        let reqParamsStr = qs.stringify({
-            name: NAME_VALUE,
-        });
-
-        req.setHeader('Content-Type', 'application/x-www-form-urlencoded');
-        req.setHeader('Content-Length', Buffer.byteLength(reqParamsStr, 'utf8').toString());
-        req.write(reqParamsStr);
-
-        //await LibFs.unlink(downloadFile);
-    }
-
-    private async _uncompress() {
-        debug('InstallCLI uncompress.');
-
-        let fileStat = await LibFs.stat(this._tmpZipPath);
-        if (fileStat.isFile()) {
-            console.log(fileStat.size);
+        // 向上查找项目文件夹根目录
+        if (!PROJECT_DIR_VALUE) {
+            this._projectDir = findProjectDir(__dirname);
         } else {
+            this._projectDir = PROJECT_DIR_VALUE;
+        }
+    }
 
+    private async _initLocaleInfo() {
+        debug('InstallCLI init LocaleInfo.');
+
+        // 创建临时文件夹
+        this._tmpDir = LibPath.join(__dirname, '..', '..', 'tmp');
+        this._tmpFileName = Math.random().toString(16) + ".zip";
+        await mkdir(this._tmpDir);
+
+        // 创建项目根目录下的spm_protos文件夹
+        this._projectProtoDir = LibPath.join(this._projectDir, "spm_protos");
+        this._projectInstalled = {};
+        await mkdir(this._projectProtoDir);
+
+        let protoDirStat = await LibFs.stat(this._projectProtoDir);
+        if (protoDirStat.isDirectory()) {
+            let files = await recursive(this._projectProtoDir, [".DS_Store"]);
+            for (let file of files) {
+                let basename = LibPath.basename(file);
+                if (basename.match(/.+\.json/) !== null) {
+                    let name = LibPath.dirname(file).replace(this._projectProtoDir, '').replace('\\', '').replace('/', '');
+                    let packageOption = JSON.parse(LibFs.readFileSync(file).toString()) as SpmPackageOption;
+                    let [major, minor, patch] = packageOption.version.split('.');
+                    this._projectInstalled[name] = [major, minor, patch];
+                }
+            }
+        }
+    }
+
+    private async _initRemoteInfo() {
+        debug('InstallCLI init remote info.');
+
+        this._installList = {};
+
+        // 创建临时文件夹
+        await new Promise(async (resolve, reject) => {
+            let reqParamsStr = qs.stringify({
+                name: NAME_VALUE,
+            });
+
+            // create request
+            let reqOptions = await SpmHttp.getRequestOption('/v1/depend', RequestMethod.post);
+            let req = http.request(reqOptions, (res) => {
+                res.on("data", (chunk) => {
+                    let response = JSON.parse(chunk.toString()) as ResponseSchema;
+                    let depends = response.msg;
+                    if (_.isObject(depends)) {
+                        for (let pkgName in depends as InstallPackageSchema) {
+                            let [name, version] = pkgName.split('@');
+                            this._mergeInstallPackage(name, version, depends[pkgName].path, depends[pkgName].dependencies);
+                        }
+
+                        this._changeInstallDependencies();
+                        resolve();
+                    } else {
+                        reject(new Error(chunk.toString()));
+                    }
+                });
+            }).on('error', (e) => reject(e));
+
+            // send request headers
+            req.setHeader('Content-Type', 'application/x-www-form-urlencoded');
+            req.setHeader('Content-Length', Buffer.byteLength(reqParamsStr, 'utf8').toString());
+            req.write(reqParamsStr);
+        });
+
+    }
+
+    private _mergeInstallPackage(name: string, version: string, path: string, dependencies: { [key: string]: string }, deepLevel: number = 0, originalName?: string): void {
+        let [nextMajor, nextMinor, nextPatch] = version.split('.');
+
+        if (this._projectInstalled.hasOwnProperty(name)) {
+            let [curMajor, curMinor, curPath] = this._projectInstalled[name];
+            if (nextMajor == curMajor) {
+                if (nextMinor < curMinor || nextMinor == curMinor && nextPatch < curPath) {
+                    // 依赖版本低于当前版本，不处理，其他情况都要重新下载
+                } else {
+                    this._projectInstalled[name] = [nextMajor, nextMinor, nextPatch];
+                    this._installList[name] = {
+                        version: [nextMajor, nextMinor, nextPatch],
+                        path: path,
+                        dependencies: dependencies
+                    };
+
+                    if (originalName) {
+                        this._installList[name].originalName = originalName;
+                    }
+                }
+            } else {
+                if (deepLevel == 0) {
+                    this._mergeInstallPackage(name + nextMajor, version, path, dependencies, 1, name);
+                }
+            }
+        } else {
+            this._projectInstalled[name] = [nextMajor, nextMinor, nextPatch];
+            this._installList[name] = {
+                version: [nextMajor, nextMinor, nextPatch],
+                path: path,
+                dependencies: dependencies
+            };
+
+            if (originalName) {
+                this._installList[name].originalName = originalName;
+            }
+        }
+    }
+
+    private _changeInstallDependencies() {
+        for (let name in this._installList) {
+            this._installList[name].dependenciesChangeMap = {};
+            for (let dependName in this._installList[name].dependencies) {
+                let [dependMajor] = this._installList[name].dependencies[dependName].split('.');
+                if (this._projectInstalled.hasOwnProperty(dependName)) {
+                    let [installMajor] = this._projectInstalled[dependName];
+                    if (installMajor != dependMajor) {
+                        this._installList[name].dependenciesChangeMap[dependName] = dependName + dependMajor
+                    }
+                }
+            }
+        }
+    }
+
+    private async _deploy() {
+        debug('InstallCLI deploy.');
+        for (let name in this._installList) {
+            await this._install(name, this._installList[name]);
+        }
+    }
+
+    private async _install(name: string, info: InstallPackageSchema) {
+        debug('InstallCLI install. name: ' + name);
+
+        let tmpName = name + this._tmpFileName;
+        let tmpZipPath = LibPath.join(this._tmpDir, tmpName);
+        let tmpPkgPath = LibPath.join(this._tmpDir, name);
+
+        // download file
+        await new Promise(async (resolve, reject) => {
+            debug('InstallCLI download.');
+            let reqParamsStr = qs.stringify({
+                path: info.path,
+            });
+
+            let fileStream = LibFs.createWriteStream(tmpZipPath);
+
+            // create request
+            let reqOptions = await SpmHttp.getRequestOption('/v1/install', RequestMethod.post);
+            let req = http.request(reqOptions, (res) => {
+                if (res.headers['content-type'] == 'application/octet-stream') {
+                    res.pipe(fileStream);
+                    res.on("end", () => {
+                        debug('InstallCLI download finish');
+                        resolve();
+                    });
+                } else {
+                    res.on("data", (chunk) => reject(new Error(chunk.toString())));
+                }
+            }).on('error', (e) => reject(e));
+
+            // send request headers
+            req.setHeader('Content-Type', 'application/x-www-form-urlencoded');
+            req.setHeader('Content-Length', Buffer.byteLength(reqParamsStr, 'utf8').toString());
+            req.write(reqParamsStr);
+        });
+
+        // unzip file
+        await new Promise(async (resolve, reject) => {
+            debug('InstallCLI unzip.');
+            let fileStat = await LibFs.stat(tmpZipPath);
+            if (fileStat.isFile()) {
+                LibFs.createReadStream(tmpZipPath).pipe(unzip.Extract({ path: tmpPkgPath }).on("close", async () => {
+                    debug('InstallCLI unzip finish');
+                    await LibFs.unlink(tmpZipPath);
+                    resolve();
+                }));
+            } else {
+                await LibFs.unlink(tmpZipPath);
+                reject(new Error("Download file corruption."))
+            }
+        });
+
+        // change package name
+        await new Promise(async (resolve, reject) => {
+            debug('InstallCLI replace.');
+            if (_.isEmpty(info.dependenciesChangeMap) && _.isEmpty(info.originalName)) {
+                resolve();
+            } else {
+                let files = await recursive(tmpPkgPath, ['.DS_Store']);
+                let count = 0;
+                await files.map(async (file: string) => {
+                    count++;
+                    if (LibPath.basename(file).match(/.+\.proto/) !== null) {
+                        if (!_.isEmpty(info.originalName)) {
+                            await this._replaceStringInFile(file, [
+                                [new RegExp(`package ${info.originalName};`,"g"), `package ${name};`]
+                            ]);
+                        }
+
+                        if (!_.isEmpty(info.dependenciesChangeMap)) {
+                            for (let oldDependName in info.dependenciesChangeMap) {
+                                let newDependName = info.dependenciesChangeMap[oldDependName];
+                                await this._replaceStringInFile(file, [
+                                    [new RegExp(`import "${oldDependName}/`,"g"), `import "${newDependName}/`],
+                                    [new RegExp(`\\((${oldDependName}.*?)\\)`,"g"), (word) => word.replace(oldDependName, newDependName)],
+                                    [new RegExp(` (${oldDependName}.*?) `,"g"), (word) => word.replace(oldDependName, newDependName)]
+                                ]);
+                            }
+                        }
+
+                        if (count == files.length) {
+                            resolve();
+                        }
+                    }
+                });
+            }
+        });
+
+        await new Promise(async (resolve) => {
+            debug('InstallCLI spm_proto dir.');
+            let installDir = LibPath.join(this._projectProtoDir, name);
+            await rmdir(installDir);
+            await LibFs.rename(tmpPkgPath, installDir);
+            resolve();
+        })
+    }
+
+    private async _replaceStringInFile(filePath: string, conditions: Array<[RegExp, any]>) {
+        try {
+            let fileStat = await LibFs.stat(filePath);
+            if (fileStat.isFile()) {
+                let content = LibFs.readFileSync(filePath).toString();
+                for (let [reg, word] of conditions) {
+                    content = content.toString().replace(reg, word);
+                }
+                await LibFs.writeFile(filePath, Buffer.from(content), (err) => {
+                    if (err) {
+                        throw err;
+                    }
+                });
+            }
+        } catch (e) {
+            throw e;
         }
     }
 }

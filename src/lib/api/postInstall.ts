@@ -5,8 +5,7 @@ import {Connection} from "typeorm";
 import {Context as KoaContext, Middleware as KoaMiddleware} from "koa";
 import {MiddlewareNext, ResponseSchema} from "../Router";
 import {ConfigOptions} from "../Config";
-import {SpmPackage} from "../entity/SpmPackage";
-import {SpmPackageVersion} from "../entity/SpmPackageVersion";
+import {ReadStream} from "fs";
 
 class PostInstall {
     public method: string;
@@ -41,80 +40,31 @@ class PostInstall {
     protected _execute(options: ConfigOptions, conn?: Connection): KoaMiddleware {
         let _this = this;
         return async function (ctx: KoaContext, next: MiddlewareNext): Promise<void> {
-            let body = await _this.handle(ctx, next, conn);
-            if (!_.isEmpty(body)) {
-                ctx.body = body;
-            }
+            ctx.body = await _this.handle(ctx, next, conn);
             await next();
         }
     }
 
     public async paramsValidate(ctx: KoaContext, options: ConfigOptions) {
         const params = ctx.request.body;
-        if (!params.name || _.isEmpty(params.name)) {
-            throw new Error("Name is required!")
+        if (!params.path || _.isEmpty(params.path)) {
+            throw new Error("path is required!")
         }
     }
 
-    public async handle(ctx: KoaContext, next: MiddlewareNext, conn?: Connection): Promise<ResponseSchema> {
+    public async handle(ctx: KoaContext, next: MiddlewareNext, conn?: Connection): Promise<ResponseSchema | ReadStream> {
 
         let res = {} as ResponseSchema;
         try {
             const params = ctx.request.body;
-            let [name, version] = params.name.split('@');
 
-            // find package
-            let spmPackage = await conn
-                .getRepository(SpmPackage)
-                .createQueryBuilder("package")
-                .where('package.name=:name', { name: name })
-                .getOne();
-
-            if (_.isEmpty(spmPackage)) {
-                res.code = -1;
-                res.msg = "Package not found, name: " + name;
-                return res;
-            }
-
-            let spmPackageVersion: SpmPackageVersion;
-            if (!_.isEmpty(version)) {
-                const [major, minor, patch] = version.split('.');
-
-                // find package version
-                spmPackageVersion = await conn
-                    .getRepository(SpmPackageVersion)
-                    .createQueryBuilder("version")
-                    .where('version.pid=:pid', { pid: spmPackage.id })
-                    .andWhere('version.major=:major', { major: major })
-                    .andWhere('version.minor=:minor', { minor: minor })
-                    .andWhere('version.patch=:patch', { patch: patch })
-                    .getOne();
-            } else {
-                // find package version
-                spmPackageVersion = await conn
-                    .getRepository(SpmPackageVersion)
-                    .createQueryBuilder("version")
-                    .where('version.pid=:pid', { pid: spmPackage.id })
-                    .orderBy("version.major", "DESC")
-                    .addOrderBy("version.minor", "DESC")
-                    .addOrderBy("version.patch", "DESC")
-                    .getOne();
-            }
-
-            if (_.isEmpty(spmPackageVersion)) {
-                res.code = -1;
-                res.msg = "Package version not found, name: " + name;
-                return res;
-            }
-
-            let fileStat = await LibFs.stat(spmPackageVersion.filePath);
+            let fileStat = await LibFs.stat(params.path);
             if (fileStat.isFile()) {
-                ctx.body = LibFs.createReadStream(spmPackageVersion.filePath);
-                ctx.set('Content-Disposition', `attachment; filename=${spmPackage.name}@${spmPackageVersion.major}.${spmPackageVersion.minor}.${spmPackageVersion.patch}`);
-                return;
+                ctx.set('Content-Disposition', `attachment; filename="tmp.zip"`);
+                return LibFs.createReadStream(params.path);
             } else {
                 res.code = -1;
-                res.msg = "Package file not found, path: " + spmPackageVersion.filePath;
+                res.msg = "Package file not found, path: " + params.path;
             }
 
             return res;

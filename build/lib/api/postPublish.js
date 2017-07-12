@@ -71,15 +71,21 @@ class PostPublish {
     handle(ctx, next, conn) {
         return __awaiter(this, void 0, void 0, function* () {
             // file upload
+            const params = ctx.request.body.fields;
+            for (let key in params) {
+                params[key] = decodeURIComponent(params[key]);
+            }
+            // read upload stream
             const fileUpload = ctx.request.body.files['fileUpload'];
-            const filePath = LibPath.join(__dirname, '..', '..', '..', 'store', fileUpload.name);
-            const reader = LibFs.createReadStream(fileUpload.path);
-            const stream = LibFs.createWriteStream(filePath);
-            yield reader.pipe(stream);
-            yield LibFs.unlink(fileUpload.path);
+            const fileStream = LibFs.createReadStream(fileUpload.path).on('end', () => __awaiter(this, void 0, void 0, function* () {
+                yield LibFs.unlink(fileUpload.path);
+            }));
+            // write file stream
+            const writeFilePath = LibPath.join(__dirname, '..', '..', '..', 'store', `${params.name}@${params.version}.zip`);
+            const writeFileStream = LibFs.createWriteStream(writeFilePath);
+            yield fileStream.pipe(writeFileStream);
             let res = {};
             try {
-                const params = ctx.request.body.fields;
                 const [major, minor, patch] = params.version.split('.');
                 // find package
                 let spmPackage = yield conn
@@ -103,16 +109,19 @@ class PostPublish {
                     .andWhere('version.patch=:patch', { patch: patch })
                     .getOne();
                 // if version is not found, create version
-                if (_.isEmpty(spmPackageVersion)) {
-                    let entity = new SpmPackageVersion_1.SpmPackageVersion();
-                    entity.pid = spmPackage.id;
-                    entity.major = major | 0;
-                    entity.minor = minor | 0;
-                    entity.patch = patch | 0;
-                    entity.filePath = filePath;
-                    entity.time = new Date().getTime();
-                    spmPackageVersion = yield conn.manager.persist(entity);
+                let entity = new SpmPackageVersion_1.SpmPackageVersion();
+                if (!_.isEmpty(spmPackageVersion)) {
+                    entity.id = spmPackageVersion.id;
                 }
+                entity.pid = spmPackage.id;
+                entity.major = major | 0;
+                entity.minor = minor | 0;
+                entity.patch = patch | 0;
+                entity.filePath = writeFilePath;
+                entity.time = new Date().getTime();
+                entity.dependencies = params.dependencies;
+                spmPackageVersion = yield conn.manager.persist(entity);
+                console.log(params);
                 res.code = 0;
                 res.msg = { spmPackage: spmPackage, spmPackageVersion: spmPackageVersion };
             }

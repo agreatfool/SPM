@@ -70,16 +70,24 @@ class PostPublish {
 
     public async handle(ctx: KoaContext, next: MiddlewareNext, conn?: Connection): Promise<ResponseSchema> {
         // file upload
+        const params = ctx.request.body.fields;
+        for (let key in params) {
+            params[key] = decodeURIComponent(params[key]);
+        }
+
+        // read upload stream
         const fileUpload = ctx.request.body.files['fileUpload'];
-        const filePath = LibPath.join(__dirname, '..', '..', '..', 'store', fileUpload.name);
-        const reader = LibFs.createReadStream(fileUpload.path);
-        const stream = LibFs.createWriteStream(filePath);
-        await reader.pipe(stream);
-        await LibFs.unlink(fileUpload.path);
+        const fileStream = LibFs.createReadStream(fileUpload.path).on('end', async () => {
+            await LibFs.unlink(fileUpload.path);
+        });
+
+        // write file stream
+        const writeFilePath = LibPath.join(__dirname, '..', '..', '..', 'store', `${params.name}@${params.version}.zip`);
+        const writeFileStream = LibFs.createWriteStream(writeFilePath);
+        await fileStream.pipe(writeFileStream);
 
         let res = {} as ResponseSchema;
         try {
-            const params = ctx.request.body.fields;
             const [major, minor, patch] = params.version.split('.');
 
             // find package
@@ -106,17 +114,21 @@ class PostPublish {
                 .getOne();
 
             // if version is not found, create version
-            if (_.isEmpty(spmPackageVersion)) {
-                let entity = new SpmPackageVersion();
-                entity.pid = spmPackage.id;
-                entity.major = major | 0;
-                entity.minor = minor | 0;
-                entity.patch = patch | 0;
-                entity.filePath = filePath;
-                entity.time = new Date().getTime();
-                spmPackageVersion = await conn.manager.persist(entity);
+            let entity = new SpmPackageVersion();
+            if (!_.isEmpty(spmPackageVersion)) {
+                entity.id = spmPackageVersion.id;
             }
 
+            entity.pid = spmPackage.id;
+            entity.major = major | 0;
+            entity.minor = minor | 0;
+            entity.patch = patch | 0;
+            entity.filePath = writeFilePath;
+            entity.time = new Date().getTime();
+            entity.dependencies = params.dependencies;
+            spmPackageVersion = await conn.manager.persist(entity);
+
+            console.log(params);
             res.code = 0;
             res.msg = {spmPackage: spmPackage, spmPackageVersion: spmPackageVersion};
         } catch (err) {
