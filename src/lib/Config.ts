@@ -1,5 +1,5 @@
 "use strict";
-import * as LibPath from 'path'
+import * as LibPath from 'path';
 import * as LibFs from "mz/fs";
 
 export interface ConfigOptions {
@@ -27,8 +27,7 @@ export default class Config {
     }
 
     public async init() {
-        let filePath = LibPath.join(__dirname, "..", "..", 'config', "config.json");
-
+        let filePath = LibPath.join(__dirname, '..', '..', 'config', 'config.json');
         let stats = await LibFs.stat(filePath);
         if (stats.isFile()) {
             try {

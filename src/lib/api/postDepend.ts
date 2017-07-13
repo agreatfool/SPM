@@ -1,11 +1,10 @@
 import "reflect-metadata";
 import * as _ from "underscore";
-import {Connection} from "typeorm";
-import {Context as KoaContext, Middleware as KoaMiddleware} from "koa";
+import {Context as KoaContext} from "koa";
 import {MiddlewareNext, ResponseSchema} from "../Router";
-import {ConfigOptions} from "../Config";
 import {SpmPackage} from "../entity/SpmPackage";
 import {SpmPackageVersion} from "../entity/SpmPackageVersion";
+import {ApiBase} from "../ApiBase";
 
 interface DependSchema {
     [key: string]: {
@@ -16,45 +15,16 @@ interface DependSchema {
     }
 }
 
-class PostDepend {
-    public method: string;
-    public uri: string;
-    public type: string;
+class PostDepend extends ApiBase {
 
     constructor() {
+        super();
         this.method = 'post';
         this.uri = '/v1/depend';
         this.type = 'application/json; charset=utf-8';
     }
 
-    public register(options: ConfigOptions, conn: Connection): Array<string | KoaMiddleware> {
-        return [this.uri, this._validate(options, conn), this._execute(options, conn)];
-    };
-
-    protected _validate(options: ConfigOptions, conn?: Connection): KoaMiddleware {
-        let _this = this;
-        return async function (ctx: KoaContext, next:MiddlewareNext): Promise<void> {
-            try {
-                await _this.paramsValidate(ctx, options);
-                await next();
-            } catch (err) {
-                let res = {} as ResponseSchema;
-                res.code = -1;
-                res.msg = err.message;
-                ctx.body = res;
-            }
-        }
-    }
-
-    protected _execute(options: ConfigOptions, conn?: Connection): KoaMiddleware {
-        let _this = this;
-        return async function (ctx: KoaContext, next: MiddlewareNext): Promise<void> {
-            ctx.body = await _this.handle(ctx, next, conn);
-            await next();
-        }
-    }
-
-    public async paramsValidate(ctx: KoaContext, options: ConfigOptions) {
+    public async paramsValidate(ctx: KoaContext) {
         const params = ctx.request.body;
         if (!params.name || _.isEmpty(params.name)) {
             throw new Error("Name is required!")
@@ -65,40 +35,28 @@ class PostDepend {
         }
     }
 
-    public async handle(ctx: KoaContext, next: MiddlewareNext, conn?: Connection): Promise<ResponseSchema> {
-
-        let res = {} as ResponseSchema;
+    public async handle(ctx: KoaContext, next: MiddlewareNext): Promise<ResponseSchema> {
         try {
             const params = ctx.request.body;
             const [name, version] = params.name.split('@');
-            res.code = 0;
-            res.msg = await this.findDependencies(name, version, conn, {});
-            return res;
+            return this.buildResponse(await this.findDependencies(name, version, {}));
         } catch (err) {
-            res.code = -1;
-            res.msg = err.message;
+            return this.buildResponse(err.message, -1);
         }
-
-        return res;
     };
 
-    public async findDependencies(name: string, version: string, conn: Connection, dependencies: DependSchema) {
+    public async findDependencies(name: string, version: string, dependencies: DependSchema) {
 
         // if dependencies is exist, return ..
         if (dependencies.hasOwnProperty(`${name}@${version}`)) {
             return dependencies;
         }
 
-        if (!_.isEmpty(version)) {
-            const [major, minor, patch] = version.split('.');
-
-        }
-
         // find package
-        let spmPackage = await conn
+        let spmPackage = await this.dbHandler
             .getRepository(SpmPackage)
             .createQueryBuilder("package")
-            .where('package.name=:name', { name: name })
+            .where('package.name=:name', {name: name})
             .getOne();
 
         if (_.isEmpty(spmPackage)) {
@@ -108,19 +66,19 @@ class PostDepend {
         let spmPackageVersion: SpmPackageVersion;
         if (!_.isEmpty(version)) {
             const [major, minor, patch] = version.split('.');
-            spmPackageVersion = await conn
+            spmPackageVersion = await this.dbHandler
                 .getRepository(SpmPackageVersion)
                 .createQueryBuilder("version")
-                .where('version.pid=:pid', { pid: spmPackage.id })
-                .andWhere('version.major=:major', { major: major })
-                .andWhere('version.minor=:minor', { minor: minor })
-                .andWhere('version.patch=:patch', { patch: patch })
+                .where('version.pid=:pid', {pid: spmPackage.id})
+                .andWhere('version.major=:major', {major: major})
+                .andWhere('version.minor=:minor', {minor: minor})
+                .andWhere('version.patch=:patch', {patch: patch})
                 .getOne();
         } else {
-            spmPackageVersion = await conn
+            spmPackageVersion = await this.dbHandler
                 .getRepository(SpmPackageVersion)
                 .createQueryBuilder("version")
-                .where('version.pid=:pid', { pid: spmPackage.id })
+                .where('version.pid=:pid', {pid: spmPackage.id})
                 .orderBy("version.major", "DESC")
                 .addOrderBy("version.minor", "DESC")
                 .addOrderBy("version.patch", "DESC")
@@ -137,14 +95,14 @@ class PostDepend {
         } catch (e) {
             //do nothing
         }
-
         dependencies[`${name}@${spmPackageVersion.major}.${spmPackageVersion.minor}.${spmPackageVersion.patch}`] = {
             path: spmPackageVersion.filePath,
             dependencies: pkgDependencies
         };
 
-        for (let pkgName in pkgDependencies) {
-            dependencies = await this.findDependencies(pkgName, pkgDependencies[pkgName], conn, dependencies);
+        // deep loop
+        for (let dependPackageName in pkgDependencies) {
+            dependencies = await this.findDependencies(dependPackageName, pkgDependencies[dependPackageName], dependencies);
         }
 
         return dependencies;

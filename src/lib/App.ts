@@ -25,7 +25,7 @@ export default class App {
         await this.database.init();
         await this.router.init(this.config.options, this.database.conn);
 
-        this.app.use(koaBody({ multipart: true }));
+        this.app.use(koaBody({multipart: true}));
         this.app.use(koaBodyParser({formLimit: '2048kb'})); // post body parser
         this.app.use(Router.instance().getRouter().routes());
         this._initialized = true;

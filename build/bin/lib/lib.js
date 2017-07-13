@@ -10,120 +10,205 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 const LibPath = require("path");
 const LibFs = require("mz/fs");
+const LibMkdirP = require("mkdirp");
+const bluebird = require("bluebird");
+const http = require("http");
+const qs = require("querystring");
+const recursive = require("recursive-readdir");
 var RequestMethod;
 (function (RequestMethod) {
     RequestMethod[RequestMethod["post"] = 0] = "post";
     RequestMethod[RequestMethod["get"] = 1] = "get";
 })(RequestMethod = exports.RequestMethod || (exports.RequestMethod = {}));
-exports.rmdir = (dirPath) => __awaiter(this, void 0, void 0, function* () {
-    let files = yield LibFs.readdir(dirPath);
+exports.mkdir = bluebird.promisify(LibMkdirP);
+exports.rmdir = (dirPath) => {
+    let files = LibFs.readdirSync(dirPath);
     if (files.length > 0) {
         for (let i = 0; i < files.length; i++) {
             let filePath = LibPath.join(dirPath, files[i]);
-            let fileStat = yield LibFs.stat(filePath);
-            if (fileStat.isFile()) {
-                yield LibFs.unlink(filePath);
+            if (LibFs.statSync(filePath).isFile()) {
+                LibFs.unlinkSync(filePath);
             }
             else {
-                yield exports.rmdir(filePath);
+                exports.rmdir(filePath);
             }
         }
     }
-    yield LibFs.rmdir(dirPath);
-});
-const buildParam = (condition) => {
-    let data = null;
-    if (condition != null) {
-        if (typeof condition == 'string') {
-            data = condition;
-        }
-        if (typeof condition == 'object') {
-            let arr = [];
-            for (let name in condition) {
-                if (!condition.hasOwnProperty(name)) {
-                    continue;
-                }
-                let value = condition[name];
-                arr.push(encodeURIComponent(name) + '=' + encodeURIComponent(value));
-            }
-            data = arr.join('&');
-        }
-    }
-    return data;
+    LibFs.rmdirSync(dirPath);
 };
-exports.findProjectDir = (path) => {
-    const pkg = require('../../../package.json');
-    if (path.indexOf('node_modules') >= 0) {
-        return LibPath.join(path.substr(0, path.indexOf('node_modules')));
-    }
-    if (path.indexOf(pkg.name) >= 0) {
-        return LibPath.join(__dirname.substr(0, __dirname.indexOf(pkg.name)), '..');
-    }
-    return LibPath.join(path, '..', '..', '..', '..');
-};
-var SpmHttp;
-(function (SpmHttp) {
-    /**
-     * Get Spm http config
-     *
-     * @returns {Promise<SpmConfig>}
-     */
-    function getConfig() {
-        return __awaiter(this, void 0, void 0, function* () {
-            let filePath = LibPath.join(__dirname, "..", "..", "..", 'config', "config.json");
-            let stats = yield LibFs.stat(filePath);
-            if (stats.isFile()) {
-                try {
-                    return JSON.parse(LibFs.readFileSync(filePath).toString());
-                }
-                catch (e) {
-                    throw new Error('[Config] Error:' + e.message);
-                }
-            }
-            else {
-                throw new Error('[Config] config file path have to be an absolute path!');
-            }
-        });
-    }
-    SpmHttp.getConfig = getConfig;
-    /**
-     * Get Spm Publish request config
-     *
-     * @returns {Promise<SpmConfig>}
-     */
-    function getRequestOption(path, method = RequestMethod.get) {
-        return __awaiter(this, void 0, void 0, function* () {
-            let spmHttpConfig = yield SpmHttp.getConfig();
-            let requestConfig = {};
-            requestConfig.host = spmHttpConfig.host;
-            requestConfig.port = spmHttpConfig.port;
-            requestConfig.method = RequestMethod[method];
-            requestConfig.path = path;
-            return requestConfig;
-        });
-    }
-    SpmHttp.getRequestOption = getRequestOption;
-})(SpmHttp = exports.SpmHttp || (exports.SpmHttp = {}));
-var SpmSecret;
-(function (SpmSecret) {
-    SpmSecret.SPM_LRC_PATH = LibPath.join(__dirname, "..", "..", "..", ".spmlrc");
+var Spm;
+(function (Spm) {
+    Spm.INSTALL_DIR_NAME = "spm_protos";
+    Spm.SPM_ROOT_PATH = LibPath.join(__dirname, '..', '..', '..');
     /**
      * Save secret value into .spmlrc
      *
      * @returns {void}
      */
-    function save(value) {
-        LibFs.writeFileSync(SpmSecret.SPM_LRC_PATH, value, "utf-8");
+    function saveSecret(value) {
+        let lrcPath = LibPath.join(Spm.SPM_ROOT_PATH, '.spmlrc');
+        LibFs.writeFileSync(lrcPath, value, "utf-8");
     }
-    SpmSecret.save = save;
+    Spm.saveSecret = saveSecret;
     /**
      * Load secret value from .spmlrc
      *
      * @returns {string}
      */
-    function load() {
-        return LibFs.readFileSync(SpmSecret.SPM_LRC_PATH).toString();
+    function loadSecret() {
+        let lrcPath = LibPath.join(Spm.SPM_ROOT_PATH, '.spmlrc');
+        if (LibFs.statSync(lrcPath).isFile()) {
+            return LibFs.readFileSync(lrcPath).toString();
+        }
+        else {
+            return "";
+        }
     }
-    SpmSecret.load = load;
-})(SpmSecret = exports.SpmSecret || (exports.SpmSecret = {}));
+    Spm.loadSecret = loadSecret;
+    /**
+     * Get Spm config
+     *
+     * @returns {SpmConfig}
+     */
+    function getConfig() {
+        let configPath = LibPath.join(Spm.SPM_ROOT_PATH, 'config', "config.json");
+        if (LibFs.statSync(configPath).isFile()) {
+            return JSON.parse(LibFs.readFileSync(configPath).toString());
+        }
+        else {
+            throw new Error('[Config] config file path have to be an absolute path!');
+        }
+    }
+    Spm.getConfig = getConfig;
+    /**
+     * Find project dir
+     *
+     * @returns {string}
+     */
+    function getProjectDir() {
+        let strIndex = Spm.SPM_ROOT_PATH.indexOf('node_modules');
+        if (strIndex >= 0) {
+            return LibPath.join(Spm.SPM_ROOT_PATH.substr(0, strIndex));
+        }
+        return LibPath.join(Spm.SPM_ROOT_PATH, '..');
+    }
+    Spm.getProjectDir = getProjectDir;
+    /**
+     * Read spm.json via config path
+     *
+     * @param {string} path
+     * @returns {SpmPackageConfig}
+     */
+    function getSpmPackageConfig(path) {
+        return JSON.parse(LibFs.readFileSync(path).toString());
+    }
+    Spm.getSpmPackageConfig = getSpmPackageConfig;
+    function getInstalledSpmPackageMap(installDir) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let spmPackageMap = {};
+            if (LibFs.statSync(installDir).isDirectory()) {
+                let files = yield recursive(installDir, [".DS_Store"]);
+                for (let file of files) {
+                    let basename = LibPath.basename(file);
+                    if (basename.match(/.+\.json/) !== null) {
+                        let dirname = LibPath.dirname(file).replace(this._modulesDIr, '').replace('\\', '').replace('/', '');
+                        let packageConfig = Spm.getSpmPackageConfig(file);
+                        spmPackageMap[dirname] = {
+                            name: packageConfig.name,
+                            version: packageConfig.version,
+                            dependencies: packageConfig.dependencies
+                        };
+                    }
+                }
+            }
+            return spmPackageMap;
+        });
+    }
+    Spm.getInstalledSpmPackageMap = getInstalledSpmPackageMap;
+})(Spm = exports.Spm || (exports.Spm = {}));
+var SpmPackageRequest;
+(function (SpmPackageRequest) {
+    /**
+     * Get Spm Publish request config
+     *
+     * @returns {SpmConfig}
+     */
+    function getRequestOption(path, method = RequestMethod.get) {
+        let spmHttpConfig = Spm.getConfig();
+        return {
+            host: spmHttpConfig.host,
+            port: spmHttpConfig.port,
+            method: RequestMethod[method],
+            path: path,
+        };
+    }
+    SpmPackageRequest.getRequestOption = getRequestOption;
+    function postRequest(uri, params, callback) {
+        // -------------------- create request --------------------- //
+        let reqOptions = SpmPackageRequest.getRequestOption(uri, RequestMethod.post);
+        let req = http.request(reqOptions, (res) => {
+            res.on('data', (chunk) => callback(chunk));
+        }).on('error', (e) => {
+            throw new Error(e.message);
+        });
+        // --------------------- send content ---------------------- //
+        let reqParamsStr = qs.stringify(params);
+        req.setHeader('Content-Type', 'application/x-www-form-urlencoded');
+        req.setHeader('Content-Length', Buffer.byteLength(reqParamsStr, 'utf8').toString());
+        req.write(reqParamsStr);
+    }
+    SpmPackageRequest.postRequest = postRequest;
+    function postFormRequest(uri, params, filePath, callback) {
+        // -------------------- create request --------------------- //
+        let reqOptions = SpmPackageRequest.getRequestOption(uri, RequestMethod.post);
+        let req = http.request(reqOptions, (res) => {
+            res.on('data', (chunk) => callback(chunk));
+        }).on('error', (e) => {
+            throw new Error(e.message);
+        });
+        // --------------------- send content ---------------------- //
+        let boundaryKey = Math.random().toString(16);
+        let enddata = '\r\n----' + boundaryKey + '--';
+        // build form params head
+        let content = '';
+        for (let key in params) {
+            content += '\r\n----' + boundaryKey + '\r\n'
+                + 'Content-Disposition: form-data; name="' + key + '" \r\n\r\n'
+                + encodeURIComponent(params[key]);
+        }
+        let contentBinary = new Buffer(content, 'utf-8');
+        let contentLength = contentBinary.length;
+        // build upload file head
+        if (filePath.length > 0) {
+            content += '\r\n----' + boundaryKey + '\r\n'
+                + 'Content-Type: application/octet-stream\r\n'
+                + 'Content-Disposition: form-data; name="fileUpload"; filename="' + `${Math.random().toString(16)}.zip` + '"\r\n'
+                + "Content-Transfer-Encoding: binary\r\n\r\n";
+            contentBinary = new Buffer(content, 'utf-8');
+            contentLength = LibFs.statSync(filePath[0]).size + contentBinary.length;
+            // send request stream
+            let fileStream = LibFs.createReadStream(filePath[0]);
+            fileStream.on('end', () => {
+                req.end(enddata);
+            });
+            fileStream.pipe(req, { end: false });
+        }
+        // send request headers
+        req.setHeader('Content-Type', 'multipart/form-data; boundary=--' + boundaryKey);
+        req.setHeader('Content-Length', `${contentLength + Buffer.byteLength(enddata)}`);
+        req.write(contentBinary);
+        if (filePath.length == 0) {
+            req.end(enddata);
+        }
+    }
+    SpmPackageRequest.postFormRequest = postFormRequest;
+    function parseResponse(chunk) {
+        let response = JSON.parse(chunk);
+        if (response.code < 0) {
+            throw new Error(response.msg.toString());
+        }
+        return response.msg;
+    }
+    SpmPackageRequest.parseResponse = parseResponse;
+})(SpmPackageRequest = exports.SpmPackageRequest || (exports.SpmPackageRequest = {}));
 //# sourceMappingURL=lib.js.map

@@ -11,43 +11,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 require("reflect-metadata");
 const LibFs = require("mz/fs");
 const _ = require("underscore");
-class PostInstall {
+const ApiBase_1 = require("../ApiBase");
+class PostInstall extends ApiBase_1.ApiBase {
     constructor() {
+        super();
         this.method = 'post';
         this.uri = '/v1/install';
         this.type = 'application/json; charset=utf-8';
     }
-    register(options, conn) {
-        return [this.uri, this._validate(options, conn), this._execute(options, conn)];
-    }
-    ;
-    _validate(options, conn) {
-        let _this = this;
-        return function (ctx, next) {
-            return __awaiter(this, void 0, void 0, function* () {
-                try {
-                    yield _this.paramsValidate(ctx, options);
-                    yield next();
-                }
-                catch (err) {
-                    let res = {};
-                    res.code = -1;
-                    res.msg = err.message;
-                    ctx.body = res;
-                }
-            });
-        };
-    }
-    _execute(options, conn) {
-        let _this = this;
-        return function (ctx, next) {
-            return __awaiter(this, void 0, void 0, function* () {
-                ctx.body = yield _this.handle(ctx, next, conn);
-                yield next();
-            });
-        };
-    }
-    paramsValidate(ctx, options) {
+    paramsValidate(ctx) {
         return __awaiter(this, void 0, void 0, function* () {
             const params = ctx.request.body;
             if (!params.path || _.isEmpty(params.path)) {
@@ -55,27 +27,21 @@ class PostInstall {
             }
         });
     }
-    handle(ctx, next, conn) {
+    handle(ctx, next) {
         return __awaiter(this, void 0, void 0, function* () {
-            let res = {};
             try {
                 const params = ctx.request.body;
-                let fileStat = yield LibFs.stat(params.path);
-                if (fileStat.isFile()) {
+                if (LibFs.statSync(params.path).isFile()) {
                     ctx.set('Content-Disposition', `attachment; filename="tmp.zip"`);
                     return LibFs.createReadStream(params.path);
                 }
                 else {
-                    res.code = -1;
-                    res.msg = "Package file not found, path: " + params.path;
+                    return this.buildResponse("Package file not found, path: " + params.path, -1);
                 }
-                return res;
             }
             catch (err) {
-                res.code = -1;
-                res.msg = err.message;
+                return this.buildResponse(err.message, -1);
             }
-            return res;
         });
     }
     ;

@@ -11,15 +11,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const program = require("commander");
 const LibPath = require("path");
 const LibFs = require("mz/fs");
-const bluebird = require("bluebird");
-const LibMkdirP = require("mkdirp");
 const lib_1 = require("./lib/lib");
 const http = require("http");
 const recursive = require("recursive-readdir");
 const unzip = require("unzip");
 const qs = require("querystring");
 const _ = require("underscore");
-const mkdir = bluebird.promisify(LibMkdirP);
 const pkg = require('../../package.json');
 const debug = require('debug')('SPM:CLI:install');
 program.version(pkg.version)

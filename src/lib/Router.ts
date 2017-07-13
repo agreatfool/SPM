@@ -5,10 +5,10 @@ import {ConfigOptions} from "./Config";
 import {Connection} from "typeorm";
 
 export interface ResponseSchema {
-    code: number,
-    msg: string | object
+    code: number;
+    msg: string | object;
 }
-export type MiddlewareNext = () => Promise<any>
+export type MiddlewareNext = () => Promise<any>;
 
 export default class RouteLoader {
     private static _instance: RouteLoader;
@@ -29,13 +29,11 @@ export default class RouteLoader {
     }
 
     public async init(options: ConfigOptions, conn: Connection) {
-        let _this = this;
         let dir = LibPath.join(__dirname, "api");
         let files = await LibFs.readdir(dir);
-
         for (let file of files) {
             if (LibPath.basename(file).match(/.+\.js$/) !== null) {
-                await _this._createRouter(LibPath.join(dir, file), options, conn)
+                await this._createRouter(LibPath.join(dir, file), options, conn);
             }
         }
 

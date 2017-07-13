@@ -12,43 +12,15 @@ require("reflect-metadata");
 const _ = require("underscore");
 const SpmPackage_1 = require("../entity/SpmPackage");
 const SpmPackageVersion_1 = require("../entity/SpmPackageVersion");
-class PostSearch {
+const ApiBase_1 = require("../ApiBase");
+class PostSearch extends ApiBase_1.ApiBase {
     constructor() {
+        super();
         this.method = 'post';
         this.uri = '/v1/search';
         this.type = 'application/json; charset=utf-8';
     }
-    register(options, conn) {
-        return [this.uri, this._validate(options, conn), this._execute(options, conn)];
-    }
-    ;
-    _validate(options, conn) {
-        let _this = this;
-        return function (ctx, next) {
-            return __awaiter(this, void 0, void 0, function* () {
-                try {
-                    yield _this.paramsValidate(ctx, options);
-                    yield next();
-                }
-                catch (err) {
-                    let res = {};
-                    res.code = -1;
-                    res.msg = err.message;
-                    ctx.body = res;
-                }
-            });
-        };
-    }
-    _execute(options, conn) {
-        let _this = this;
-        return function (ctx, next) {
-            return __awaiter(this, void 0, void 0, function* () {
-                ctx.body = yield _this.handle(ctx, next, conn);
-                yield next();
-            });
-        };
-    }
-    paramsValidate(ctx, options) {
+    paramsValidate(ctx) {
         return __awaiter(this, void 0, void 0, function* () {
             const params = ctx.request.body;
             if (!params.keyword || _.isEmpty(params.keyword)) {
@@ -56,20 +28,19 @@ class PostSearch {
             }
         });
     }
-    handle(ctx, next, conn) {
+    handle(ctx, next) {
         return __awaiter(this, void 0, void 0, function* () {
-            let res = {};
             try {
                 const params = ctx.request.body;
-                let pkgNames = [];
+                let packages = [];
                 // find package
-                let spmPackageList = yield conn
+                let spmPackageList = yield this.dbHandler
                     .getRepository(SpmPackage_1.SpmPackage)
                     .createQueryBuilder("package")
                     .where('package.name LIKE :keyword', { keyword: `%${params.keyword}%` })
                     .getMany();
                 for (let spmPackage of spmPackageList) {
-                    let spmPackageVersion = yield conn
+                    let spmPackageVersion = yield this.dbHandler
                         .getRepository(SpmPackageVersion_1.SpmPackageVersion)
                         .createQueryBuilder("version")
                         .where('version.pid=:pid', { pid: spmPackage.id })
@@ -78,18 +49,14 @@ class PostSearch {
                         .addOrderBy("version.patch", "DESC")
                         .getOne();
                     if (!_.isEmpty(spmPackageVersion)) {
-                        pkgNames.push(`${spmPackage.name}@${spmPackageVersion.major}.${spmPackageVersion.minor}.${spmPackageVersion.patch}`);
+                        packages.push(`${spmPackage.name}@${spmPackageVersion.major}.${spmPackageVersion.minor}.${spmPackageVersion.patch}`);
                     }
                 }
-                res.code = 0;
-                res.msg = pkgNames;
-                return res;
+                return this.buildResponse(packages);
             }
             catch (err) {
-                res.code = -1;
-                res.msg = err.message;
+                return this.buildResponse(err.message, -1);
             }
-            return res;
         });
     }
     ;

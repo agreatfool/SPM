@@ -24,7 +24,7 @@ class Database {
     init() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                let dir = LibPath.join(__dirname, "entity");
+                let dir = LibPath.join(__dirname, 'entity');
                 let files = yield LibFs.readdir(dir);
                 let entities = [];
                 for (let file of files) {
@@ -36,8 +36,8 @@ class Database {
                     }
                 }
                 this.conn = yield typeorm_1.createConnection({
-                    type: "sqlite",
-                    database: LibPath.join(__dirname, "..", "..", "Spm.db"),
+                    type: 'sqlite',
+                    database: LibPath.join(__dirname, '..', '..', 'Spm.db'),
                     entities: entities,
                     autoSchemaSync: true,
                 });

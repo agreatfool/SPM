@@ -2,56 +2,26 @@ import "reflect-metadata";
 import * as LibPath from "path";
 import * as LibFs from "mz/fs";
 import * as _ from "underscore";
-import {Connection} from "typeorm";
-import {Context as KoaContext, Middleware as KoaMiddleware} from "koa";
+import {Context as KoaContext} from "koa";
 import {MiddlewareNext, ResponseSchema} from "../Router";
-import {ConfigOptions} from "../Config";
 import {SpmPackage} from "../entity/SpmPackage";
 import {SpmPackageVersion} from "../entity/SpmPackageVersion";
+import {ApiBase} from "../ApiBase";
 
-class PostPublish {
-    public method: string;
-    public uri: string;
-    public type: string;
+class PostPublish extends ApiBase {
 
     constructor() {
+        super();
         this.method = 'post';
         this.uri = '/v1/publish';
         this.type = 'application/json; charset=utf-8';
     }
 
-    public register(options: ConfigOptions, conn: Connection): Array<string | KoaMiddleware> {
-        return [this.uri, this._validate(options, conn), this._execute(options, conn)];
-    };
-
-    protected _validate(options: ConfigOptions, conn?: Connection): KoaMiddleware {
-        let _this = this;
-        return async function (ctx: KoaContext, next:MiddlewareNext): Promise<void> {
-            try {
-                await _this.paramsValidate(ctx, options);
-                await next();
-            } catch (err) {
-                let res = {} as ResponseSchema;
-                res.code = -1;
-                res.msg = err.message;
-                ctx.body = res;
-            }
-        }
-    }
-
-    protected _execute(options: ConfigOptions, conn?: Connection): KoaMiddleware {
-        let _this = this;
-        return async function (ctx: KoaContext, next: MiddlewareNext): Promise<void> {
-            ctx.body = await _this.handle(ctx, next, conn);
-            await next();
-        }
-    }
-
-    public async paramsValidate(ctx: KoaContext, options: ConfigOptions) {
+    public async paramsValidate(ctx: KoaContext) {
         const body = ctx.request.body;
         const params = body.fields;
 
-        if (!params.secret || params.secret != options.secret) {
+        if (!params.secret || params.secret != this.options.secret) {
             throw new Error("Secret is required!")
         }
 
@@ -68,7 +38,7 @@ class PostPublish {
         }
     }
 
-    public async handle(ctx: KoaContext, next: MiddlewareNext, conn?: Connection): Promise<ResponseSchema> {
+    public async handle(ctx: KoaContext, next: MiddlewareNext): Promise<ResponseSchema> {
         // file upload
         const params = ctx.request.body.fields;
         for (let key in params) {
@@ -86,31 +56,31 @@ class PostPublish {
         const writeFileStream = LibFs.createWriteStream(writeFilePath);
         await fileStream.pipe(writeFileStream);
 
-        let res = {} as ResponseSchema;
         try {
             const [major, minor, patch] = params.version.split('.');
 
             // find package
-            let spmPackage = await conn
+            let spmPackage = await this.dbHandler
                 .getRepository(SpmPackage)
                 .createQueryBuilder("package")
-                .where('package.name=:name', { name: params.name })
+                .where('package.name=:name', {name: params.name})
                 .getOne();
 
             // if package is not found, create package
             if (_.isEmpty(spmPackage)) {
                 let entity = new SpmPackage();
                 entity.name = params.name;
-                spmPackage = await conn.manager.persist(entity);
+                spmPackage = await this.dbHandler.manager.persist(entity);
             }
+
             // find package version
-            let spmPackageVersion = await conn
+            let spmPackageVersion = await this.dbHandler
                 .getRepository(SpmPackageVersion)
                 .createQueryBuilder("version")
-                .where('version.pid=:pid', { pid: spmPackage.id })
-                .andWhere('version.major=:major', { major: major })
-                .andWhere('version.minor=:minor', { minor: minor })
-                .andWhere('version.patch=:patch', { patch: patch })
+                .where('version.pid=:pid', {pid: spmPackage.id})
+                .andWhere('version.major=:major', {major: major})
+                .andWhere('version.minor=:minor', {minor: minor})
+                .andWhere('version.patch=:patch', {patch: patch})
                 .getOne();
 
             // if version is not found, create version
@@ -118,7 +88,6 @@ class PostPublish {
             if (!_.isEmpty(spmPackageVersion)) {
                 entity.id = spmPackageVersion.id;
             }
-
             entity.pid = spmPackage.id;
             entity.major = major | 0;
             entity.minor = minor | 0;
@@ -126,16 +95,12 @@ class PostPublish {
             entity.filePath = writeFilePath;
             entity.time = new Date().getTime();
             entity.dependencies = params.dependencies;
-            spmPackageVersion = await conn.manager.persist(entity);
+            spmPackageVersion = await this.dbHandler.manager.persist(entity);
 
-            res.code = 0;
-            res.msg = {spmPackage: spmPackage, spmPackageVersion: spmPackageVersion};
+            return this.buildResponse({spmPackage: spmPackage, spmPackageVersion: spmPackageVersion});
         } catch (err) {
-            res.code = -1;
-            res.msg = err.message;
+            return this.buildResponse(err.message, -1);
         }
-
-        return res;
     };
 }
 

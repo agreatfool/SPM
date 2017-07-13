@@ -22,7 +22,7 @@ class Config {
     }
     init() {
         return __awaiter(this, void 0, void 0, function* () {
-            let filePath = LibPath.join(__dirname, "..", "..", 'config', "config.json");
+            let filePath = LibPath.join(__dirname, '..', '..', 'config', 'config.json');
             let stats = yield LibFs.stat(filePath);
             if (stats.isFile()) {
                 try {

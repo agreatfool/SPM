@@ -24,12 +24,11 @@ class RouteLoader {
     }
     init(options, conn) {
         return __awaiter(this, void 0, void 0, function* () {
-            let _this = this;
             let dir = LibPath.join(__dirname, "api");
             let files = yield LibFs.readdir(dir);
             for (let file of files) {
                 if (LibPath.basename(file).match(/.+\.js$/) !== null) {
-                    yield _this._createRouter(LibPath.join(dir, file), options, conn);
+                    yield this._createRouter(LibPath.join(dir, file), options, conn);
                 }
             }
             this._initialized = true;

@@ -9,9 +9,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const program = require("commander");
-const http = require("http");
-const qs = require("querystring");
-const _ = require("underscore");
 const lib_1 = require("./lib/lib");
 const pkg = require('../../package.json');
 const debug = require('debug')('SPM:CLI:search');
@@ -42,37 +39,28 @@ class SearchCLI {
         return __awaiter(this, void 0, void 0, function* () {
             debug('SearchCLI search.');
             yield new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
-                let reqParamsStr = qs.stringify({
+                let params = {
                     keyword: KEYWORD_VALUE,
-                });
-                // create request
-                let reqOptions = yield lib_1.SpmHttp.getRequestOption('/v1/search', lib_1.RequestMethod.post);
-                let req = http.request(reqOptions, (res) => {
-                    res.on("data", (chunk) => {
-                        let response = JSON.parse(chunk.toString());
-                        let pkgNames = response.msg;
-                        if (_.isArray(pkgNames)) {
-                            console.log('--------------Search Response---------------');
-                            if (pkgNames.length > 0) {
-                                for (let pkgName of pkgNames) {
-                                    console.log(pkgName);
-                                }
+                };
+                lib_1.SpmPackageRequest.postRequest('/v1/search', params, (chunk) => {
+                    try {
+                        let response = lib_1.SpmPackageRequest.parseResponse(chunk);
+                        console.log('--------------Search Response---------------');
+                        if (response.length > 0) {
+                            for (let value of response) {
+                                console.log(value);
                             }
-                            else {
-                                console.log('package not found!');
-                            }
-                            console.log('--------------Search Response---------------');
-                            resolve();
                         }
                         else {
-                            reject(new Error(chunk.toString()));
+                            console.log('package not found!');
                         }
-                    });
-                }).on('error', (e) => reject(e));
-                // send request headers
-                req.setHeader('Content-Type', 'application/x-www-form-urlencoded');
-                req.setHeader('Content-Length', Buffer.byteLength(reqParamsStr, 'utf8').toString());
-                req.write(reqParamsStr);
+                        console.log('--------------Search Response---------------');
+                        resolve();
+                    }
+                    catch (e) {
+                        reject(e);
+                    }
+                });
             }));
         });
     }

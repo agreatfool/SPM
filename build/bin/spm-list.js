@@ -10,11 +10,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 const program = require("commander");
 const LibPath = require("path");
-const LibFs = require("mz/fs");
-const recursive = require("recursive-readdir");
 const lib_1 = require("./lib/lib");
 const pkg = require('../../package.json');
-const debug = require('debug')('SPM:CLI:uninstall');
+const debug = require('debug')('SPM:CLI:list');
 program.version(pkg.version)
     .option('-p, --projectDir <dir>', 'project dir')
     .parse(process.argv);
@@ -26,51 +24,35 @@ class ListCLI {
     run() {
         return __awaiter(this, void 0, void 0, function* () {
             debug('ListCLI start.');
-            yield this._loopSpmProtoDir();
+            yield this._prepare();
             yield this._show();
         });
     }
-    _loopSpmProtoDir() {
+    _prepare() {
         return __awaiter(this, void 0, void 0, function* () {
-            debug('ListCLI loopSpmProtoDir.');
-            // 向上查找项目文件夹根目录
+            debug('ListCLI prepare.');
             if (!PROJECT_DIR_VALUE) {
-                this._projectDir = lib_1.findProjectDir(__dirname);
+                this._projectDir = lib_1.Spm.getProjectDir();
             }
             else {
                 this._projectDir = PROJECT_DIR_VALUE;
             }
-            // 查找spm_protos文件夹是否存在，不存在则不需要卸载
-            this._projectInstalled = {};
-            this._projectProtoDir = LibPath.join(this._projectDir, "spm_protos");
-            let protoDirStat = yield LibFs.stat(this._projectProtoDir);
-            if (protoDirStat.isDirectory()) {
-                let files = yield recursive(this._projectProtoDir, [".DS_Store"]);
-                for (let file of files) {
-                    let basename = LibPath.basename(file);
-                    if (basename.match(/.+\.json/) !== null) {
-                        let dirname = LibPath.dirname(file).replace(this._projectProtoDir, '').replace('\\', '').replace('/', '');
-                        let packageOption = JSON.parse(LibFs.readFileSync(file).toString());
-                        this._projectInstalled[dirname] = {
-                            name: packageOption.name,
-                            version: packageOption.version,
-                            dependencies: packageOption.dependencies
-                        };
-                    }
-                }
-            }
+            this._spmPackageInstallDir = LibPath.join(this._projectDir, lib_1.Spm.INSTALL_DIR_NAME);
         });
     }
     _show() {
         return __awaiter(this, void 0, void 0, function* () {
             debug('ListCLI show.');
-            for (let dirname in this._projectInstalled) {
-                let protoInfo = this._projectInstalled[dirname];
-                console.log(`+-- ${protoInfo.name}@${protoInfo.version}`);
-                for (let dependName in protoInfo.dependencies) {
-                    console.log(`|  | -- ${dependName}@${protoInfo.dependencies[dependName]}`);
+            let spmPackageMap = yield lib_1.Spm.getInstalledSpmPackageMap(this._spmPackageInstallDir);
+            console.log('--------------Installed SpmPackage---------------');
+            for (let dirname in spmPackageMap) {
+                let spmPackage = spmPackageMap[dirname];
+                console.log(`+-- ${spmPackage.name}@${spmPackage.version}`);
+                for (let dependName in spmPackage.dependencies) {
+                    console.log(`|  | -- ${dependName}@${spmPackage.dependencies[dependName]}`);
                 }
             }
+            console.log('--------------Installed SpmPackage---------------');
         });
     }
 }

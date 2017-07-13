@@ -1,5 +1,5 @@
 import * as program from "commander";
-import {SpmSecret} from "./lib/lib";
+import {Spm} from "./lib/lib";
 
 const pkg = require('../../package.json');
 const debug = require('debug')('SPM:CLI:secret');
@@ -33,7 +33,7 @@ class SecretCLI {
     private async _save() {
         debug('SecretCLI save.');
 
-        await SpmSecret.save(SECRET_VALUE)
+        await Spm.saveSecret(SECRET_VALUE);
     }
 }
 

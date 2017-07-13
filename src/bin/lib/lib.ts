@@ -1,6 +1,11 @@
 import * as LibPath from "path";
 import * as LibFs from "mz/fs";
+import * as LibMkdirP from "mkdirp";
+import * as bluebird from "bluebird";
 import * as http from "http";
+import * as qs from "querystring";
+import * as recursive from "recursive-readdir";
+import {ResponseSchema} from "../../lib/Router";
 
 export enum RequestMethod { post, get }
 
@@ -10,7 +15,7 @@ export interface SpmConfig {
     secret: string;
 }
 
-export interface SpmPackageOption {
+export interface SpmPackageConfig {
     name: string;
     version: string;
     dependencies?: {
@@ -18,130 +23,47 @@ export interface SpmPackageOption {
     };
 }
 
-export interface SpmPackageInstalled {
-    name: string;
-    version: [string, string, string];
-    path: string;
-    dependencies?: {
+export interface SpmPackage extends SpmPackageConfig {
+    dependenciesChanged?: {
         [key: string]: string;
     };
-    dependenciesChangeMap?: {
-        [key: string]: string;
-    };
+    downloadUrl?: string;
 }
 
-export const rmdir = async (dirPath) => {
-    let files = await LibFs.readdir(dirPath);
+export interface SpmPackageMap {
+    [dirname: string]: SpmPackage;
+}
+
+export const mkdir = bluebird.promisify<string, string>(LibMkdirP);
+
+export const rmdir = (dirPath: string) => {
+    let files = LibFs.readdirSync(dirPath);
     if (files.length > 0) {
         for (let i = 0; i < files.length; i++) {
             let filePath = LibPath.join(dirPath, files[i]);
-            let fileStat = await LibFs.stat(filePath);
-            if (fileStat.isFile()) {
-                await LibFs.unlink(filePath);
+            if (LibFs.statSync(filePath).isFile()) {
+                LibFs.unlinkSync(filePath);
             } else {
-                await rmdir(filePath);
+                rmdir(filePath);
             }
         }
     }
-    await LibFs.rmdir(dirPath);
+    LibFs.rmdirSync(dirPath);
 };
 
-const buildParam = (condition) => {
-    let data = null;
-    if (condition != null) {
-        if (typeof condition == 'string') {
-            data = condition;
-        }
-        if (typeof condition == 'object') {
-            let arr = [];
-            for (let name in condition) {
-                if (!condition.hasOwnProperty(name)) {
-                    continue;
-                }
-                let value = condition[name];
-                arr.push(encodeURIComponent(name) + '=' + encodeURIComponent(value));
-            }
-            data = arr.join('&');
-        }
-    }
-    return data;
-};
+export namespace Spm {
 
-export const findProjectDir = (path: string): string => {
-    const pkg = require('../../../package.json');
-    if (path.indexOf('node_modules') >= 0) {
-        return LibPath.join(path.substr(0, path.indexOf('node_modules')));
-    }
-
-    if (path.indexOf(pkg.name) >= 0) {
-        return LibPath.join(__dirname.substr(0, __dirname.indexOf(pkg.name)), '..');
-    }
-
-    return LibPath.join(path, '..', '..', '..', '..')
-};
-
-export interface ProtoDependencies {
-    name: string,
-    version: string,
-    dependencies: {
-        [key: string]: string
-    }
-}
-
-export interface ProtoDependenciesList {
-    [key: string]: ProtoDependencies;
-}
-
-export namespace SpmHttp {
-
-    /**
-     * Get Spm http config
-     *
-     * @returns {Promise<SpmConfig>}
-     */
-    export async function getConfig(): Promise<SpmConfig> {
-        let filePath = LibPath.join(__dirname, "..", "..", "..", 'config', "config.json");
-        let stats = await LibFs.stat(filePath);
-        if (stats.isFile()) {
-            try {
-                return JSON.parse(LibFs.readFileSync(filePath).toString());
-            } catch (e) {
-                throw new Error('[Config] Error:' + e.message);
-            }
-        } else {
-            throw new Error('[Config] config file path have to be an absolute path!');
-        }
-    }
-
-    /**
-     * Get Spm Publish request config
-     *
-     * @returns {Promise<SpmConfig>}
-     */
-    export async function getRequestOption(path: string, method: RequestMethod = RequestMethod.get) : Promise<http.RequestOptions> {
-        let spmHttpConfig = await SpmHttp.getConfig();
-
-        let requestConfig = {} as http.RequestOptions;
-        requestConfig.host = spmHttpConfig.host;
-        requestConfig.port = spmHttpConfig.port;
-        requestConfig.method = RequestMethod[method];
-        requestConfig.path = path;
-
-        return requestConfig;
-    }
-}
-
-export namespace SpmSecret {
-
-    export const SPM_LRC_PATH: string = LibPath.join(__dirname, "..", "..", "..", ".spmlrc");
+    export const INSTALL_DIR_NAME: string = "spm_protos";
+    export const SPM_ROOT_PATH: string = LibPath.join(__dirname, '..', '..', '..');
 
     /**
      * Save secret value into .spmlrc
      *
      * @returns {void}
      */
-    export function save(value): void {
-        LibFs.writeFileSync(SpmSecret.SPM_LRC_PATH, value, "utf-8")
+    export function saveSecret(value: string) {
+        let lrcPath = LibPath.join(SPM_ROOT_PATH, '.spmlrc');
+        LibFs.writeFileSync(lrcPath, value, "utf-8");
     }
 
     /**
@@ -149,7 +71,164 @@ export namespace SpmSecret {
      *
      * @returns {string}
      */
-    export function load(): string {
-        return LibFs.readFileSync(SpmSecret.SPM_LRC_PATH).toString()
+    export function loadSecret(): string {
+        let lrcPath = LibPath.join(SPM_ROOT_PATH, '.spmlrc');
+        if (LibFs.statSync(lrcPath).isFile()) {
+            return LibFs.readFileSync(lrcPath).toString();
+        } else {
+            return "";
+        }
+    }
+
+    /**
+     * Get Spm config
+     *
+     * @returns {SpmConfig}
+     */
+    export function getConfig(): SpmConfig {
+        let configPath = LibPath.join(SPM_ROOT_PATH, 'config', "config.json");
+        if (LibFs.statSync(configPath).isFile()) {
+            return JSON.parse(LibFs.readFileSync(configPath).toString());
+        } else {
+            throw new Error('[Config] config file path have to be an absolute path!');
+        }
+    }
+
+    /**
+     * Find project dir
+     *
+     * @returns {string}
+     */
+    export function getProjectDir(): string {
+        let strIndex = SPM_ROOT_PATH.indexOf('node_modules');
+        if (strIndex >= 0) {
+            return LibPath.join(SPM_ROOT_PATH.substr(0, strIndex));
+        }
+
+        return LibPath.join(SPM_ROOT_PATH, '..')
+    }
+
+    /**
+     * Read spm.json via config path
+     *
+     * @param {string} path
+     * @returns {SpmPackageConfig}
+     */
+    export function getSpmPackageConfig(path: string): SpmPackageConfig {
+        return JSON.parse(LibFs.readFileSync(path).toString());
+    }
+
+    export async function getInstalledSpmPackageMap(installDir: string): Promise<SpmPackageMap> {
+        let spmPackageMap = {} as SpmPackageMap;
+        if (LibFs.statSync(installDir).isDirectory()) {
+            let files = await recursive(installDir, [".DS_Store"]);
+            for (let file of files) {
+                let basename = LibPath.basename(file);
+                if (basename.match(/.+\.json/) !== null) {
+                    let dirname = LibPath.dirname(file).replace(this._modulesDIr, '').replace('\\', '').replace('/', '');
+                    let packageConfig = Spm.getSpmPackageConfig(file);
+                    spmPackageMap[dirname] = {
+                        name: packageConfig.name,
+                        version: packageConfig.version,
+                        dependencies: packageConfig.dependencies
+                    };
+                }
+            }
+        }
+        return spmPackageMap;
+    }
+}
+
+export namespace SpmPackageRequest {
+    /**
+     * Get Spm Publish request config
+     *
+     * @returns {SpmConfig}
+     */
+    export function getRequestOption(path: string, method: RequestMethod = RequestMethod.get): http.RequestOptions {
+        let spmHttpConfig = Spm.getConfig();
+        return {
+            host: spmHttpConfig.host,
+            port: spmHttpConfig.port,
+            method: RequestMethod[method],
+            path: path,
+        };
+    }
+
+    export function postRequest(uri: string, params: Object, callback: (chunk: Buffer | string) => void) {
+        // -------------------- create request --------------------- //
+        let reqOptions = SpmPackageRequest.getRequestOption(uri, RequestMethod.post);
+        let req = http.request(reqOptions, (res) => {
+            res.on('data', (chunk) => callback(chunk));
+        }).on('error', (e) => {
+            throw new Error(e.message)
+        });
+
+        // --------------------- send content ---------------------- //
+        let reqParamsStr = qs.stringify(params);
+        req.setHeader('Content-Type', 'application/x-www-form-urlencoded');
+        req.setHeader('Content-Length', Buffer.byteLength(reqParamsStr, 'utf8').toString());
+        req.write(reqParamsStr);
+    }
+
+    export function postFormRequest(uri: string, params: Object, filePath: Array<string>, callback: (chunk: Buffer | string) => void) {
+        // -------------------- create request --------------------- //
+        let reqOptions = SpmPackageRequest.getRequestOption(uri, RequestMethod.post);
+        let req = http.request(reqOptions, (res) => {
+            res.on('data', (chunk) => callback(chunk));
+        }).on('error', (e) => {
+            throw new Error(e.message)
+        });
+
+        // --------------------- send content ---------------------- //
+        let boundaryKey = Math.random().toString(16);
+        let enddata = '\r\n----' + boundaryKey + '--';
+
+        // build form params head
+        let content = '';
+        for (let key in params) {
+            content += '\r\n----' + boundaryKey + '\r\n'
+                + 'Content-Disposition: form-data; name="' + key + '" \r\n\r\n'
+                + encodeURIComponent(params[key]);
+        }
+
+        let contentBinary = new Buffer(content, 'utf-8');
+        let contentLength = contentBinary.length;
+
+        // build upload file head
+        if (filePath.length > 0) {
+            content += '\r\n----' + boundaryKey + '\r\n'
+                + 'Content-Type: application/octet-stream\r\n'
+                + 'Content-Disposition: form-data; name="fileUpload"; filename="' + `${Math.random().toString(16)}.zip` + '"\r\n'
+                + "Content-Transfer-Encoding: binary\r\n\r\n";
+            contentBinary = new Buffer(content, 'utf-8');
+            contentLength = LibFs.statSync(filePath[0]).size + contentBinary.length;
+
+            // send request stream
+            let fileStream = LibFs.createReadStream(filePath[0]);
+            fileStream.on('end', () => {
+                req.end(enddata);
+            });
+            fileStream.pipe(req, {end: false});
+        }
+
+        // send request headers
+        req.setHeader('Content-Type', 'multipart/form-data; boundary=--' + boundaryKey);
+        req.setHeader('Content-Length', `${contentLength + Buffer.byteLength(enddata)}`);
+        req.write(contentBinary);
+
+        if (filePath.length == 0) {
+            req.end(enddata);
+        }
+    }
+
+    export function parseResponse(chunk) {
+        let response = JSON.parse(chunk) as ResponseSchema;
+
+        if (response.code < 0) {
+            throw new Error(response.msg.toString());
+        }
+
+        return response.msg;
     }
 }

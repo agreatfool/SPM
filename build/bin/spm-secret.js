@@ -38,7 +38,7 @@ class SecretCLI {
     _save() {
         return __awaiter(this, void 0, void 0, function* () {
             debug('SecretCLI save.');
-            yield lib_1.SpmSecret.save(SECRET_VALUE);
+            yield lib_1.Spm.saveSecret(SECRET_VALUE);
         });
     }
 }

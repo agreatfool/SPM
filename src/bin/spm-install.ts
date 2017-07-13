@@ -1,9 +1,7 @@
 import * as program from "commander";
 import * as LibPath from "path";
 import * as LibFs from "mz/fs";
-import * as bluebird from "bluebird";
-import * as LibMkdirP from "mkdirp";
-import {findProjectDir, RequestMethod, rmdir, SpmHttp, SpmPackageInstalled, SpmPackageOption} from "./lib/lib";
+import {findProjectDir, RequestMethod, rmdir, SpmHttp, SpmPackageInfoSchema, SpmPackageConfig} from "./lib/lib";
 import * as http from "http";
 import * as recursive from "recursive-readdir";
 import * as unzip from "unzip";
@@ -11,7 +9,6 @@ import * as qs from "querystring";
 import * as _ from "underscore";
 import {ResponseSchema} from "../lib/Router";
 
-const mkdir = bluebird.promisify<string, string>(LibMkdirP);
 const pkg = require('../../package.json');
 const debug = require('debug')('SPM:CLI:install');
 
@@ -29,7 +26,7 @@ class InstallCLI {
     private _projectDir: string;
     private _projectProtoDir: string;
     private _projectInstalled: { [dirName: string]: [string, string, string] };
-    private _installList: { [dirName: string]: SpmPackageInstalled };
+    private _installList: { [dirName: string]: SpmPackageInfoSchema };
 
     static instance() {
         return new InstallCLI();
@@ -78,7 +75,7 @@ class InstallCLI {
                 let basename = LibPath.basename(file);
                 if (basename.match(/.+\.json/) !== null) {
                     let name = LibPath.dirname(file).replace(this._projectProtoDir, '').replace('\\', '').replace('/', '');
-                    let packageOption = JSON.parse(LibFs.readFileSync(file).toString()) as SpmPackageOption;
+                    let packageOption = JSON.parse(LibFs.readFileSync(file).toString()) as SpmPackageConfig;
                     let [major, minor, patch] = packageOption.version.split('.');
                     this._projectInstalled[name] = [major, minor, patch];
                 }
@@ -104,7 +101,7 @@ class InstallCLI {
                     let response = JSON.parse(chunk.toString()) as ResponseSchema;
                     let depends = response.msg;
                     if (_.isObject(depends)) {
-                        for (let pkgName in depends as SpmPackageInstalled) {
+                        for (let pkgName in depends as SpmPackageInfoSchema) {
                             let [name, version] = pkgName.split('@');
                             this._mergeInstallPackage(name, version, depends[pkgName].path, depends[pkgName].dependencies);
                         }
@@ -180,7 +177,7 @@ class InstallCLI {
         }
     }
 
-    private async _install(name: string, info: SpmPackageInstalled) {
+    private async _install(name: string, info: SpmPackageInfoSchema) {
         debug('InstallCLI install. name: ' + name);
 
         let tmpName = name + this._tmpFileName;

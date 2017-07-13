@@ -12,43 +12,15 @@ require("reflect-metadata");
 const _ = require("underscore");
 const SpmPackage_1 = require("../entity/SpmPackage");
 const SpmPackageVersion_1 = require("../entity/SpmPackageVersion");
-class PostDepend {
+const ApiBase_1 = require("../ApiBase");
+class PostDepend extends ApiBase_1.ApiBase {
     constructor() {
+        super();
         this.method = 'post';
         this.uri = '/v1/depend';
         this.type = 'application/json; charset=utf-8';
     }
-    register(options, conn) {
-        return [this.uri, this._validate(options, conn), this._execute(options, conn)];
-    }
-    ;
-    _validate(options, conn) {
-        let _this = this;
-        return function (ctx, next) {
-            return __awaiter(this, void 0, void 0, function* () {
-                try {
-                    yield _this.paramsValidate(ctx, options);
-                    yield next();
-                }
-                catch (err) {
-                    let res = {};
-                    res.code = -1;
-                    res.msg = err.message;
-                    ctx.body = res;
-                }
-            });
-        };
-    }
-    _execute(options, conn) {
-        let _this = this;
-        return function (ctx, next) {
-            return __awaiter(this, void 0, void 0, function* () {
-                ctx.body = yield _this.handle(ctx, next, conn);
-                yield next();
-            });
-        };
-    }
-    paramsValidate(ctx, options) {
+    paramsValidate(ctx) {
         return __awaiter(this, void 0, void 0, function* () {
             const params = ctx.request.body;
             if (!params.name || _.isEmpty(params.name)) {
@@ -59,35 +31,27 @@ class PostDepend {
             }
         });
     }
-    handle(ctx, next, conn) {
+    handle(ctx, next) {
         return __awaiter(this, void 0, void 0, function* () {
-            let res = {};
             try {
                 const params = ctx.request.body;
                 const [name, version] = params.name.split('@');
-                res.code = 0;
-                res.msg = yield this.findDependencies(name, version, conn, {});
-                return res;
+                return this.buildResponse(yield this.findDependencies(name, version, {}));
             }
             catch (err) {
-                res.code = -1;
-                res.msg = err.message;
+                return this.buildResponse(err.message, -1);
             }
-            return res;
         });
     }
     ;
-    findDependencies(name, version, conn, dependencies) {
+    findDependencies(name, version, dependencies) {
         return __awaiter(this, void 0, void 0, function* () {
             // if dependencies is exist, return ..
             if (dependencies.hasOwnProperty(`${name}@${version}`)) {
                 return dependencies;
             }
-            if (!_.isEmpty(version)) {
-                const [major, minor, patch] = version.split('.');
-            }
             // find package
-            let spmPackage = yield conn
+            let spmPackage = yield this.dbHandler
                 .getRepository(SpmPackage_1.SpmPackage)
                 .createQueryBuilder("package")
                 .where('package.name=:name', { name: name })
@@ -98,7 +62,7 @@ class PostDepend {
             let spmPackageVersion;
             if (!_.isEmpty(version)) {
                 const [major, minor, patch] = version.split('.');
-                spmPackageVersion = yield conn
+                spmPackageVersion = yield this.dbHandler
                     .getRepository(SpmPackageVersion_1.SpmPackageVersion)
                     .createQueryBuilder("version")
                     .where('version.pid=:pid', { pid: spmPackage.id })
@@ -108,7 +72,7 @@ class PostDepend {
                     .getOne();
             }
             else {
-                spmPackageVersion = yield conn
+                spmPackageVersion = yield this.dbHandler
                     .getRepository(SpmPackageVersion_1.SpmPackageVersion)
                     .createQueryBuilder("version")
                     .where('version.pid=:pid', { pid: spmPackage.id })
@@ -131,8 +95,9 @@ class PostDepend {
                 path: spmPackageVersion.filePath,
                 dependencies: pkgDependencies
             };
-            for (let pkgName in pkgDependencies) {
-                dependencies = yield this.findDependencies(pkgName, pkgDependencies[pkgName], conn, dependencies);
+            // deep loop
+            for (let dependPackageName in pkgDependencies) {
+                dependencies = yield this.findDependencies(dependPackageName, pkgDependencies[dependPackageName], dependencies);
             }
             return dependencies;
         });
