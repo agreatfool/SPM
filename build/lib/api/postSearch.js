@@ -33,21 +33,36 @@ class PostSearch extends ApiBase_1.ApiBase {
             try {
                 const params = ctx.request.body;
                 let packages = [];
+                let [name, version] = params.keyword.split('@');
                 // find package
                 let spmPackageList = yield this.dbHandler
                     .getRepository(SpmPackage_1.SpmPackage)
                     .createQueryBuilder("package")
-                    .where('package.name LIKE :keyword', { keyword: `%${params.keyword}%` })
+                    .where('package.name LIKE :keyword', { keyword: `%${name}%` })
                     .getMany();
                 for (let spmPackage of spmPackageList) {
-                    let spmPackageVersion = yield this.dbHandler
-                        .getRepository(SpmPackageVersion_1.SpmPackageVersion)
-                        .createQueryBuilder("version")
-                        .where('version.pid=:pid', { pid: spmPackage.id })
-                        .orderBy("version.major", "DESC")
-                        .addOrderBy("version.minor", "DESC")
-                        .addOrderBy("version.patch", "DESC")
-                        .getOne();
+                    let spmPackageVersion;
+                    if (!_.isEmpty(version)) {
+                        const [major, minor, patch] = version.split('.');
+                        spmPackageVersion = yield this.dbHandler
+                            .getRepository(SpmPackageVersion_1.SpmPackageVersion)
+                            .createQueryBuilder("version")
+                            .where('version.pid=:pid', { pid: spmPackage.id })
+                            .andWhere('version.major=:major', { major: major })
+                            .andWhere('version.minor=:minor', { minor: minor })
+                            .andWhere('version.patch=:patch', { patch: patch })
+                            .getOne();
+                    }
+                    else {
+                        spmPackageVersion = yield this.dbHandler
+                            .getRepository(SpmPackageVersion_1.SpmPackageVersion)
+                            .createQueryBuilder("version")
+                            .where('version.pid=:pid', { pid: spmPackage.id })
+                            .orderBy("version.major", "DESC")
+                            .addOrderBy("version.minor", "DESC")
+                            .addOrderBy("version.patch", "DESC")
+                            .getOne();
+                    }
                     if (!_.isEmpty(spmPackageVersion)) {
                         packages.push(`${spmPackage.name}@${spmPackageVersion.major}.${spmPackageVersion.minor}.${spmPackageVersion.patch}`);
                     }
