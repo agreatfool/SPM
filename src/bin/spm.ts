@@ -9,4 +9,5 @@ program.version(pkg.version)
     .command('publish [options]', 'publish proto dir to spm server')
     .command('install [options]', 'install proto from spm server')
     .command('search [options]', 'search proto from spm server')
+    .command('list [options]', 'show all installed proto')
     .parse(process.argv);

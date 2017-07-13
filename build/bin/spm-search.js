@@ -9,10 +9,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const program = require("commander");
-const lib_1 = require("./lib/lib");
 const http = require("http");
 const qs = require("querystring");
 const _ = require("underscore");
+const lib_1 = require("./lib/lib");
 const pkg = require('../../package.json');
 const debug = require('debug')('SPM:CLI:search');
 program.version(pkg.version)
@@ -41,7 +41,6 @@ class SearchCLI {
     _search() {
         return __awaiter(this, void 0, void 0, function* () {
             debug('SearchCLI search.');
-            // 创建临时文件夹
             yield new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
                 let reqParamsStr = qs.stringify({
                     keyword: KEYWORD_VALUE,

@@ -14,9 +14,22 @@ export interface SpmPackageOption {
     name: string;
     version: string;
     dependencies?: {
-        [key: string]: string
-    }
+        [key: string]: string;
+    };
 }
+
+export interface SpmPackageInstalled {
+    name: string;
+    version: [string, string, string];
+    path: string;
+    dependencies?: {
+        [key: string]: string;
+    };
+    dependenciesChangeMap?: {
+        [key: string]: string;
+    };
+}
+
 export const rmdir = async (dirPath) => {
     let files = await LibFs.readdir(dirPath);
     if (files.length > 0) {

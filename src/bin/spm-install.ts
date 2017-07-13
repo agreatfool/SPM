@@ -3,7 +3,7 @@ import * as LibPath from "path";
 import * as LibFs from "mz/fs";
 import * as bluebird from "bluebird";
 import * as LibMkdirP from "mkdirp";
-import {findProjectDir, RequestMethod, rmdir, SpmHttp, SpmPackageOption} from "./lib/lib";
+import {findProjectDir, RequestMethod, rmdir, SpmHttp, SpmPackageInstalled, SpmPackageOption} from "./lib/lib";
 import * as http from "http";
 import * as recursive from "recursive-readdir";
 import * as unzip from "unzip";
@@ -23,25 +23,13 @@ program.version(pkg.version)
 const NAME_VALUE = (program as any).name === undefined ? undefined : (program as any).name;
 const PROJECT_DIR_VALUE = (program as any).projectDir === undefined ? undefined : (program as any).projectDir;
 
-interface InstallPackageSchema {
-    version: [string, string, string],
-    path: string,
-    dependencies?: {
-        [key: string]: string
-    }
-    dependenciesChangeMap?: {
-        [key: string]: string
-    }
-    originalName?: string
-}
-
 class InstallCLI {
     private _tmpDir: string;
     private _tmpFileName: string;
     private _projectDir: string;
     private _projectProtoDir: string;
     private _projectInstalled: { [dirName: string]: [string, string, string] };
-    private _installList: { [dirName: string]: InstallPackageSchema };
+    private _installList: { [dirName: string]: SpmPackageInstalled };
 
     static instance() {
         return new InstallCLI();
@@ -116,7 +104,7 @@ class InstallCLI {
                     let response = JSON.parse(chunk.toString()) as ResponseSchema;
                     let depends = response.msg;
                     if (_.isObject(depends)) {
-                        for (let pkgName in depends as InstallPackageSchema) {
+                        for (let pkgName in depends as SpmPackageInstalled) {
                             let [name, version] = pkgName.split('@');
                             this._mergeInstallPackage(name, version, depends[pkgName].path, depends[pkgName].dependencies);
                         }
@@ -148,14 +136,11 @@ class InstallCLI {
                 } else {
                     this._projectInstalled[name] = [nextMajor, nextMinor, nextPatch];
                     this._installList[name] = {
+                        name: (originalName) ? originalName : name,
                         version: [nextMajor, nextMinor, nextPatch],
                         path: path,
                         dependencies: dependencies
                     };
-
-                    if (originalName) {
-                        this._installList[name].originalName = originalName;
-                    }
                 }
             } else {
                 if (deepLevel == 0) {
@@ -165,14 +150,11 @@ class InstallCLI {
         } else {
             this._projectInstalled[name] = [nextMajor, nextMinor, nextPatch];
             this._installList[name] = {
+                name: (originalName) ? originalName : name,
                 version: [nextMajor, nextMinor, nextPatch],
                 path: path,
                 dependencies: dependencies
             };
-
-            if (originalName) {
-                this._installList[name].originalName = originalName;
-            }
         }
     }
 
@@ -198,7 +180,7 @@ class InstallCLI {
         }
     }
 
-    private async _install(name: string, info: InstallPackageSchema) {
+    private async _install(name: string, info: SpmPackageInstalled) {
         debug('InstallCLI install. name: ' + name);
 
         let tmpName = name + this._tmpFileName;
@@ -253,7 +235,7 @@ class InstallCLI {
         // change package name
         await new Promise(async (resolve, reject) => {
             debug('InstallCLI replace.');
-            if (_.isEmpty(info.dependenciesChangeMap) && _.isEmpty(info.originalName)) {
+            if (_.isEmpty(info.dependenciesChangeMap) && info.name == name) {
                 resolve();
             } else {
                 let files = await recursive(tmpPkgPath, ['.DS_Store']);
@@ -261,9 +243,9 @@ class InstallCLI {
                 await files.map(async (file: string) => {
                     count++;
                     if (LibPath.basename(file).match(/.+\.proto/) !== null) {
-                        if (!_.isEmpty(info.originalName)) {
+                        if (info.name != name) {
                             await this._replaceStringInFile(file, [
-                                [new RegExp(`package ${info.originalName};`,"g"), `package ${name};`]
+                                [new RegExp(`package ${info.name};`,"g"), `package ${name};`]
                             ]);
                         }
 

@@ -128,13 +128,11 @@ class InstallCLI {
                 else {
                     this._projectInstalled[name] = [nextMajor, nextMinor, nextPatch];
                     this._installList[name] = {
+                        name: (originalName) ? originalName : name,
                         version: [nextMajor, nextMinor, nextPatch],
                         path: path,
                         dependencies: dependencies
                     };
-                    if (originalName) {
-                        this._installList[name].originalName = originalName;
-                    }
                 }
             }
             else {
@@ -146,13 +144,11 @@ class InstallCLI {
         else {
             this._projectInstalled[name] = [nextMajor, nextMinor, nextPatch];
             this._installList[name] = {
+                name: (originalName) ? originalName : name,
                 version: [nextMajor, nextMinor, nextPatch],
                 path: path,
                 dependencies: dependencies
             };
-            if (originalName) {
-                this._installList[name].originalName = originalName;
-            }
         }
     }
     _changeInstallDependencies() {
@@ -228,7 +224,7 @@ class InstallCLI {
             // change package name
             yield new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
                 debug('InstallCLI replace.');
-                if (_.isEmpty(info.dependenciesChangeMap) && _.isEmpty(info.originalName)) {
+                if (_.isEmpty(info.dependenciesChangeMap) && info.name == name) {
                     resolve();
                 }
                 else {
@@ -237,9 +233,9 @@ class InstallCLI {
                     yield files.map((file) => __awaiter(this, void 0, void 0, function* () {
                         count++;
                         if (LibPath.basename(file).match(/.+\.proto/) !== null) {
-                            if (!_.isEmpty(info.originalName)) {
+                            if (info.name != name) {
                                 yield this._replaceStringInFile(file, [
-                                    [new RegExp(`package ${info.originalName};`, "g"), `package ${name};`]
+                                    [new RegExp(`package ${info.name};`, "g"), `package ${name};`]
                                 ]);
                             }
                             if (!_.isEmpty(info.dependenciesChangeMap)) {

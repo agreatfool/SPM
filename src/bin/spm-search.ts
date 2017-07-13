@@ -1,10 +1,8 @@
 import * as program from "commander";
-import * as LibPath from "path";
-import * as LibFs from "mz/fs";
-import {RequestMethod, SpmHttp} from "./lib/lib";
 import * as http from "http";
 import * as qs from "querystring";
 import * as _ from "underscore";
+import {RequestMethod, SpmHttp} from "./lib/lib";
 import {ResponseSchema} from "../lib/Router";
 
 const pkg = require('../../package.json');
@@ -38,7 +36,6 @@ class SearchCLI {
     private async _search() {
         debug('SearchCLI search.');
 
-        // 创建临时文件夹
         await new Promise(async (resolve, reject) => {
             let reqParamsStr = qs.stringify({
                 keyword: KEYWORD_VALUE,
