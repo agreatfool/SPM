@@ -2,9 +2,8 @@ import * as LibFs from "mz/fs";
 import * as LibPath from "path";
 import * as program from "commander";
 import * as archiver from "archiver";
-import * as http from "http";
 import * as _ from "underscore";
-import {Spm, SpmPackageRequest, RequestMethod, SpmPackageConfig, mkdir} from "./lib/lib";
+import {Spm, SpmPackageRequest, SpmPackageConfig, mkdir} from "./lib/lib";
 
 const pkg = require('../../package.json');
 const debug = require('debug')('SPM:CLI:publish');
@@ -44,15 +43,15 @@ class PublishCLI {
         if (!importStat.isDirectory()) {
             throw new Error('--import is not a directory');
         }
-    }
-
-    private async _prepare() {
-        debug('PublishCLI prepare.');
 
         let importFiles = await LibFs.readdir(IMPORT_DIR);
         if (importFiles.indexOf('spm.json') < 0) {
             throw new Error('File: `spm.json` not found in import directory:' + IMPORT_DIR);
         }
+    }
+
+    private async _prepare() {
+        debug('PublishCLI prepare.');
 
         this._packageConfig = Spm.getSpmPackageConfig(LibPath.join(IMPORT_DIR, 'spm.json'));
 
@@ -80,7 +79,7 @@ class PublishCLI {
             let writeStream = LibFs.createWriteStream(tmpFilePath)
                 .on("close", () => resolve());
             // archive init
-            let archive = archiver('zip', {zlib: { level: 9 }})
+            let archive = archiver('zip', {zlib: {level: 9}})
                 .on('error', (err) => reject(err));
 
             archive.pipe(writeStream);

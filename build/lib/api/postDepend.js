@@ -44,7 +44,7 @@ class PostDepend extends ApiBase_1.ApiBase {
         });
     }
     ;
-    findDependencies(name, version, dependencies) {
+    findDependencies(name, version, dependencies, isDependencies = false) {
         return __awaiter(this, void 0, void 0, function* () {
             // if dependencies is exist, return ..
             if (dependencies.hasOwnProperty(`${name}@${version}`)) {
@@ -82,7 +82,7 @@ class PostDepend extends ApiBase_1.ApiBase {
                     .getOne();
             }
             if (_.isEmpty(spmPackageVersion)) {
-                throw new Error("Package version not found, name: " + name + ", version: " + spmPackageVersion.major + '.' + spmPackageVersion.minor + '.' + spmPackageVersion.patch);
+                throw new Error("Package version not found, name: " + spmPackage.name + ", version: " + spmPackageVersion.major + '.' + spmPackageVersion.minor + '.' + spmPackageVersion.patch);
             }
             let pkgDependencies = {};
             try {
@@ -91,13 +91,16 @@ class PostDepend extends ApiBase_1.ApiBase {
             catch (e) {
                 //do nothing
             }
-            dependencies[`${name}@${spmPackageVersion.major}.${spmPackageVersion.minor}.${spmPackageVersion.patch}`] = {
-                path: spmPackageVersion.filePath,
-                dependencies: pkgDependencies
+            dependencies[`${spmPackage.name}@${spmPackageVersion.major}.${spmPackageVersion.minor}.${spmPackageVersion.patch}`] = {
+                name: spmPackage.name,
+                version: `${spmPackageVersion.major}.${spmPackageVersion.minor}.${spmPackageVersion.patch}`,
+                dependencies: pkgDependencies,
+                downloadUrl: spmPackageVersion.filePath,
+                isDependencies: isDependencies
             };
             // deep loop
             for (let dependPackageName in pkgDependencies) {
-                dependencies = yield this.findDependencies(dependPackageName, pkgDependencies[dependPackageName], dependencies);
+                dependencies = yield this.findDependencies(dependPackageName, pkgDependencies[dependPackageName], dependencies, true);
             }
             return dependencies;
         });

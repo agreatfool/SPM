@@ -43,15 +43,15 @@ class PublishCLI {
             if (!importStat.isDirectory()) {
                 throw new Error('--import is not a directory');
             }
+            let importFiles = yield LibFs.readdir(IMPORT_DIR);
+            if (importFiles.indexOf('spm.json') < 0) {
+                throw new Error('File: `spm.json` not found in import directory:' + IMPORT_DIR);
+            }
         });
     }
     _prepare() {
         return __awaiter(this, void 0, void 0, function* () {
             debug('PublishCLI prepare.');
-            let importFiles = yield LibFs.readdir(IMPORT_DIR);
-            if (importFiles.indexOf('spm.json') < 0) {
-                throw new Error('File: `spm.json` not found in import directory:' + IMPORT_DIR);
-            }
             this._packageConfig = lib_1.Spm.getSpmPackageConfig(LibPath.join(IMPORT_DIR, 'spm.json'));
             if (!this._packageConfig.name || _.isEmpty(this._packageConfig.name) || typeof this._packageConfig.name !== 'string') {
                 throw new Error('Package param: `name` is required');

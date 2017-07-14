@@ -4,16 +4,8 @@ import {Context as KoaContext} from "koa";
 import {MiddlewareNext, ResponseSchema} from "../Router";
 import {SpmPackage} from "../entity/SpmPackage";
 import {SpmPackageVersion} from "../entity/SpmPackageVersion";
+import {SpmPackageMap} from "../../bin/lib/lib"
 import {ApiBase} from "../ApiBase";
-
-interface DependSchema {
-    [key: string]: {
-        path: string,
-        dependencies?: {
-            [key: string]: string
-        }
-    }
-}
 
 class PostDepend extends ApiBase {
 
@@ -45,7 +37,7 @@ class PostDepend extends ApiBase {
         }
     };
 
-    public async findDependencies(name: string, version: string, dependencies: DependSchema) {
+    public async findDependencies(name: string, version: string, dependencies: SpmPackageMap, isDependencies: boolean = false) {
 
         // if dependencies is exist, return ..
         if (dependencies.hasOwnProperty(`${name}@${version}`)) {
@@ -86,7 +78,7 @@ class PostDepend extends ApiBase {
         }
 
         if (_.isEmpty(spmPackageVersion)) {
-            throw new Error("Package version not found, name: " + name + ", version: " + spmPackageVersion.major + '.' + spmPackageVersion.minor + '.' + spmPackageVersion.patch);
+            throw new Error("Package version not found, name: " + spmPackage.name + ", version: " + spmPackageVersion.major + '.' + spmPackageVersion.minor + '.' + spmPackageVersion.patch);
         }
 
         let pkgDependencies = {};
@@ -95,14 +87,17 @@ class PostDepend extends ApiBase {
         } catch (e) {
             //do nothing
         }
-        dependencies[`${name}@${spmPackageVersion.major}.${spmPackageVersion.minor}.${spmPackageVersion.patch}`] = {
-            path: spmPackageVersion.filePath,
-            dependencies: pkgDependencies
+        dependencies[`${spmPackage.name}@${spmPackageVersion.major}.${spmPackageVersion.minor}.${spmPackageVersion.patch}`] = {
+            name: spmPackage.name,
+            version: `${spmPackageVersion.major}.${spmPackageVersion.minor}.${spmPackageVersion.patch}`,
+            dependencies: pkgDependencies,
+            downloadUrl: spmPackageVersion.filePath,
+            isDependencies: isDependencies
         };
 
         // deep loop
         for (let dependPackageName in pkgDependencies) {
-            dependencies = await this.findDependencies(dependPackageName, pkgDependencies[dependPackageName], dependencies);
+            dependencies = await this.findDependencies(dependPackageName, pkgDependencies[dependPackageName], dependencies, true);
         }
 
         return dependencies;

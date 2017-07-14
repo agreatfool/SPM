@@ -39,6 +39,7 @@ exports.rmdir = (dirPath) => {
 var Spm;
 (function (Spm) {
     Spm.INSTALL_DIR_NAME = "spm_protos";
+    Spm.SPM_VERSION_CONNECTOR = "__v";
     Spm.SPM_ROOT_PATH = LibPath.join(__dirname, '..', '..', '..');
     /**
      * Save secret value into .spmlrc
@@ -103,7 +104,14 @@ var Spm;
         return JSON.parse(LibFs.readFileSync(path).toString());
     }
     Spm.getSpmPackageConfig = getSpmPackageConfig;
-    function getInstalledSpmPackageMap(installDir) {
+    /**
+     * Get all installed SpmPackage from projectDir
+     *
+     * @param installDir
+     * @param projectDir
+     * @returns {Promise<SpmPackageMap>}
+     */
+    function getInstalledSpmPackageMap(installDir, projectDir) {
         return __awaiter(this, void 0, void 0, function* () {
             let spmPackageMap = {};
             if (LibFs.statSync(installDir).isDirectory()) {
@@ -111,7 +119,7 @@ var Spm;
                 for (let file of files) {
                     let basename = LibPath.basename(file);
                     if (basename.match(/.+\.json/) !== null) {
-                        let dirname = LibPath.dirname(file).replace(this._modulesDIr, '').replace('\\', '').replace('/', '');
+                        let dirname = LibPath.dirname(file).replace(projectDir, '').replace('\\', '').replace('/', '');
                         let packageConfig = Spm.getSpmPackageConfig(file);
                         spmPackageMap[dirname] = {
                             name: packageConfig.name,
@@ -125,6 +133,32 @@ var Spm;
         });
     }
     Spm.getInstalledSpmPackageMap = getInstalledSpmPackageMap;
+    /**
+     * Replace string in file
+     *
+     * @param {string} filePath
+     * @param {Array<[RegExp, any]>} conditions
+     * @returns {Promise<void>}
+     */
+    function _replaceStringInFile(filePath, conditions) {
+        try {
+            if (LibFs.statSync(filePath).isFile()) {
+                let content = LibFs.readFileSync(filePath).toString();
+                for (let [reg, word] of conditions) {
+                    content = content.toString().replace(reg, word);
+                }
+                LibFs.writeFileSync(filePath, Buffer.from(content), (err) => {
+                    if (err) {
+                        throw err;
+                    }
+                });
+            }
+        }
+        catch (e) {
+            throw e;
+        }
+    }
+    Spm._replaceStringInFile = _replaceStringInFile;
 })(Spm = exports.Spm || (exports.Spm = {}));
 var SpmPackageRequest;
 (function (SpmPackageRequest) {
@@ -143,11 +177,13 @@ var SpmPackageRequest;
         };
     }
     SpmPackageRequest.getRequestOption = getRequestOption;
-    function postRequest(uri, params, callback) {
+    function postRequest(uri, params, callback, handleResponse) {
         // -------------------- create request --------------------- //
         let reqOptions = SpmPackageRequest.getRequestOption(uri, RequestMethod.post);
         let req = http.request(reqOptions, (res) => {
-            res.on('data', (chunk) => callback(chunk));
+            (handleResponse)
+                ? handleResponse(res)
+                : res.on('data', (chunk) => callback(chunk));
         }).on('error', (e) => {
             throw new Error(e.message);
         });

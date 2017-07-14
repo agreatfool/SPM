@@ -40,7 +40,7 @@ class ListCLI {
     private async _show() {
         debug('ListCLI show.');
 
-        let spmPackageMap = await Spm.getInstalledSpmPackageMap(this._spmPackageInstallDir);
+        let spmPackageMap = await Spm.getInstalledSpmPackageMap(this._spmPackageInstallDir, this._spmPackageInstallDir);
 
         console.log('--------------Installed SpmPackage---------------');
         for (let dirname in spmPackageMap) {

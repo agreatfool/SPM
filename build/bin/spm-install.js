@@ -8,22 +8,22 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const program = require("commander");
-const LibPath = require("path");
 const LibFs = require("mz/fs");
-const lib_1 = require("./lib/lib");
-const http = require("http");
-const recursive = require("recursive-readdir");
+const LibPath = require("path");
+const program = require("commander");
 const unzip = require("unzip");
-const qs = require("querystring");
 const _ = require("underscore");
+const recursive = require("recursive-readdir");
+const lib_1 = require("./lib/lib");
 const pkg = require('../../package.json');
 const debug = require('debug')('SPM:CLI:install');
 program.version(pkg.version)
-    .option('-n, --name <item>', 'package name')
+    .option('-i, --import <dir>', 'directory of source proto files for update spm.json')
+    .option('-n, --pkgName <item>', 'package name')
     .option('-p, --projectDir <dir>', 'project dir')
     .parse(process.argv);
-const NAME_VALUE = program.name === undefined ? undefined : program.name;
+const PKG_NAME_VALUE = program.pkgName === undefined ? undefined : program.pkgName;
+const IMPORT_DIR = program.import === undefined ? undefined : LibPath.normalize(program.import);
 const PROJECT_DIR_VALUE = program.projectDir === undefined ? undefined : program.projectDir;
 class InstallCLI {
     static instance() {
@@ -33,254 +33,286 @@ class InstallCLI {
         return __awaiter(this, void 0, void 0, function* () {
             debug('InstallCLI start.');
             yield this._validate();
-            yield this._initLocaleInfo();
-            yield this._initRemoteInfo();
-            yield this._deploy();
+            yield this._prepare();
+            yield this._install();
         });
     }
     _validate() {
         return __awaiter(this, void 0, void 0, function* () {
             debug('InstallCLI validate.');
-            if (!NAME_VALUE) {
-                throw new Error('--name is required');
+            if (!IMPORT_DIR) {
+                throw new Error('--import is required');
             }
-            // 向上查找项目文件夹根目录
+            if (!LibFs.statSync(IMPORT_DIR).isDirectory()) {
+                throw new Error('--import is not a directory');
+            }
+        });
+    }
+    _prepare() {
+        return __awaiter(this, void 0, void 0, function* () {
+            debug('InstallCLI prepare.');
+            this._tmpDir = LibPath.join(lib_1.Spm.SPM_ROOT_PATH, 'tmp');
+            this._tmpFileName = Math.random().toString(16) + ".zip";
+            yield lib_1.mkdir(this._tmpDir);
             if (!PROJECT_DIR_VALUE) {
-                this._projectDir = lib_1.findProjectDir(__dirname);
+                this._projectDir = lib_1.Spm.getProjectDir();
             }
             else {
                 this._projectDir = PROJECT_DIR_VALUE;
             }
+            this._spmPackageInstallDir = LibPath.join(this._projectDir, lib_1.Spm.INSTALL_DIR_NAME);
+            yield lib_1.mkdir(this._spmPackageInstallDir);
+            this._spmPackageInstalledMap = yield lib_1.Spm.getInstalledSpmPackageMap(this._spmPackageInstallDir, this._spmPackageInstallDir);
         });
     }
-    _initLocaleInfo() {
+    _install() {
         return __awaiter(this, void 0, void 0, function* () {
-            debug('InstallCLI init LocaleInfo.');
-            // 创建临时文件夹
-            this._tmpDir = LibPath.join(__dirname, '..', '..', 'tmp');
-            this._tmpFileName = Math.random().toString(16) + ".zip";
-            yield mkdir(this._tmpDir);
-            // 创建项目根目录下的spm_protos文件夹
-            this._projectProtoDir = LibPath.join(this._projectDir, "spm_protos");
-            this._projectInstalled = {};
-            yield mkdir(this._projectProtoDir);
-            let protoDirStat = yield LibFs.stat(this._projectProtoDir);
-            if (protoDirStat.isDirectory()) {
-                let files = yield recursive(this._projectProtoDir, [".DS_Store"]);
-                for (let file of files) {
-                    let basename = LibPath.basename(file);
-                    if (basename.match(/.+\.json/) !== null) {
-                        let name = LibPath.dirname(file).replace(this._projectProtoDir, '').replace('\\', '').replace('/', '');
-                        let packageOption = JSON.parse(LibFs.readFileSync(file).toString());
-                        let [major, minor, patch] = packageOption.version.split('.');
-                        this._projectInstalled[name] = [major, minor, patch];
+            let packageList = [];
+            if (!PKG_NAME_VALUE) {
+                // MODE ONE: npm install -i {importName}
+                let importConfigPath = LibPath.join(IMPORT_DIR, 'spm.json');
+                try {
+                    let packageConfig = lib_1.Spm.getSpmPackageConfig(importConfigPath);
+                    for (let name in packageConfig.dependencies) {
+                        packageList.push(`${name}@${packageConfig.dependencies[name]}`);
                     }
                 }
+                catch (e) {
+                    console.log(`Error: ${importConfigPath} not found.`);
+                }
+            }
+            else {
+                // MODE TWO: npm install -i {importName} -n ${pkgName}
+                packageList.push(PKG_NAME_VALUE);
+            }
+            for (let pkgName of packageList) {
+                yield new Promise((resolve) => __awaiter(this, void 0, void 0, function* () {
+                    const debug = require('debug')(`SPM:CLI:install:` + pkgName);
+                    debug('-----------------------------------');
+                    let spmPackageDependMap = yield this._request(debug, pkgName);
+                    let [mainSpmPackage, spmPackageInstallMap] = yield this._comparison(debug, spmPackageDependMap, {});
+                    yield this._update(debug, mainSpmPackage);
+                    yield this._deploy(spmPackageInstallMap);
+                    debug('-----------------------------------');
+                    resolve();
+                }));
             }
         });
     }
-    _initRemoteInfo() {
+    _request(debug, name) {
         return __awaiter(this, void 0, void 0, function* () {
-            debug('InstallCLI init remote info.');
-            this._installList = {};
-            // 创建临时文件夹
-            yield new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
-                let reqParamsStr = qs.stringify({
-                    name: NAME_VALUE,
+            debug("request");
+            return new Promise((resolve, reject) => {
+                let params = {
+                    name: name,
+                };
+                lib_1.SpmPackageRequest.postRequest('/v1/depend', params, (chunk) => {
+                    try {
+                        let response = lib_1.SpmPackageRequest.parseResponse(chunk);
+                        resolve(response);
+                    }
+                    catch (e) {
+                        reject(e);
+                    }
                 });
-                // create request
-                let reqOptions = yield lib_1.SpmHttp.getRequestOption('/v1/depend', lib_1.RequestMethod.post);
-                let req = http.request(reqOptions, (res) => {
-                    res.on("data", (chunk) => {
-                        let response = JSON.parse(chunk.toString());
-                        let depends = response.msg;
-                        if (_.isObject(depends)) {
-                            for (let pkgName in depends) {
-                                let [name, version] = pkgName.split('@');
-                                this._mergeInstallPackage(name, version, depends[pkgName].path, depends[pkgName].dependencies);
+            });
+        });
+    }
+    _comparison(debug, spmPackageDependMap, spmPackageInstallMap) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return new Promise((resolve) => {
+                debug('comparison.');
+                let mainSpmPackage;
+                for (let fullName in spmPackageDependMap) {
+                    let spmPackageDepend = spmPackageDependMap[fullName];
+                    if (spmPackageDepend.isDependencies == false) {
+                        mainSpmPackage = spmPackageDepend;
+                    }
+                    spmPackageInstallMap = this._comparisonWillInstall(spmPackageDepend, spmPackageInstallMap);
+                }
+                for (let dirname in spmPackageInstallMap) {
+                    let spmPackage = spmPackageInstallMap[dirname];
+                    spmPackage.dependenciesChanged = {};
+                    for (let pkgName in spmPackage.dependencies) {
+                        let [dependMajor] = spmPackage.dependencies[pkgName].split('.');
+                        if (this._spmPackageInstalledMap.hasOwnProperty(pkgName)) {
+                            let [installMajor] = this._spmPackageInstalledMap[pkgName].version.split('.');
+                            if (installMajor != dependMajor) {
+                                spmPackage.dependenciesChanged[pkgName] = `${pkgName}${lib_1.Spm.SPM_VERSION_CONNECTOR}${dependMajor}`;
                             }
-                            this._changeInstallDependencies();
-                            resolve();
                         }
-                        else {
-                            reject(new Error(chunk.toString()));
-                        }
-                    });
-                }).on('error', (e) => reject(e));
-                // send request headers
-                req.setHeader('Content-Type', 'application/x-www-form-urlencoded');
-                req.setHeader('Content-Length', Buffer.byteLength(reqParamsStr, 'utf8').toString());
-                req.write(reqParamsStr);
+                    }
+                    spmPackageInstallMap[dirname] = spmPackage;
+                }
+                resolve([mainSpmPackage, spmPackageInstallMap]);
+            });
+        });
+    }
+    _update(debug, mainSpmPackage) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return new Promise((resolve) => __awaiter(this, void 0, void 0, function* () {
+                debug('update.');
+                let importConfigPath = LibPath.join(IMPORT_DIR, 'spm.json');
+                // change import package spm.json
+                let packageConfig = {};
+                try {
+                    packageConfig = lib_1.Spm.getSpmPackageConfig(importConfigPath);
+                }
+                catch (e) {
+                    debug("Error:" + e.message);
+                    packageConfig = {
+                        name: LibPath.basename(IMPORT_DIR),
+                        version: "0.0.0",
+                        dependencies: {}
+                    };
+                }
+                if (packageConfig.dependencies.hasOwnProperty(mainSpmPackage.name) && packageConfig.dependencies[mainSpmPackage.name] == mainSpmPackage.version) {
+                    resolve();
+                    return;
+                }
+                if (!_.isEmpty(mainSpmPackage)) {
+                    packageConfig.dependencies[mainSpmPackage.name] = mainSpmPackage.version;
+                }
+                yield LibFs.writeFile(importConfigPath, Buffer.from(JSON.stringify(packageConfig, null, 2)), (err) => {
+                    if (err) {
+                        throw err;
+                    }
+                    resolve();
+                });
             }));
         });
     }
-    _mergeInstallPackage(name, version, path, dependencies, deepLevel = 0, originalName) {
-        let [nextMajor, nextMinor, nextPatch] = version.split('.');
-        if (this._projectInstalled.hasOwnProperty(name)) {
-            let [curMajor, curMinor, curPath] = this._projectInstalled[name];
+    _deploy(spmPackageInstallMap) {
+        return __awaiter(this, void 0, void 0, function* () {
+            for (let dirname in spmPackageInstallMap) {
+                const debug = require('debug')(`SPM:CLI:deploy:` + dirname);
+                debug('start');
+                let tmpName = dirname + this._tmpFileName;
+                let tmpZipPath = LibPath.join(this._tmpDir, tmpName);
+                let tmpPkgPath = LibPath.join(this._tmpDir, dirname);
+                // download file
+                yield this._packageDownload(debug, spmPackageInstallMap[dirname], tmpZipPath);
+                yield this._packageUncompress(debug, tmpZipPath, tmpPkgPath);
+                yield this._packageReplaceName(debug, dirname, spmPackageInstallMap[dirname], tmpPkgPath);
+                yield this._packageCopy(debug, dirname, tmpPkgPath);
+                debug('end');
+            }
+        });
+    }
+    _packageDownload(debug, spmPackage, tmpZipPath) {
+        return new Promise((resolve, reject) => {
+            debug('download.');
+            let params = {
+                path: spmPackage.downloadUrl,
+            };
+            let fileStream = LibFs.createWriteStream(tmpZipPath);
+            lib_1.SpmPackageRequest.postRequest('/v1/install', params, null, (res) => {
+                if (res.headers['content-type'] == 'application/octet-stream') {
+                    res.pipe(fileStream);
+                    res.on("end", () => {
+                        debug('download finish. ' + tmpZipPath);
+                        resolve();
+                    });
+                }
+                else {
+                    res.on("data", (chunk) => reject(new Error(chunk.toString())));
+                }
+            });
+        });
+    }
+    _packageUncompress(debug, tmpZipPath, tmpPkgPath) {
+        return new Promise((resolve, reject) => {
+            debug('uncompress.');
+            if (LibFs.statSync(tmpZipPath).isFile()) {
+                LibFs.createReadStream(tmpZipPath).pipe(unzip.Extract({ path: tmpPkgPath })
+                    .on("close", () => {
+                    debug('uncompress finish.');
+                    LibFs.unlinkSync(tmpZipPath);
+                    resolve();
+                }));
+            }
+            else {
+                LibFs.unlinkSync(tmpZipPath);
+                reject(new Error("Download file corruption."));
+            }
+        });
+    }
+    _packageReplaceName(debug, dirname, spmPackage, tmpPkgPath) {
+        return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
+            debug('replace name.');
+            if (_.isEmpty(spmPackage.dependenciesChanged) && spmPackage.name == dirname) {
+                resolve();
+            }
+            else {
+                try {
+                    let files = yield recursive(tmpPkgPath, ['.DS_Store']);
+                    let count = 0;
+                    files.map((file) => {
+                        count++;
+                        if (LibPath.basename(file).match(/.+\.proto/) !== null) {
+                            if (spmPackage.name != dirname) {
+                                lib_1.Spm._replaceStringInFile(file, [
+                                    [new RegExp(`package ${spmPackage.name};`, "g"), `package ${dirname};`]
+                                ]);
+                            }
+                            for (let oldString in spmPackage.dependenciesChanged) {
+                                let newString = spmPackage.dependenciesChanged[oldString];
+                                lib_1.Spm._replaceStringInFile(file, [
+                                    [new RegExp(`import "${oldString}/`, "g"), `import "${newString}/`],
+                                    [new RegExp(`\\((${oldString}.*?)\\)`, "g"), (word) => word.replace(oldString, newString)],
+                                    [new RegExp(` (${oldString}.*?) `, "g"), (word) => word.replace(oldString, newString)]
+                                ]);
+                            }
+                        }
+                        if (count == files.length) {
+                            debug('replace name finish.');
+                            resolve();
+                        }
+                    });
+                }
+                catch (e) {
+                    reject(e);
+                }
+            }
+        }));
+    }
+    _packageCopy(debug, dirname, tmpPkgPath) {
+        return new Promise((resolve) => __awaiter(this, void 0, void 0, function* () {
+            debug('copy.');
+            let packageDir = LibPath.join(this._spmPackageInstallDir, dirname);
+            if (LibFs.existsSync(packageDir) && LibFs.statSync(packageDir).isDirectory()) {
+                yield lib_1.rmdir(packageDir);
+            }
+            yield LibFs.rename(tmpPkgPath, packageDir);
+            debug('copy finish.');
+            resolve();
+        }));
+    }
+    _comparisonWillInstall(spmPackage, spmPackageInstallMap, deepLevel = 0, changeName) {
+        let dirname = (changeName) ? changeName : spmPackage.name;
+        if (this._spmPackageInstalledMap.hasOwnProperty(dirname)) {
+            let [nextMajor, nextMinor, nextPatch] = spmPackage.version.split('.');
+            let [curMajor, curMinor, curPath] = this._spmPackageInstalledMap[dirname].version.split('.');
             if (nextMajor == curMajor) {
                 if (nextMinor < curMinor || nextMinor == curMinor && nextPatch < curPath) {
                     // 依赖版本低于当前版本，不处理，其他情况都要重新下载
                 }
                 else {
-                    this._projectInstalled[name] = [nextMajor, nextMinor, nextPatch];
-                    this._installList[name] = {
-                        name: (originalName) ? originalName : name,
-                        version: [nextMajor, nextMinor, nextPatch],
-                        path: path,
-                        dependencies: dependencies
-                    };
+                    this._spmPackageInstalledMap[dirname] = spmPackage;
+                    spmPackageInstallMap[dirname] = spmPackage;
                 }
             }
             else {
                 if (deepLevel == 0) {
-                    this._mergeInstallPackage(name + nextMajor, version, path, dependencies, 1, name);
+                    this._comparisonWillInstall(spmPackage, spmPackageInstallMap, 1, `${spmPackage.name}${lib_1.Spm.SPM_VERSION_CONNECTOR}${nextMajor}`);
                 }
             }
         }
         else {
-            this._projectInstalled[name] = [nextMajor, nextMinor, nextPatch];
-            this._installList[name] = {
-                name: (originalName) ? originalName : name,
-                version: [nextMajor, nextMinor, nextPatch],
-                path: path,
-                dependencies: dependencies
-            };
+            this._spmPackageInstalledMap[dirname] = spmPackage;
+            spmPackageInstallMap[dirname] = spmPackage;
         }
-    }
-    _changeInstallDependencies() {
-        for (let name in this._installList) {
-            this._installList[name].dependenciesChangeMap = {};
-            for (let dependName in this._installList[name].dependencies) {
-                let [dependMajor] = this._installList[name].dependencies[dependName].split('.');
-                if (this._projectInstalled.hasOwnProperty(dependName)) {
-                    let [installMajor] = this._projectInstalled[dependName];
-                    if (installMajor != dependMajor) {
-                        this._installList[name].dependenciesChangeMap[dependName] = dependName + dependMajor;
-                    }
-                }
-            }
-        }
-    }
-    _deploy() {
-        return __awaiter(this, void 0, void 0, function* () {
-            debug('InstallCLI deploy.');
-            for (let name in this._installList) {
-                yield this._install(name, this._installList[name]);
-            }
-        });
-    }
-    _install(name, info) {
-        return __awaiter(this, void 0, void 0, function* () {
-            debug('InstallCLI install. name: ' + name);
-            let tmpName = name + this._tmpFileName;
-            let tmpZipPath = LibPath.join(this._tmpDir, tmpName);
-            let tmpPkgPath = LibPath.join(this._tmpDir, name);
-            // download file
-            yield new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
-                debug('InstallCLI download.');
-                let reqParamsStr = qs.stringify({
-                    path: info.path,
-                });
-                let fileStream = LibFs.createWriteStream(tmpZipPath);
-                // create request
-                let reqOptions = yield lib_1.SpmHttp.getRequestOption('/v1/install', lib_1.RequestMethod.post);
-                let req = http.request(reqOptions, (res) => {
-                    if (res.headers['content-type'] == 'application/octet-stream') {
-                        res.pipe(fileStream);
-                        res.on("end", () => {
-                            debug('InstallCLI download finish');
-                            resolve();
-                        });
-                    }
-                    else {
-                        res.on("data", (chunk) => reject(new Error(chunk.toString())));
-                    }
-                }).on('error', (e) => reject(e));
-                // send request headers
-                req.setHeader('Content-Type', 'application/x-www-form-urlencoded');
-                req.setHeader('Content-Length', Buffer.byteLength(reqParamsStr, 'utf8').toString());
-                req.write(reqParamsStr);
-            }));
-            // unzip file
-            yield new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
-                debug('InstallCLI unzip.');
-                let fileStat = yield LibFs.stat(tmpZipPath);
-                if (fileStat.isFile()) {
-                    LibFs.createReadStream(tmpZipPath).pipe(unzip.Extract({ path: tmpPkgPath }).on("close", () => __awaiter(this, void 0, void 0, function* () {
-                        debug('InstallCLI unzip finish');
-                        yield LibFs.unlink(tmpZipPath);
-                        resolve();
-                    })));
-                }
-                else {
-                    yield LibFs.unlink(tmpZipPath);
-                    reject(new Error("Download file corruption."));
-                }
-            }));
-            // change package name
-            yield new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
-                debug('InstallCLI replace.');
-                if (_.isEmpty(info.dependenciesChangeMap) && info.name == name) {
-                    resolve();
-                }
-                else {
-                    let files = yield recursive(tmpPkgPath, ['.DS_Store']);
-                    let count = 0;
-                    yield files.map((file) => __awaiter(this, void 0, void 0, function* () {
-                        count++;
-                        if (LibPath.basename(file).match(/.+\.proto/) !== null) {
-                            if (info.name != name) {
-                                yield this._replaceStringInFile(file, [
-                                    [new RegExp(`package ${info.name};`, "g"), `package ${name};`]
-                                ]);
-                            }
-                            if (!_.isEmpty(info.dependenciesChangeMap)) {
-                                for (let oldDependName in info.dependenciesChangeMap) {
-                                    let newDependName = info.dependenciesChangeMap[oldDependName];
-                                    yield this._replaceStringInFile(file, [
-                                        [new RegExp(`import "${oldDependName}/`, "g"), `import "${newDependName}/`],
-                                        [new RegExp(`\\((${oldDependName}.*?)\\)`, "g"), (word) => word.replace(oldDependName, newDependName)],
-                                        [new RegExp(` (${oldDependName}.*?) `, "g"), (word) => word.replace(oldDependName, newDependName)]
-                                    ]);
-                                }
-                            }
-                            if (count == files.length) {
-                                resolve();
-                            }
-                        }
-                    }));
-                }
-            }));
-            yield new Promise((resolve) => __awaiter(this, void 0, void 0, function* () {
-                debug('InstallCLI spm_proto dir.');
-                let installDir = LibPath.join(this._projectProtoDir, name);
-                yield lib_1.rmdir(installDir);
-                yield LibFs.rename(tmpPkgPath, installDir);
-                resolve();
-            }));
-        });
-    }
-    _replaceStringInFile(filePath, conditions) {
-        return __awaiter(this, void 0, void 0, function* () {
-            try {
-                let fileStat = yield LibFs.stat(filePath);
-                if (fileStat.isFile()) {
-                    let content = LibFs.readFileSync(filePath).toString();
-                    for (let [reg, word] of conditions) {
-                        content = content.toString().replace(reg, word);
-                    }
-                    yield LibFs.writeFile(filePath, Buffer.from(content), (err) => {
-                        if (err) {
-                            throw err;
-                        }
-                    });
-                }
-            }
-            catch (e) {
-                throw e;
-            }
-        });
+        return spmPackageInstallMap;
     }
 }
 InstallCLI.instance().run().catch((err) => {

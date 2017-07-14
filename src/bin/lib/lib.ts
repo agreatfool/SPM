@@ -28,6 +28,7 @@ export interface SpmPackage extends SpmPackageConfig {
         [key: string]: string;
     };
     downloadUrl?: string;
+    isDependencies?: boolean;
 }
 
 export interface SpmPackageMap {
@@ -54,6 +55,7 @@ export const rmdir = (dirPath: string) => {
 export namespace Spm {
 
     export const INSTALL_DIR_NAME: string = "spm_protos";
+    export const SPM_VERSION_CONNECTOR: string = "__v";
     export const SPM_ROOT_PATH: string = LibPath.join(__dirname, '..', '..', '..');
 
     /**
@@ -118,14 +120,21 @@ export namespace Spm {
         return JSON.parse(LibFs.readFileSync(path).toString());
     }
 
-    export async function getInstalledSpmPackageMap(installDir: string): Promise<SpmPackageMap> {
+    /**
+     * Get all installed SpmPackage from projectDir
+     *
+     * @param installDir
+     * @param projectDir
+     * @returns {Promise<SpmPackageMap>}
+     */
+    export async function getInstalledSpmPackageMap(installDir: string, projectDir: string): Promise<SpmPackageMap> {
         let spmPackageMap = {} as SpmPackageMap;
         if (LibFs.statSync(installDir).isDirectory()) {
             let files = await recursive(installDir, [".DS_Store"]);
             for (let file of files) {
                 let basename = LibPath.basename(file);
                 if (basename.match(/.+\.json/) !== null) {
-                    let dirname = LibPath.dirname(file).replace(this._modulesDIr, '').replace('\\', '').replace('/', '');
+                    let dirname = LibPath.dirname(file).replace(projectDir, '').replace('\\', '').replace('/', '');
                     let packageConfig = Spm.getSpmPackageConfig(file);
                     spmPackageMap[dirname] = {
                         name: packageConfig.name,
@@ -136,6 +145,31 @@ export namespace Spm {
             }
         }
         return spmPackageMap;
+    }
+
+    /**
+     * Replace string in file
+     *
+     * @param {string} filePath
+     * @param {Array<[RegExp, any]>} conditions
+     * @returns {Promise<void>}
+     */
+    export function _replaceStringInFile(filePath: string, conditions: Array<[RegExp, any]>) {
+        try {
+            if (LibFs.statSync(filePath).isFile()) {
+                let content = LibFs.readFileSync(filePath).toString();
+                for (let [reg, word] of conditions) {
+                    content = content.toString().replace(reg, word);
+                }
+                LibFs.writeFileSync(filePath, Buffer.from(content), (err) => {
+                    if (err) {
+                        throw err;
+                    }
+                });
+            }
+        } catch (e) {
+            throw e;
+        }
     }
 }
 
@@ -155,11 +189,14 @@ export namespace SpmPackageRequest {
         };
     }
 
-    export function postRequest(uri: string, params: Object, callback: (chunk: Buffer | string) => void) {
+    export function postRequest(uri: string, params: Object, callback: (chunk: Buffer | string) => void, handleResponse?: Function) {
         // -------------------- create request --------------------- //
         let reqOptions = SpmPackageRequest.getRequestOption(uri, RequestMethod.post);
+
         let req = http.request(reqOptions, (res) => {
-            res.on('data', (chunk) => callback(chunk));
+            (handleResponse)
+                ? handleResponse(res)
+                : res.on('data', (chunk) => callback(chunk));
         }).on('error', (e) => {
             throw new Error(e.message)
         });
@@ -222,7 +259,7 @@ export namespace SpmPackageRequest {
         }
     }
 
-    export function parseResponse(chunk) {
+    export function parseResponse(chunk): any {
         let response = JSON.parse(chunk) as ResponseSchema;
 
         if (response.code < 0) {

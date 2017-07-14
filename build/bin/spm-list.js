@@ -43,7 +43,7 @@ class ListCLI {
     _show() {
         return __awaiter(this, void 0, void 0, function* () {
             debug('ListCLI show.');
-            let spmPackageMap = yield lib_1.Spm.getInstalledSpmPackageMap(this._spmPackageInstallDir);
+            let spmPackageMap = yield lib_1.Spm.getInstalledSpmPackageMap(this._spmPackageInstallDir, this._spmPackageInstallDir);
             console.log('--------------Installed SpmPackage---------------');
             for (let dirname in spmPackageMap) {
                 let spmPackage = spmPackageMap[dirname];
