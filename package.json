@@ -21,9 +21,6 @@
   },
   "homepage": "https://github.com/agreatfool/SPM#readme",
   "dependencies": {
-    "@types/bluebird": "^3.5.8",
-    "@types/recursive-readdir": "^1.2.28",
-    "@types/underscore": "^1.8.1",
     "archiver": "^2.0.0",
     "bluebird": "^3.5.0",
     "commander": "^2.9.0",
@@ -47,12 +44,15 @@
     "unzip": "^0.1.11"
   },
   "devDependencies": {
+    "@types/bluebird": "^3.5.8",
     "@types/commander": "^2.9.1",
     "@types/fs-promise": "^1.0.3",
     "@types/koa": "^2.0.39",
     "@types/koa-bodyparser": "^3.0.23",
     "@types/koa-router": "^7.0.22",
     "@types/mz": "0.0.31",
-    "@types/node": "^8.0.3"
+    "@types/node": "^8.0.3",
+    "@types/recursive-readdir": "^1.2.28",
+    "@types/underscore": "^1.8.1"
   }
 }
