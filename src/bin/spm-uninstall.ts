@@ -45,7 +45,7 @@ class UninstallCLI {
         this._projectDir = Spm.getProjectDir();
         this._removePackage = {} as SpmPackage;
         try {
-            let packageConfig = Spm.getSpmPackageConfig(LibPath.join( this._projectDir, 'spm.json'));
+            let packageConfig = Spm.getSpmPackageConfig(LibPath.join(this._projectDir, 'spm.json'));
             if (packageConfig.dependencies.hasOwnProperty(PKG_NAME_VALUE)) {
                 let pkgVersion = packageConfig.dependencies[PKG_NAME_VALUE];
                 delete packageConfig.dependencies[PKG_NAME_VALUE];
