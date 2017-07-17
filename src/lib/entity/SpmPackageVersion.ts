@@ -2,7 +2,7 @@ import {Entity, Column, PrimaryColumn} from "typeorm";
 
 @Entity()
 export class SpmPackageVersion {
-    @PrimaryColumn("int", { generated: true })
+    @PrimaryColumn("int", {generated: true})
     id: number;
 
     @Column("int")

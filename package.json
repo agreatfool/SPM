@@ -25,7 +25,6 @@
     "bluebird": "^3.5.0",
     "commander": "^2.9.0",
     "debug": "^2.6.8",
-    "fs-promise": "^2.0.3",
     "gulp": "^3.9.1",
     "gulp-typescript": "^3.1.7",
     "koa": "^2.3.0",
@@ -46,7 +45,6 @@
   "devDependencies": {
     "@types/bluebird": "^3.5.8",
     "@types/commander": "^2.9.1",
-    "@types/fs-promise": "^1.0.3",
     "@types/koa": "^2.0.39",
     "@types/koa-bodyparser": "^3.0.23",
     "@types/koa-router": "^7.0.22",

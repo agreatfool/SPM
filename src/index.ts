@@ -1,4 +1,4 @@
-import App from "./lib/App"
+import App from "./lib/App";
 
 // App Start
 let app = new App();

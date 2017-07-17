@@ -61,7 +61,7 @@ class PostSearch extends ApiBase {
                 }
 
                 if (!_.isEmpty(spmPackageVersion)) {
-                    packages.push(`${spmPackage.name}@${spmPackageVersion.major}.${spmPackageVersion.minor}.${spmPackageVersion.patch}`)
+                    packages.push(`${spmPackage.name}@${spmPackageVersion.major}.${spmPackageVersion.minor}.${spmPackageVersion.patch}`);
                 }
             }
 

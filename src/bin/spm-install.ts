@@ -83,7 +83,7 @@ class InstallCLI {
             }
         } else {
             // MODE TWO: npm install -i {importName} -n ${pkgName}
-            packageList.push(PKG_NAME_VALUE)
+            packageList.push(PKG_NAME_VALUE);
         }
 
         for (let pkgName of packageList) {

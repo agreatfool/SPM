@@ -4,7 +4,7 @@ import {Context as KoaContext} from "koa";
 import {MiddlewareNext, ResponseSchema} from "../Router";
 import {SpmPackage} from "../entity/SpmPackage";
 import {SpmPackageVersion} from "../entity/SpmPackageVersion";
-import {SpmPackageMap} from "../../bin/lib/lib"
+import {SpmPackageMap} from "../../bin/lib/lib";
 import {ApiBase} from "../ApiBase";
 
 class PostDepend extends ApiBase {
@@ -19,11 +19,11 @@ class PostDepend extends ApiBase {
     public async paramsValidate(ctx: KoaContext) {
         const params = ctx.request.body;
         if (!params.name || _.isEmpty(params.name)) {
-            throw new Error("Name is required!")
+            throw new Error("Name is required!");
         }
 
         if (!params.name || _.isEmpty(params.name)) {
-            throw new Error("Name is required!")
+            throw new Error("Name is required!");
         }
     }
 

@@ -19,7 +19,7 @@ class PostInstall extends ApiBase {
         const params = ctx.request.body;
 
         if (!params.path || _.isEmpty(params.path)) {
-            throw new Error("path is required!")
+            throw new Error("path is required!");
         }
     }
 

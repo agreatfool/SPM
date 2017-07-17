@@ -22,15 +22,15 @@ class PostPublish extends ApiBase {
         const params = body.fields;
 
         if (!params.secret || params.secret != this.options.secret) {
-            throw new Error("Secret is required!")
+            throw new Error("Secret is required!");
         }
 
         if (!params.name || _.isEmpty(params.name)) {
-            throw new Error("Name is required!")
+            throw new Error("Name is required!");
         }
 
         if (!params.version || _.isEmpty(params.version)) {
-            throw new Error("Version is required!")
+            throw new Error("Version is required!");
         }
 
         if (!body.hasOwnProperty("files") || !body.files.hasOwnProperty("fileUpload")) {

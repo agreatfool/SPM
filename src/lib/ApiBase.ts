@@ -30,7 +30,7 @@ export abstract class ApiBase {
             } catch (err) {
                 ctx.body = _this.buildResponse(err.message, -1);
             }
-        }
+        };
     }
 
     protected _execute(): KoaMiddleware {
@@ -38,17 +38,17 @@ export abstract class ApiBase {
         return async function (ctx: KoaContext, next: MiddlewareNext): Promise<void> {
             ctx.body = await _this.handle(ctx, next);
             await next();
-        }
+        };
     }
 
     public buildResponse(msg: any, code: number = 0): ResponseSchema {
         if (code < 0) {
-            console.log(`[${this.uri}]: ${msg}`)
+            console.log(`[${this.uri}]: ${msg}`);
         }
 
         return {
             code: code,
             msg: msg
-        }
+        };
     }
 }
