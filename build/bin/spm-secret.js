@@ -13,9 +13,8 @@ const lib_1 = require("./lib/lib");
 const pkg = require('../../package.json');
 const debug = require('debug')('SPM:CLI:secret');
 program.version(pkg.version)
-    .option('-s, --secret <item>', 'secret value')
     .parse(process.argv);
-const SECRET_VALUE = program.secret === undefined ? undefined : program.secret;
+const SECRET_VALUE = program.args[0] === undefined ? undefined : program.args[0];
 class SecretCLI {
     static instance() {
         return new SecretCLI();
@@ -31,7 +30,7 @@ class SecretCLI {
         return __awaiter(this, void 0, void 0, function* () {
             debug('SecretCLI validate.');
             if (!SECRET_VALUE) {
-                throw new Error('--secret is required');
+                throw new Error('secretKey is required');
             }
         });
     }

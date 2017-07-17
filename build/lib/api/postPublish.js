@@ -79,11 +79,11 @@ class PostPublish extends ApiBase_1.ApiBase {
                     .andWhere('version.minor=:minor', { minor: minor })
                     .andWhere('version.patch=:patch', { patch: patch })
                     .getOne();
+                if (!_.isEmpty(spmPackageVersion)) {
+                    return this.buildResponse(`Proto is exist! name:${params.name}, version:${params.version}`, -1);
+                }
                 // if version is not found, create version
                 let entity = new SpmPackageVersion_1.SpmPackageVersion();
-                if (!_.isEmpty(spmPackageVersion)) {
-                    entity.id = spmPackageVersion.id;
-                }
                 entity.pid = spmPackage.id;
                 entity.major = major | 0;
                 entity.minor = minor | 0;
@@ -91,8 +91,8 @@ class PostPublish extends ApiBase_1.ApiBase {
                 entity.filePath = writeFilePath;
                 entity.time = new Date().getTime();
                 entity.dependencies = params.dependencies;
-                spmPackageVersion = yield this.dbHandler.manager.persist(entity);
-                return this.buildResponse({ spmPackage: spmPackage, spmPackageVersion: spmPackageVersion });
+                yield this.dbHandler.manager.persist(entity);
+                return this.buildResponse("succeed");
             }
             catch (err) {
                 return this.buildResponse(err.message, -1);

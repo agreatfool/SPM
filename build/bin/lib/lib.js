@@ -87,11 +87,7 @@ var Spm;
      * @returns {string}
      */
     function getProjectDir() {
-        let strIndex = Spm.SPM_ROOT_PATH.indexOf('node_modules');
-        if (strIndex >= 0) {
-            return LibPath.join(Spm.SPM_ROOT_PATH.substr(0, strIndex));
-        }
-        return LibPath.join(Spm.SPM_ROOT_PATH, '..');
+        return process.cwd();
     }
     Spm.getProjectDir = getProjectDir;
     /**

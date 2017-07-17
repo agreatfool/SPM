@@ -18,9 +18,8 @@ const lib_1 = require("./lib/lib");
 const pkg = require('../../package.json');
 const debug = require('debug')('SPM:CLI:install');
 program.version(pkg.version)
-    .option('-n, --pkgName <item>', 'package name')
     .parse(process.argv);
-const PKG_NAME_VALUE = program.pkgName === undefined ? undefined : program.pkgName;
+const PKG_NAME_VALUE = program.args[0] === undefined ? undefined : program.args[0];
 class InstallCLI {
     static instance() {
         return new InstallCLI();

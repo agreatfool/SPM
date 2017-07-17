@@ -32,42 +32,12 @@ class PostSearch extends ApiBase_1.ApiBase {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const params = ctx.request.body;
-                let packages = [];
-                let [name, version] = params.keyword.split('@');
-                // find package
-                let spmPackageList = yield this.dbHandler
-                    .getRepository(SpmPackage_1.SpmPackage)
-                    .createQueryBuilder("package")
-                    .where('package.name LIKE :keyword', { keyword: `%${name}%` })
-                    .getMany();
-                for (let spmPackage of spmPackageList) {
-                    let spmPackageVersion;
-                    if (!_.isEmpty(version)) {
-                        const [major, minor, patch] = version.split('.');
-                        spmPackageVersion = yield this.dbHandler
-                            .getRepository(SpmPackageVersion_1.SpmPackageVersion)
-                            .createQueryBuilder("version")
-                            .where('version.pid=:pid', { pid: spmPackage.id })
-                            .andWhere('version.major=:major', { major: major })
-                            .andWhere('version.minor=:minor', { minor: minor })
-                            .andWhere('version.patch=:patch', { patch: patch })
-                            .getOne();
-                    }
-                    else {
-                        spmPackageVersion = yield this.dbHandler
-                            .getRepository(SpmPackageVersion_1.SpmPackageVersion)
-                            .createQueryBuilder("version")
-                            .where('version.pid=:pid', { pid: spmPackage.id })
-                            .orderBy("version.major", "DESC")
-                            .addOrderBy("version.minor", "DESC")
-                            .addOrderBy("version.patch", "DESC")
-                            .getOne();
-                    }
-                    if (!_.isEmpty(spmPackageVersion)) {
-                        packages.push(`${spmPackage.name}@${spmPackageVersion.major}.${spmPackageVersion.minor}.${spmPackageVersion.patch}`);
-                    }
+                if (params.info == 'true') {
+                    return this.buildResponse(yield this.preciseSearch(params.keyword));
                 }
-                return this.buildResponse(packages);
+                else {
+                    return this.buildResponse(yield this.fuzzySearch(params.keyword));
+                }
             }
             catch (err) {
                 return this.buildResponse(err.message, -1);
@@ -75,6 +45,42 @@ class PostSearch extends ApiBase_1.ApiBase {
         });
     }
     ;
+    fuzzySearch(keyword) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let packages = [];
+            let spmPackageList = yield this.dbHandler
+                .getRepository(SpmPackage_1.SpmPackage)
+                .createQueryBuilder("package")
+                .where('package.name LIKE :keyword', { keyword: `%${keyword}%` })
+                .getMany();
+            for (let spmPackage of spmPackageList) {
+                packages.push(`${spmPackage.name}`);
+            }
+            return packages;
+        });
+    }
+    preciseSearch(keyword) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let packages = [];
+            let spmPackage = yield this.dbHandler
+                .getRepository(SpmPackage_1.SpmPackage)
+                .createQueryBuilder("package")
+                .where('package.name=:keyword', { keyword: `${keyword}` })
+                .getOne();
+            if (_.isEmpty(spmPackage)) {
+                return packages;
+            }
+            let spmPackageVersionList = yield this.dbHandler
+                .getRepository(SpmPackageVersion_1.SpmPackageVersion)
+                .createQueryBuilder("version")
+                .where('version.pid=:pid', { pid: spmPackage.id })
+                .getMany();
+            for (let spmPackageVersion of spmPackageVersionList) {
+                packages.push(`${spmPackage.name}@${spmPackageVersion.major}.${spmPackageVersion.minor}.${spmPackageVersion.patch}`);
+            }
+            return packages;
+        });
+    }
 }
 exports.api = new PostSearch();
 //# sourceMappingURL=postSearch.js.map

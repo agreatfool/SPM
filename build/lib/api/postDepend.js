@@ -59,28 +59,26 @@ class PostDepend extends ApiBase_1.ApiBase {
             if (_.isEmpty(spmPackage)) {
                 throw new Error("Package not found, name: " + name);
             }
-            let spmPackageVersion;
+            // build spm package version query
+            let sheetName = "version";
+            let columnPidWhereQuery = [`${sheetName}.pid=:pid`, { pid: spmPackage.id }];
+            let columnMajorWhereQuery = [`${sheetName}.major`, "DESC"];
+            let columnMinorWhereQuery = [`${sheetName}.minor`, "DESC"];
+            let columnPatchWhereQuery = [`${sheetName}.patch`, "DESC"];
             if (!_.isEmpty(version)) {
                 const [major, minor, patch] = version.split('.');
-                spmPackageVersion = yield this.dbHandler
-                    .getRepository(SpmPackageVersion_1.SpmPackageVersion)
-                    .createQueryBuilder("version")
-                    .where('version.pid=:pid', { pid: spmPackage.id })
-                    .andWhere('version.major=:major', { major: major })
-                    .andWhere('version.minor=:minor', { minor: minor })
-                    .andWhere('version.patch=:patch', { patch: patch })
-                    .getOne();
+                columnMajorWhereQuery = [`${sheetName}.major=:major`, { major: major }];
+                columnMinorWhereQuery = [`${sheetName}.minor=:minor`, { minor: minor }];
+                columnPatchWhereQuery = [`${sheetName}.patch=:patch`, { patch: patch }];
             }
-            else {
-                spmPackageVersion = yield this.dbHandler
-                    .getRepository(SpmPackageVersion_1.SpmPackageVersion)
-                    .createQueryBuilder("version")
-                    .where('version.pid=:pid', { pid: spmPackage.id })
-                    .orderBy("version.major", "DESC")
-                    .addOrderBy("version.minor", "DESC")
-                    .addOrderBy("version.patch", "DESC")
-                    .getOne();
-            }
+            let spmPackageVersion = yield this.dbHandler
+                .getRepository(SpmPackageVersion_1.SpmPackageVersion)
+                .createQueryBuilder(sheetName)
+                .where(columnPidWhereQuery[0], columnPidWhereQuery[1])
+                .andWhere(columnMajorWhereQuery[0], columnMajorWhereQuery[1])
+                .andWhere(columnMinorWhereQuery[0], columnMinorWhereQuery[1])
+                .andWhere(columnPatchWhereQuery[0], columnPatchWhereQuery[1])
+                .getOne();
             if (_.isEmpty(spmPackageVersion)) {
                 throw new Error("Package version not found, name: " + spmPackage.name + ", version: " + version);
             }

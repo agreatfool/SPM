@@ -24,7 +24,6 @@ class ListCLI {
 
     private async _prepare() {
         debug('ListCLI prepare.');
-
         this._projectDir = Spm.getProjectDir();
         this._spmPackageInstallDir = LibPath.join(this._projectDir, Spm.INSTALL_DIR_NAME);
     }

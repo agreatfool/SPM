@@ -13,9 +13,10 @@ const lib_1 = require("./lib/lib");
 const pkg = require('../../package.json');
 const debug = require('debug')('SPM:CLI:search');
 program.version(pkg.version)
-    .option('-k, --keyword <item>', 'keyword')
+    .option('-i, --info', 'show proto info')
     .parse(process.argv);
-const KEYWORD_VALUE = program.keyword === undefined ? undefined : program.keyword;
+const INFO_VALUE = program.info === undefined ? undefined : program.info;
+const KEYWORD_VALUE = program.args[0] === undefined ? undefined : program.args[0];
 class SearchCLI {
     static instance() {
         return new SearchCLI();
@@ -31,7 +32,7 @@ class SearchCLI {
         return __awaiter(this, void 0, void 0, function* () {
             debug('SearchCLI validate.');
             if (!KEYWORD_VALUE) {
-                throw new Error('--keyword is required');
+                throw new Error('keyword is required');
             }
         });
     }
@@ -41,6 +42,7 @@ class SearchCLI {
             yield new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
                 let params = {
                     keyword: KEYWORD_VALUE,
+                    info: !!(INFO_VALUE)
                 };
                 lib_1.SpmPackageRequest.postRequest('/v1/search', params, (chunk) => {
                     try {

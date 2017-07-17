@@ -25,51 +25,54 @@ class PostSearch extends ApiBase {
     public async handle(ctx: KoaContext, next: MiddlewareNext): Promise<ResponseSchema> {
         try {
             const params = ctx.request.body;
-
-            let packages = [];
-            let [name, version] = params.keyword.split('@');
-
-            // find package
-            let spmPackageList = await this.dbHandler
-                .getRepository(SpmPackage)
-                .createQueryBuilder("package")
-                .where('package.name LIKE :keyword', {keyword: `%${name}%`})
-                .getMany();
-
-            for (let spmPackage of spmPackageList) {
-
-                let spmPackageVersion: SpmPackageVersion;
-                if (!_.isEmpty(version)) {
-                    const [major, minor, patch] = version.split('.');
-                    spmPackageVersion = await this.dbHandler
-                        .getRepository(SpmPackageVersion)
-                        .createQueryBuilder("version")
-                        .where('version.pid=:pid', {pid: spmPackage.id})
-                        .andWhere('version.major=:major', {major: major})
-                        .andWhere('version.minor=:minor', {minor: minor})
-                        .andWhere('version.patch=:patch', {patch: patch})
-                        .getOne();
-                } else {
-                    spmPackageVersion = await this.dbHandler
-                        .getRepository(SpmPackageVersion)
-                        .createQueryBuilder("version")
-                        .where('version.pid=:pid', {pid: spmPackage.id})
-                        .orderBy("version.major", "DESC")
-                        .addOrderBy("version.minor", "DESC")
-                        .addOrderBy("version.patch", "DESC")
-                        .getOne();
-                }
-
-                if (!_.isEmpty(spmPackageVersion)) {
-                    packages.push(`${spmPackage.name}@${spmPackageVersion.major}.${spmPackageVersion.minor}.${spmPackageVersion.patch}`);
-                }
+            if (params.info == 'true') {
+                return this.buildResponse(await this.preciseSearch(params.keyword));
+            } else {
+                return this.buildResponse(await this.fuzzySearch(params.keyword));
             }
-
-            return this.buildResponse(packages);
         } catch (err) {
             return this.buildResponse(err.message, -1);
         }
     };
+
+    public async fuzzySearch(keyword: string): Promise<Array<string>> {
+        let packages = [];
+        let spmPackageList = await this.dbHandler
+            .getRepository(SpmPackage)
+            .createQueryBuilder("package")
+            .where('package.name LIKE :keyword', {keyword: `%${keyword}%`})
+            .getMany();
+        for (let spmPackage of spmPackageList) {
+            packages.push(`${spmPackage.name}`);
+        }
+
+        return packages;
+    }
+
+    public async preciseSearch(keyword: string): Promise<Array<string>> {
+        let packages = [];
+        let spmPackage = await this.dbHandler
+            .getRepository(SpmPackage)
+            .createQueryBuilder("package")
+            .where('package.name=:keyword', {keyword: `${keyword}`})
+            .getOne();
+
+        if (_.isEmpty(spmPackage)) {
+            return packages;
+        }
+
+        let spmPackageVersionList = await this.dbHandler
+            .getRepository(SpmPackageVersion)
+            .createQueryBuilder("version")
+            .where('version.pid=:pid', {pid: spmPackage.id})
+            .getMany();
+
+        for (let spmPackageVersion of spmPackageVersionList) {
+            packages.push(`${spmPackage.name}@${spmPackageVersion.major}.${spmPackageVersion.minor}.${spmPackageVersion.patch}`);
+        }
+
+        return packages;
+    }
 }
 
 export const api = new PostSearch();

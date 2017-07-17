@@ -5,16 +5,14 @@ import * as unzip from "unzip";
 import * as _ from "underscore";
 import * as recursive from "recursive-readdir";
 import {Spm, SpmPackageRequest, mkdir, rmdir, SpmPackageMap, SpmPackage, SpmPackageConfig} from "./lib/lib";
-import {readJson} from "fs-promise";
 
 const pkg = require('../../package.json');
 const debug = require('debug')('SPM:CLI:install');
 
 program.version(pkg.version)
-    .option('-n, --pkgName <item>', 'package name')
     .parse(process.argv);
 
-const PKG_NAME_VALUE = (program as any).pkgName === undefined ? undefined : (program as any).pkgName;
+const PKG_NAME_VALUE = program.args[0] === undefined ? undefined : program.args[0];
 
 class InstallCLI {
     private _tmpDir: string;

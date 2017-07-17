@@ -104,12 +104,7 @@ export namespace Spm {
      * @returns {string}
      */
     export function getProjectDir(): string {
-        let strIndex = SPM_ROOT_PATH.indexOf('node_modules');
-        if (strIndex >= 0) {
-            return LibPath.join(SPM_ROOT_PATH.substr(0, strIndex));
-        }
-
-        return LibPath.join(SPM_ROOT_PATH, '..');
+        return process.cwd();
     }
 
     /**

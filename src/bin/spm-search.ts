@@ -5,10 +5,11 @@ const pkg = require('../../package.json');
 const debug = require('debug')('SPM:CLI:search');
 
 program.version(pkg.version)
-    .option('-k, --keyword <item>', 'keyword')
+    .option('-i, --info', 'show proto info')
     .parse(process.argv);
 
-const KEYWORD_VALUE = (program as any).keyword === undefined ? undefined : (program as any).keyword;
+const INFO_VALUE = (program as any).info === undefined ? undefined : (program as any).info;
+const KEYWORD_VALUE = program.args[0] === undefined ? undefined : program.args[0];
 
 class SearchCLI {
 
@@ -26,7 +27,7 @@ class SearchCLI {
         debug('SearchCLI validate.');
 
         if (!KEYWORD_VALUE) {
-            throw new Error('--keyword is required');
+            throw new Error('keyword is required');
         }
     }
 
@@ -36,6 +37,7 @@ class SearchCLI {
         await new Promise(async (resolve, reject) => {
             let params = {
                 keyword: KEYWORD_VALUE,
+                info: !!(INFO_VALUE)
             };
 
             SpmPackageRequest.postRequest('/v1/search', params, (chunk) => {

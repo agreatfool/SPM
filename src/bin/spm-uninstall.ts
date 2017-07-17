@@ -8,10 +8,9 @@ const pkg = require('../../package.json');
 const debug = require('debug')('SPM:CLI:Uninstall');
 
 program.version(pkg.version)
-    .option('-n, --pkgName <item>', 'package name')
     .parse(process.argv);
 
-const PKG_NAME_VALUE = (program as any).pkgName === undefined ? undefined : (program as any).pkgName;
+const PKG_NAME_VALUE = program.args[0] === undefined ? undefined : program.args[0];
 
 class UninstallCLI {
 
@@ -39,7 +38,7 @@ class UninstallCLI {
         debug('UninstallCLI validate.');
 
         if (!PKG_NAME_VALUE) {
-            throw new Error('--pkgName is required');
+            throw new Error('name is required');
         }
 
         this._projectDir = Spm.getProjectDir();
