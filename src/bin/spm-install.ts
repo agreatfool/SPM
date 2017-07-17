@@ -5,19 +5,16 @@ import * as unzip from "unzip";
 import * as _ from "underscore";
 import * as recursive from "recursive-readdir";
 import {Spm, SpmPackageRequest, mkdir, rmdir, SpmPackageMap, SpmPackage, SpmPackageConfig} from "./lib/lib";
+import {readJson} from "fs-promise";
 
 const pkg = require('../../package.json');
 const debug = require('debug')('SPM:CLI:install');
 
 program.version(pkg.version)
-    .option('-i, --import <dir>', 'directory of source proto files for update spm.json')
     .option('-n, --pkgName <item>', 'package name')
-    .option('-p, --projectDir <dir>', 'project dir')
     .parse(process.argv);
 
 const PKG_NAME_VALUE = (program as any).pkgName === undefined ? undefined : (program as any).pkgName;
-const IMPORT_DIR = (program as any).import === undefined ? undefined : LibPath.normalize((program as any).import);
-const PROJECT_DIR_VALUE = (program as any).projectDir === undefined ? undefined : (program as any).projectDir;
 
 class InstallCLI {
     private _tmpDir: string;
@@ -33,21 +30,8 @@ class InstallCLI {
 
     public async run() {
         debug('InstallCLI start.');
-        await this._validate();
         await this._prepare();
         await this._install();
-    }
-
-    private async _validate() {
-        debug('InstallCLI validate.');
-
-        if (!IMPORT_DIR) {
-            throw new Error('--import is required');
-        }
-
-        if (!LibFs.statSync(IMPORT_DIR).isDirectory()) {
-            throw new Error('--import is not a directory');
-        }
     }
 
     private async _prepare() {
@@ -57,22 +41,18 @@ class InstallCLI {
         this._tmpFileName = Math.random().toString(16) + ".zip";
         await mkdir(this._tmpDir);
 
-        if (!PROJECT_DIR_VALUE) {
-            this._projectDir = Spm.getProjectDir();
-        } else {
-            this._projectDir = PROJECT_DIR_VALUE;
-        }
-
+        this._projectDir = Spm.getProjectDir();
         this._spmPackageInstallDir = LibPath.join(this._projectDir, Spm.INSTALL_DIR_NAME);
         await mkdir(this._spmPackageInstallDir);
-        this._spmPackageInstalledMap = await Spm.getInstalledSpmPackageMap(this._spmPackageInstallDir, this._spmPackageInstallDir);
+
+        this._spmPackageInstalledMap = await Spm.getInstalledSpmPackageMap();
     }
 
     private async _install() {
         let packageList = [] as Array<string>;
         if (!PKG_NAME_VALUE) {
             // MODE ONE: npm install -i {importName}
-            let importConfigPath = LibPath.join(IMPORT_DIR, 'spm.json');
+            let importConfigPath = LibPath.join(this._projectDir, 'spm.json');
             try {
                 let packageConfig = Spm.getSpmPackageConfig(importConfigPath);
                 for (let name in packageConfig.dependencies) {
@@ -87,13 +67,17 @@ class InstallCLI {
         }
 
         for (let pkgName of packageList) {
-            await new Promise(async (resolve) => {
+            await new Promise(async (resolve, reject) => {
                 const debug = require('debug')(`SPM:CLI:install:` + pkgName);
                 debug('-----------------------------------');
-                let spmPackageDependMap = await this._request(debug, pkgName);
-                let [mainSpmPackage, spmPackageInstallMap] = await this._comparison(debug, spmPackageDependMap, {});
-                await this._update(debug, mainSpmPackage);
-                await this._deploy(spmPackageInstallMap);
+                try {
+                    let spmPackageDependMap = await this._request(debug, pkgName);
+                    let [mainSpmPackage, spmPackageInstallMap] = await this._comparison(debug, spmPackageDependMap, {});
+                    await this._update(debug, mainSpmPackage);
+                    await this._deploy(spmPackageInstallMap);
+                } catch (e) {
+                    reject(e);
+                }
                 debug('-----------------------------------');
                 resolve();
             });
@@ -158,7 +142,7 @@ class InstallCLI {
         return new Promise(async (resolve) => {
             debug('update.');
 
-            let importConfigPath = LibPath.join(IMPORT_DIR, 'spm.json');
+            let importConfigPath = LibPath.join(this._projectDir, 'spm.json');
 
             // change import package spm.json
             let packageConfig = {} as SpmPackageConfig;
@@ -166,9 +150,10 @@ class InstallCLI {
             try {
                 packageConfig = Spm.getSpmPackageConfig(importConfigPath);
             } catch (e) {
-                debug("Error:" + e.message);
+                debug(e.message);
+                debug("Create File:" + importConfigPath);
                 packageConfig = {
-                    name: LibPath.basename(IMPORT_DIR),
+                    name: LibPath.basename(this._projectDir),
                     version: "0.0.0",
                     dependencies: {}
                 };

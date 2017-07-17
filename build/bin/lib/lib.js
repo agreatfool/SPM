@@ -107,19 +107,19 @@ var Spm;
     /**
      * Get all installed SpmPackage from projectDir
      *
-     * @param installDir
-     * @param projectDir
      * @returns {Promise<SpmPackageMap>}
      */
-    function getInstalledSpmPackageMap(installDir, projectDir) {
+    function getInstalledSpmPackageMap() {
         return __awaiter(this, void 0, void 0, function* () {
+            let projectDir = Spm.getProjectDir();
+            let installDir = LibPath.join(projectDir, Spm.INSTALL_DIR_NAME);
             let spmPackageMap = {};
             if (LibFs.statSync(installDir).isDirectory()) {
                 let files = yield recursive(installDir, [".DS_Store"]);
                 for (let file of files) {
                     let basename = LibPath.basename(file);
                     if (basename.match(/.+\.json/) !== null) {
-                        let dirname = LibPath.dirname(file).replace(projectDir, '').replace('\\', '').replace('/', '');
+                        let dirname = LibPath.dirname(file).replace(installDir, '').replace('\\', '').replace('/', '');
                         let packageConfig = Spm.getSpmPackageConfig(file);
                         spmPackageMap[dirname] = {
                             name: packageConfig.name,

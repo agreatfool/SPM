@@ -9,12 +9,10 @@ const pkg = require('../../package.json');
 const debug = require('debug')('SPM:CLI:publish');
 
 program.version(pkg.version)
-    .option('-i, --import <dir>', 'directory of source proto files for publish to spm server')
     .parse(process.argv);
 
-const IMPORT_DIR = (program as any).import === undefined ? undefined : LibPath.normalize((program as any).import);
-
 class PublishCLI {
+    private _projectDir: string;
     private _packageConfig: SpmPackageConfig;
     private _tmpDir: string;
     private _tmpFileName: string;
@@ -35,25 +33,23 @@ class PublishCLI {
     private async _validate() {
         debug('PublishCLI validate.');
 
-        if (!IMPORT_DIR) {
-            throw new Error('--import is required');
+        this._projectDir = Spm.getProjectDir();
+
+        let configStat = await LibFs.stat(LibPath.join(this._projectDir, 'spm.json'));
+        if (!configStat.isFile()) {
+            throw new Error('File: `spm.json` not found in project:' + this._projectDir);
         }
 
-        let importStat = await LibFs.stat(IMPORT_DIR);
-        if (!importStat.isDirectory()) {
-            throw new Error('--import is not a directory');
-        }
-
-        let importFiles = await LibFs.readdir(IMPORT_DIR);
-        if (importFiles.indexOf('spm.json') < 0) {
-            throw new Error('File: `spm.json` not found in import directory:' + IMPORT_DIR);
+        let protoStat = await LibFs.stat(LibPath.join(this._projectDir, 'proto'));
+        if (!protoStat.isDirectory()) {
+            throw new Error('Dir: `proto` not found in project:' + this._projectDir);
         }
     }
 
     private async _prepare() {
         debug('PublishCLI prepare.');
 
-        this._packageConfig = Spm.getSpmPackageConfig(LibPath.join(IMPORT_DIR, 'spm.json'));
+        this._packageConfig = Spm.getSpmPackageConfig(LibPath.join(this._projectDir, 'spm.json'));
 
         if (!this._packageConfig.name || _.isEmpty(this._packageConfig.name) || typeof this._packageConfig.name !== 'string') {
             throw new Error('Package param: `name` is required');
@@ -83,7 +79,8 @@ class PublishCLI {
                 .on('error', (err) => reject(err));
 
             archive.pipe(writeStream);
-            archive.directory(IMPORT_DIR, false);
+            archive.directory(LibPath.join(this._projectDir, 'proto'), false);
+            archive.append(LibFs.createReadStream(LibPath.join(this._projectDir, 'spm.json')), {name: 'spm.json'});
             archive.finalize();
         });
 

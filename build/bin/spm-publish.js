@@ -17,9 +17,7 @@ const lib_1 = require("./lib/lib");
 const pkg = require('../../package.json');
 const debug = require('debug')('SPM:CLI:publish');
 program.version(pkg.version)
-    .option('-i, --import <dir>', 'directory of source proto files for publish to spm server')
     .parse(process.argv);
-const IMPORT_DIR = program.import === undefined ? undefined : LibPath.normalize(program.import);
 class PublishCLI {
     static instance() {
         return new PublishCLI();
@@ -36,23 +34,21 @@ class PublishCLI {
     _validate() {
         return __awaiter(this, void 0, void 0, function* () {
             debug('PublishCLI validate.');
-            if (!IMPORT_DIR) {
-                throw new Error('--import is required');
+            this._projectDir = lib_1.Spm.getProjectDir();
+            let configStat = yield LibFs.stat(LibPath.join(this._projectDir, 'spm.json'));
+            if (!configStat.isFile()) {
+                throw new Error('File: `spm.json` not found in project:' + this._projectDir);
             }
-            let importStat = yield LibFs.stat(IMPORT_DIR);
-            if (!importStat.isDirectory()) {
-                throw new Error('--import is not a directory');
-            }
-            let importFiles = yield LibFs.readdir(IMPORT_DIR);
-            if (importFiles.indexOf('spm.json') < 0) {
-                throw new Error('File: `spm.json` not found in import directory:' + IMPORT_DIR);
+            let protoStat = yield LibFs.stat(LibPath.join(this._projectDir, 'proto'));
+            if (!protoStat.isDirectory()) {
+                throw new Error('Dir: `proto` not found in project:' + this._projectDir);
             }
         });
     }
     _prepare() {
         return __awaiter(this, void 0, void 0, function* () {
             debug('PublishCLI prepare.');
-            this._packageConfig = lib_1.Spm.getSpmPackageConfig(LibPath.join(IMPORT_DIR, 'spm.json'));
+            this._packageConfig = lib_1.Spm.getSpmPackageConfig(LibPath.join(this._projectDir, 'spm.json'));
             if (!this._packageConfig.name || _.isEmpty(this._packageConfig.name) || typeof this._packageConfig.name !== 'string') {
                 throw new Error('Package param: `name` is required');
             }
@@ -77,7 +73,8 @@ class PublishCLI {
                 let archive = archiver('zip', { zlib: { level: 9 } })
                     .on('error', (err) => reject(err));
                 archive.pipe(writeStream);
-                archive.directory(IMPORT_DIR, false);
+                archive.directory(LibPath.join(this._projectDir, 'proto'), false);
+                archive.append(LibFs.createReadStream(LibPath.join(this._projectDir, 'spm.json')), { name: 'spm.json' });
                 archive.finalize();
             });
             debug('PublishCLI compress finish.');

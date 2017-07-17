@@ -16,13 +16,9 @@ const lib_1 = require("./lib/lib");
 const pkg = require('../../package.json');
 const debug = require('debug')('SPM:CLI:Uninstall');
 program.version(pkg.version)
-    .option('-i, --import <dir>', 'directory of source proto files for update spm.json')
     .option('-n, --pkgName <item>', 'package name')
-    .option('-p, --projectDir <dir>', 'project dir')
     .parse(process.argv);
 const PKG_NAME_VALUE = program.pkgName === undefined ? undefined : program.pkgName;
-const IMPORT_DIR = program.import === undefined ? undefined : LibPath.normalize(program.import);
-const PROJECT_DIR_VALUE = program.projectDir === undefined ? undefined : program.projectDir;
 class UninstallCLI {
     static instance() {
         return new UninstallCLI();
@@ -43,16 +39,10 @@ class UninstallCLI {
             if (!PKG_NAME_VALUE) {
                 throw new Error('--pkgName is required');
             }
-            if (!IMPORT_DIR) {
-                throw new Error('--import is required');
-            }
-            if (!LibFs.statSync(IMPORT_DIR).isDirectory()) {
-                throw new Error('--import is not a directory');
-            }
-            let importConfigPath = LibPath.join(IMPORT_DIR, 'spm.json');
+            this._projectDir = lib_1.Spm.getProjectDir();
             this._removePackage = {};
             try {
-                let packageConfig = lib_1.Spm.getSpmPackageConfig(importConfigPath);
+                let packageConfig = lib_1.Spm.getSpmPackageConfig(LibPath.join(this._projectDir, 'spm.json'));
                 if (packageConfig.dependencies.hasOwnProperty(PKG_NAME_VALUE)) {
                     let pkgVersion = packageConfig.dependencies[PKG_NAME_VALUE];
                     delete packageConfig.dependencies[PKG_NAME_VALUE];
@@ -74,14 +64,8 @@ class UninstallCLI {
     _prepare() {
         return __awaiter(this, void 0, void 0, function* () {
             debug('UninstallCLI prepare.');
-            if (!PROJECT_DIR_VALUE) {
-                this._projectDir = lib_1.Spm.getProjectDir();
-            }
-            else {
-                this._projectDir = PROJECT_DIR_VALUE;
-            }
             this._spmPackageInstallDir = LibPath.join(this._projectDir, lib_1.Spm.INSTALL_DIR_NAME);
-            this._spmPackageInstalledMap = yield lib_1.Spm.getInstalledSpmPackageMap(this._spmPackageInstallDir, this._spmPackageInstallDir);
+            this._spmPackageInstalledMap = yield lib_1.Spm.getInstalledSpmPackageMap();
             this._removePackageDirMap = {};
         });
     }
@@ -102,7 +86,7 @@ class UninstallCLI {
     _save() {
         return __awaiter(this, void 0, void 0, function* () {
             debug('UninstallCLI save.');
-            yield LibFs.writeFile(LibPath.join(IMPORT_DIR, 'spm.json'), Buffer.from(JSON.stringify(this._packageOption, null, 2)), (err) => {
+            yield LibFs.writeFile(LibPath.join(this._projectDir, 'spm.json'), Buffer.from(JSON.stringify(this._packageOption, null, 2)), (err) => {
                 if (err) {
                     throw err;
                 }

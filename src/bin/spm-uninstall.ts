@@ -8,14 +8,10 @@ const pkg = require('../../package.json');
 const debug = require('debug')('SPM:CLI:Uninstall');
 
 program.version(pkg.version)
-    .option('-i, --import <dir>', 'directory of source proto files for update spm.json')
     .option('-n, --pkgName <item>', 'package name')
-    .option('-p, --projectDir <dir>', 'project dir')
     .parse(process.argv);
 
 const PKG_NAME_VALUE = (program as any).pkgName === undefined ? undefined : (program as any).pkgName;
-const IMPORT_DIR = (program as any).import === undefined ? undefined : LibPath.normalize((program as any).import);
-const PROJECT_DIR_VALUE = (program as any).projectDir === undefined ? undefined : (program as any).projectDir;
 
 class UninstallCLI {
 
@@ -46,18 +42,10 @@ class UninstallCLI {
             throw new Error('--pkgName is required');
         }
 
-        if (!IMPORT_DIR) {
-            throw new Error('--import is required');
-        }
-
-        if (!LibFs.statSync(IMPORT_DIR).isDirectory()) {
-            throw new Error('--import is not a directory');
-        }
-
-        let importConfigPath = LibPath.join(IMPORT_DIR, 'spm.json');
+        this._projectDir = Spm.getProjectDir();
         this._removePackage = {} as SpmPackage;
         try {
-            let packageConfig = Spm.getSpmPackageConfig(importConfigPath);
+            let packageConfig = Spm.getSpmPackageConfig(LibPath.join( this._projectDir, 'spm.json'));
             if (packageConfig.dependencies.hasOwnProperty(PKG_NAME_VALUE)) {
                 let pkgVersion = packageConfig.dependencies[PKG_NAME_VALUE];
                 delete packageConfig.dependencies[PKG_NAME_VALUE];
@@ -79,14 +67,8 @@ class UninstallCLI {
     private async _prepare() {
         debug('UninstallCLI prepare.');
 
-        if (!PROJECT_DIR_VALUE) {
-            this._projectDir = Spm.getProjectDir();
-        } else {
-            this._projectDir = PROJECT_DIR_VALUE;
-        }
-
         this._spmPackageInstallDir = LibPath.join(this._projectDir, Spm.INSTALL_DIR_NAME);
-        this._spmPackageInstalledMap = await Spm.getInstalledSpmPackageMap(this._spmPackageInstallDir, this._spmPackageInstallDir);
+        this._spmPackageInstalledMap = await Spm.getInstalledSpmPackageMap();
         this._removePackageDirMap = {};
     }
 
@@ -106,7 +88,7 @@ class UninstallCLI {
     private async _save() {
         debug('UninstallCLI save.');
 
-        await LibFs.writeFile(LibPath.join(IMPORT_DIR, 'spm.json'), Buffer.from(JSON.stringify(this._packageOption, null, 2)), (err) => {
+        await LibFs.writeFile(LibPath.join(this._projectDir, 'spm.json'), Buffer.from(JSON.stringify(this._packageOption, null, 2)), (err) => {
             if (err) {
                 throw err;
             }

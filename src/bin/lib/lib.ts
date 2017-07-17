@@ -35,7 +35,9 @@ export interface SpmPackageMap {
     [dirname: string]: SpmPackage;
 }
 
-export const mkdir = bluebird.promisify<string, string>(LibMkdirP);
+export const mkdir = bluebird.promisify<string>(LibMkdirP) as {
+    <T>(path: string): bluebird<T>
+};
 
 export const rmdir = (dirPath: string) => {
     let files = LibFs.readdirSync(dirPath);
@@ -107,7 +109,7 @@ export namespace Spm {
             return LibPath.join(SPM_ROOT_PATH.substr(0, strIndex));
         }
 
-        return LibPath.join(SPM_ROOT_PATH, '..')
+        return LibPath.join(SPM_ROOT_PATH, '..');
     }
 
     /**
@@ -123,18 +125,19 @@ export namespace Spm {
     /**
      * Get all installed SpmPackage from projectDir
      *
-     * @param installDir
-     * @param projectDir
      * @returns {Promise<SpmPackageMap>}
      */
-    export async function getInstalledSpmPackageMap(installDir: string, projectDir: string): Promise<SpmPackageMap> {
+    export async function getInstalledSpmPackageMap(): Promise<SpmPackageMap> {
+        let projectDir = Spm.getProjectDir();
+        let installDir = LibPath.join(projectDir, Spm.INSTALL_DIR_NAME);
+
         let spmPackageMap = {} as SpmPackageMap;
         if (LibFs.statSync(installDir).isDirectory()) {
             let files = await recursive(installDir, [".DS_Store"]);
             for (let file of files) {
                 let basename = LibPath.basename(file);
                 if (basename.match(/.+\.json/) !== null) {
-                    let dirname = LibPath.dirname(file).replace(projectDir, '').replace('\\', '').replace('/', '');
+                    let dirname = LibPath.dirname(file).replace(installDir, '').replace('\\', '').replace('/', '');
                     let packageConfig = Spm.getSpmPackageConfig(file);
                     spmPackageMap[dirname] = {
                         name: packageConfig.name,
@@ -198,7 +201,7 @@ export namespace SpmPackageRequest {
                 ? handleResponse(res)
                 : res.on('data', (chunk) => callback(chunk));
         }).on('error', (e) => {
-            throw new Error(e.message)
+            throw new Error(e.message);
         });
 
         // --------------------- send content ---------------------- //
@@ -214,7 +217,7 @@ export namespace SpmPackageRequest {
         let req = http.request(reqOptions, (res) => {
             res.on('data', (chunk) => callback(chunk));
         }).on('error', (e) => {
-            throw new Error(e.message)
+            throw new Error(e.message);
         });
 
         // --------------------- send content ---------------------- //

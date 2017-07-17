@@ -104,21 +104,16 @@ proto 管理工具的版本定义使用 Sem Ver 定义
 
 	* spm help         							    // 命令帮助工具
 	* spm list            						  // 显示本地依赖包结构与版本
-	  * [--projectDir 项目根目录]
 	* spm search                        // 从中心节点搜索依赖包名
 	  * --keyword 关键字<@version>	            
 	* spm install                       // 从中心节点安装依赖包()
 	  * --pkgName 包名<@版本>
-	  * --import 本地包路径（包含spm.json的文件夹路径，安装完成后会更新本地包spm.json的依赖关系）
 	  * [--projectDir 项目根目录]
 	* spm uninstall                     // 卸载包
-	  * --pkgName 包名               
-	  * --import 本地包路径（包含spm.json的文件夹路径，安装完成后会更新本地包spm.json的依赖关系）
-	  * [--projectDir 项目根目录]       
+	  * --pkgName 包名
 	* spm secret                        // 设置密钥
 	  * --secret 密钥                          
 	* spm publish                       // 将proto文件夹中的模块发布到中心节点
-	  * --import 本地包路径	（包含spm.json的文件夹路径）     
 	
 ## SPM服务器
 

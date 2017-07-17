@@ -6,10 +6,7 @@ const pkg = require('../../package.json');
 const debug = require('debug')('SPM:CLI:list');
 
 program.version(pkg.version)
-    .option('-p, --projectDir <dir>', 'project dir')
     .parse(process.argv);
-
-const PROJECT_DIR_VALUE = (program as any).projectDir === undefined ? undefined : (program as any).projectDir;
 
 class ListCLI {
     private _projectDir: string;
@@ -28,19 +25,14 @@ class ListCLI {
     private async _prepare() {
         debug('ListCLI prepare.');
 
-        if (!PROJECT_DIR_VALUE) {
-            this._projectDir = Spm.getProjectDir();
-        } else {
-            this._projectDir = PROJECT_DIR_VALUE;
-        }
-
+        this._projectDir = Spm.getProjectDir();
         this._spmPackageInstallDir = LibPath.join(this._projectDir, Spm.INSTALL_DIR_NAME);
     }
 
     private async _show() {
         debug('ListCLI show.');
 
-        let spmPackageMap = await Spm.getInstalledSpmPackageMap(this._spmPackageInstallDir, this._spmPackageInstallDir);
+        let spmPackageMap = await Spm.getInstalledSpmPackageMap();
 
         console.log('--------------Installed SpmPackage---------------');
         for (let dirname in spmPackageMap) {
