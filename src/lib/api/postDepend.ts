@@ -78,7 +78,7 @@ class PostDepend extends ApiBase {
         }
 
         if (_.isEmpty(spmPackageVersion)) {
-            throw new Error("Package version not found, name: " + spmPackage.name + ", version: " + spmPackageVersion.major + '.' + spmPackageVersion.minor + '.' + spmPackageVersion.patch);
+            throw new Error("Package version not found, name: " + spmPackage.name + ", version: " + version);
         }
 
         let pkgDependencies = {};
