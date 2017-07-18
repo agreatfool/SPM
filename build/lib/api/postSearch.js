@@ -10,6 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 require("reflect-metadata");
 const _ = require("underscore");
+const Database_1 = require("../Database");
 const SpmPackage_1 = require("../entity/SpmPackage");
 const SpmPackageVersion_1 = require("../entity/SpmPackageVersion");
 const ApiBase_1 = require("../ApiBase");
@@ -24,7 +25,7 @@ class PostSearch extends ApiBase_1.ApiBase {
         return __awaiter(this, void 0, void 0, function* () {
             const params = ctx.request.body;
             if (!params.keyword || _.isEmpty(params.keyword)) {
-                throw new Error("keyword is required!");
+                throw new Error('keyword is required!');
             }
         });
     }
@@ -32,11 +33,12 @@ class PostSearch extends ApiBase_1.ApiBase {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const params = ctx.request.body;
+                const dbConn = Database_1.default.instance().conn;
                 if (params.info == 'true') {
-                    return this.buildResponse(yield this.preciseSearch(params.keyword));
+                    return this.buildResponse(yield this.preciseSearch(params.keyword, dbConn));
                 }
                 else {
-                    return this.buildResponse(yield this.fuzzySearch(params.keyword));
+                    return this.buildResponse(yield this.fuzzySearch(params.keyword, dbConn));
                 }
             }
             catch (err) {
@@ -45,12 +47,12 @@ class PostSearch extends ApiBase_1.ApiBase {
         });
     }
     ;
-    fuzzySearch(keyword) {
+    fuzzySearch(keyword, dbConn) {
         return __awaiter(this, void 0, void 0, function* () {
             let packageInfos = [];
-            let spmPackageList = yield this.dbHandler
+            let spmPackageList = yield dbConn
                 .getRepository(SpmPackage_1.SpmPackage)
-                .createQueryBuilder("package")
+                .createQueryBuilder('package')
                 .where('package.name LIKE :keyword', { keyword: `%${keyword}%` })
                 .orWhere('package.description LIKE :keyword', { keyword: `%${keyword}%` })
                 .getMany();
@@ -60,20 +62,20 @@ class PostSearch extends ApiBase_1.ApiBase {
             return packageInfos;
         });
     }
-    preciseSearch(keyword) {
+    preciseSearch(keyword, dbConn) {
         return __awaiter(this, void 0, void 0, function* () {
             let packageInfos = [];
-            let spmPackage = yield this.dbHandler
+            let spmPackage = yield dbConn
                 .getRepository(SpmPackage_1.SpmPackage)
-                .createQueryBuilder("package")
+                .createQueryBuilder('package')
                 .where('package.name=:keyword', { keyword: `${keyword}` })
                 .getOne();
             if (_.isEmpty(spmPackage)) {
                 return packageInfos;
             }
-            let spmPackageVersionList = yield this.dbHandler
+            let spmPackageVersionList = yield dbConn
                 .getRepository(SpmPackageVersion_1.SpmPackageVersion)
-                .createQueryBuilder("version")
+                .createQueryBuilder('version')
                 .where('version.pid=:pid', { pid: spmPackage.id })
                 .getMany();
             for (let spmPackageVersion of spmPackageVersionList) {

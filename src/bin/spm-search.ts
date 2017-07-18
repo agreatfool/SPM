@@ -3,7 +3,6 @@ import * as _ from "underscore";
 import {SpmPackageRequest} from "./lib/lib";
 import {SpmPackage} from "../lib/entity/SpmPackage";
 import {SpmPackageVersion} from "../lib/entity/SpmPackageVersion";
-import * as util from "util";
 
 const pkg = require('../../package.json');
 const debug = require('debug')('SPM:CLI:search');
@@ -53,9 +52,9 @@ class SearchCLI {
                         for (let packageInfo of response) {
                             if (_.isArray(packageInfo)) {
                                 let [spmPackage, spmPackageVersion] = packageInfo as [SpmPackage, SpmPackageVersion];
-                                console.log(`${spmPackage.name}@${spmPackageVersion.major}.${spmPackageVersion.minor}.${spmPackageVersion.patch}`)
+                                console.log(`${spmPackage.name}@${spmPackageVersion.major}.${spmPackageVersion.minor}.${spmPackageVersion.patch}`);
                             } else {
-                                console.log(`${packageInfo.name} | ${packageInfo.description}`)
+                                console.log(`${packageInfo.name} | ${packageInfo.description}`);
                             }
                         }
                     } else {

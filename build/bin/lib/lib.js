@@ -38,8 +38,8 @@ exports.rmdir = (dirPath) => {
 };
 var Spm;
 (function (Spm) {
-    Spm.INSTALL_DIR_NAME = "spm_protos";
-    Spm.SPM_VERSION_CONNECTOR = "__v";
+    Spm.INSTALL_DIR_NAME = 'spm_protos';
+    Spm.SPM_VERSION_CONNECTOR = '__v';
     Spm.SPM_ROOT_PATH = LibPath.join(__dirname, '..', '..', '..');
     /**
      * Save secret value into .spmlrc
@@ -47,8 +47,8 @@ var Spm;
      * @returns {void}
      */
     function saveSecret(value) {
-        let lrcPath = LibPath.join(Spm.SPM_ROOT_PATH, '.spmlrc');
-        LibFs.writeFileSync(lrcPath, value, "utf-8");
+        let lrcPath = LibPath.join(Spm.getProjectDir(), '.spmlrc');
+        LibFs.writeFileSync(lrcPath, value, 'utf-8');
     }
     Spm.saveSecret = saveSecret;
     /**
@@ -57,12 +57,12 @@ var Spm;
      * @returns {string}
      */
     function loadSecret() {
-        let lrcPath = LibPath.join(Spm.SPM_ROOT_PATH, '.spmlrc');
+        let lrcPath = LibPath.join(Spm.getProjectDir(), '.spmlrc');
         if (LibFs.statSync(lrcPath).isFile()) {
             return LibFs.readFileSync(lrcPath).toString();
         }
         else {
-            return "";
+            return '';
         }
     }
     Spm.loadSecret = loadSecret;
@@ -72,7 +72,7 @@ var Spm;
      * @returns {SpmConfig}
      */
     function getConfig() {
-        let configPath = LibPath.join(Spm.SPM_ROOT_PATH, 'config', "config.json");
+        let configPath = LibPath.join(Spm.SPM_ROOT_PATH, 'config', 'config.json');
         if (LibFs.statSync(configPath).isFile()) {
             return JSON.parse(LibFs.readFileSync(configPath).toString());
         }
@@ -111,7 +111,7 @@ var Spm;
             let installDir = LibPath.join(projectDir, Spm.INSTALL_DIR_NAME);
             let spmPackageMap = {};
             if (LibFs.statSync(installDir).isDirectory()) {
-                let files = yield recursive(installDir, [".DS_Store"]);
+                let files = yield recursive(installDir, ['.DS_Store']);
                 for (let file of files) {
                     let basename = LibPath.basename(file);
                     if (basename.match(/.+\.json/) !== null) {
@@ -136,7 +136,7 @@ var Spm;
      * @param {Array<[RegExp, any]>} conditions
      * @returns {Promise<void>}
      */
-    function _replaceStringInFile(filePath, conditions) {
+    function replaceStringInFile(filePath, conditions) {
         try {
             if (LibFs.statSync(filePath).isFile()) {
                 let content = LibFs.readFileSync(filePath).toString();
@@ -154,7 +154,7 @@ var Spm;
             throw e;
         }
     }
-    Spm._replaceStringInFile = _replaceStringInFile;
+    Spm.replaceStringInFile = replaceStringInFile;
 })(Spm = exports.Spm || (exports.Spm = {}));
 var SpmPackageRequest;
 (function (SpmPackageRequest) {
@@ -229,7 +229,7 @@ var SpmPackageRequest;
         req.setHeader('Content-Type', 'multipart/form-data; boundary=--' + boundaryKey);
         req.setHeader('Content-Length', `${contentLength + Buffer.byteLength(enddata)}`);
         req.write(contentBinary);
-        if (filePath.length == 0) {
+        if (filePath.length === 0) {
             req.end(enddata);
         }
     }

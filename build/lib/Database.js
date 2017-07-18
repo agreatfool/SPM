@@ -21,6 +21,9 @@ class Database {
     constructor() {
         this._initialized = false;
     }
+    get conn() {
+        return this._conn;
+    }
     init() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -35,7 +38,7 @@ class Database {
                         }
                     }
                 }
-                this.conn = yield typeorm_1.createConnection({
+                this._conn = yield typeorm_1.createConnection({
                     type: 'sqlite',
                     database: LibPath.join(__dirname, '..', '..', 'Spm.db'),
                     entities: entities,

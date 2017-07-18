@@ -8,13 +8,15 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const LibPath = require("path");
+const LibFs = require("mz/fs");
 const program = require("commander");
+const _ = require("underscore");
 const lib_1 = require("./lib/lib");
 const pkg = require('../../package.json');
 const debug = require('debug')('SPM:CLI:secret');
 program.version(pkg.version)
     .parse(process.argv);
-const SECRET_VALUE = program.args[0] === undefined ? undefined : program.args[0];
 class SecretCLI {
     static instance() {
         return new SecretCLI();
@@ -29,15 +31,35 @@ class SecretCLI {
     _validate() {
         return __awaiter(this, void 0, void 0, function* () {
             debug('SecretCLI validate.');
-            if (!SECRET_VALUE) {
-                throw new Error('secretKey is required');
+            this._projectDir = lib_1.Spm.getProjectDir();
+            let configStat = yield LibFs.stat(LibPath.join(this._projectDir, 'spm.json'));
+            if (!configStat.isFile()) {
+                throw new Error('File: `spm.json` not found in project:' + this._projectDir);
+            }
+            this._packageConfig = lib_1.Spm.getSpmPackageConfig(LibPath.join(this._projectDir, 'spm.json'));
+            if (!this._packageConfig.name || _.isEmpty(this._packageConfig.name) || typeof this._packageConfig.name !== 'string') {
+                throw new Error('Package param: `name` is required');
             }
         });
     }
     _save() {
         return __awaiter(this, void 0, void 0, function* () {
             debug('SecretCLI save.');
-            yield lib_1.Spm.saveSecret(SECRET_VALUE);
+            yield new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
+                let params = {
+                    name: this._packageConfig.name
+                };
+                lib_1.SpmPackageRequest.postRequest('/v1/secret', params, (chunk) => __awaiter(this, void 0, void 0, function* () {
+                    try {
+                        let response = lib_1.SpmPackageRequest.parseResponse(chunk);
+                        yield lib_1.Spm.saveSecret(response.secret);
+                        resolve();
+                    }
+                    catch (e) {
+                        reject(e);
+                    }
+                }));
+            }));
         });
     }
 }

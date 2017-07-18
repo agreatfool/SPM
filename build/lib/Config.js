@@ -20,13 +20,16 @@ class Config {
     constructor() {
         this._initialized = false;
     }
+    get options() {
+        return this._options;
+    }
     init() {
         return __awaiter(this, void 0, void 0, function* () {
             let filePath = LibPath.join(__dirname, '..', '..', 'config', 'config.json');
             let stats = yield LibFs.stat(filePath);
             if (stats.isFile()) {
                 try {
-                    this.options = JSON.parse(LibFs.readFileSync(filePath).toString());
+                    this._options = JSON.parse(LibFs.readFileSync(filePath).toString());
                     this._initialized = true;
                 }
                 catch (e) {

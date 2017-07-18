@@ -7,38 +7,34 @@ import Router from "./Router";
 
 export default class App {
     private _initialized: boolean;
-    public app: Koa;
-    public config: Config;
-    public database: Database;
-    public router: Router;
+    private _app: Koa;
 
     constructor() {
-        this.app = new Koa();
-        this.config = Config.instance();
-        this.database = Database.instance();
-        this.router = Router.instance();
+        this._app = new Koa();
         this._initialized = false;
     }
 
     public async init(): Promise<any> {
-        await this.config.init();
-        await this.database.init();
-        await this.router.init(this.config.options, this.database.conn);
+        await Config.instance().init();
+        await Database.instance().init();
+        await Router.instance().init();
 
-        this.app.use(koaBody({multipart: true}));
-        this.app.use(koaBodyParser({formLimit: '2048kb'})); // post body parser
-        this.app.use(Router.instance().getRouter().routes());
+        this._app.use(koaBody({multipart: true}));
+        this._app.use(koaBodyParser({formLimit: '2048kb'})); // post body parser
+        this._app.use(Router.instance().getRouter().routes());
         this._initialized = true;
     }
 
     public start(): void {
         if (!this._initialized) {
+            console.log(`SPM Server start failed!`);
             return;
         }
 
         // server start
-        this.app.listen(this.config.options.port, this.config.options.host, () => {
-            console.log(`SPM Server start! ${this.config.options.host}:${this.config.options.port}`);
+        let options = Config.instance().options;
+        this._app.listen(options.port, options.host, () => {
+            console.log(`SPM Server start! ${options.host}:${options.port}`);
         });
     }
 }

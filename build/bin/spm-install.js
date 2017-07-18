@@ -35,7 +35,7 @@ class InstallCLI {
         return __awaiter(this, void 0, void 0, function* () {
             debug('InstallCLI prepare.');
             this._tmpDir = LibPath.join(lib_1.Spm.SPM_ROOT_PATH, 'tmp');
-            this._tmpFileName = Math.random().toString(16) + ".zip";
+            this._tmpFileName = Math.random().toString(16) + '.zip';
             yield lib_1.mkdir(this._tmpDir);
             this._projectDir = lib_1.Spm.getProjectDir();
             this._spmPackageInstallDir = LibPath.join(this._projectDir, lib_1.Spm.INSTALL_DIR_NAME);
@@ -47,7 +47,7 @@ class InstallCLI {
         return __awaiter(this, void 0, void 0, function* () {
             let packageList = [];
             if (!PKG_NAME_VALUE) {
-                // MODE ONE: npm install -i {importName}
+                // MODE ONE: npm install
                 let importConfigPath = LibPath.join(this._projectDir, 'spm.json');
                 try {
                     let packageConfig = lib_1.Spm.getSpmPackageConfig(importConfigPath);
@@ -60,7 +60,7 @@ class InstallCLI {
                 }
             }
             else {
-                // MODE TWO: npm install -i {importName} -n ${pkgName}
+                // MODE TWO: npm install ${pkgName}
                 packageList.push(PKG_NAME_VALUE);
             }
             for (let pkgName of packageList) {
@@ -84,12 +84,12 @@ class InstallCLI {
     }
     _request(debug, name) {
         return __awaiter(this, void 0, void 0, function* () {
-            debug("request");
+            debug('request');
             return new Promise((resolve, reject) => {
                 let params = {
                     name: name,
                 };
-                lib_1.SpmPackageRequest.postRequest('/v1/depend', params, (chunk) => {
+                lib_1.SpmPackageRequest.postRequest('/v1/searchDependence', params, (chunk) => {
                     try {
                         let response = lib_1.SpmPackageRequest.parseResponse(chunk);
                         resolve(response);
@@ -143,11 +143,11 @@ class InstallCLI {
                 }
                 catch (e) {
                     debug(e.message);
-                    debug("Create File:" + importConfigPath);
+                    debug('Create File:' + importConfigPath);
                     packageConfig = {
                         name: LibPath.basename(this._projectDir),
-                        version: "0.0.0",
-                        description: "",
+                        version: '0.0.0',
+                        description: '',
                         dependencies: {}
                     };
                 }
@@ -194,13 +194,13 @@ class InstallCLI {
             lib_1.SpmPackageRequest.postRequest('/v1/install', params, null, (res) => {
                 if (res.headers['content-type'] == 'application/octet-stream') {
                     res.pipe(fileStream);
-                    res.on("end", () => {
+                    res.on('end', () => {
                         debug('download finish. ' + tmpZipPath);
                         resolve();
                     });
                 }
                 else {
-                    res.on("data", (chunk) => reject(new Error(chunk.toString())));
+                    res.on('data', (chunk) => reject(new Error(chunk.toString())));
                 }
             });
         });
@@ -210,7 +210,7 @@ class InstallCLI {
             debug('uncompress.');
             if (LibFs.statSync(tmpZipPath).isFile()) {
                 LibFs.createReadStream(tmpZipPath).pipe(unzip.Extract({ path: tmpPkgPath })
-                    .on("close", () => {
+                    .on('close', () => {
                     debug('uncompress finish.');
                     LibFs.unlinkSync(tmpZipPath);
                     resolve();
@@ -218,7 +218,7 @@ class InstallCLI {
             }
             else {
                 LibFs.unlinkSync(tmpZipPath);
-                reject(new Error("Download file corruption."));
+                reject(new Error('Download file corruption.'));
             }
         });
     }
@@ -236,16 +236,16 @@ class InstallCLI {
                         count++;
                         if (LibPath.basename(file).match(/.+\.proto/) !== null) {
                             if (spmPackage.name != dirname) {
-                                lib_1.Spm._replaceStringInFile(file, [
-                                    [new RegExp(`package ${spmPackage.name};`, "g"), `package ${dirname};`]
+                                lib_1.Spm.replaceStringInFile(file, [
+                                    [new RegExp(`package ${spmPackage.name};`, 'g'), `package ${dirname};`]
                                 ]);
                             }
                             for (let oldString in spmPackage.dependenciesChanged) {
                                 let newString = spmPackage.dependenciesChanged[oldString];
-                                lib_1.Spm._replaceStringInFile(file, [
-                                    [new RegExp(`import "${oldString}/`, "g"), `import "${newString}/`],
-                                    [new RegExp(`\\((${oldString}.*?)\\)`, "g"), (word) => word.replace(oldString, newString)],
-                                    [new RegExp(` (${oldString}.*?) `, "g"), (word) => word.replace(oldString, newString)]
+                                lib_1.Spm.replaceStringInFile(file, [
+                                    [new RegExp(`import '${oldString}/`, 'g'), `import '${newString}/`],
+                                    [new RegExp(`\\((${oldString}.*?)\\)`, 'g'), (word) => word.replace(oldString, newString)],
+                                    [new RegExp(` (${oldString}.*?) `, 'g'), (word) => word.replace(oldString, newString)]
                                 ]);
                             }
                         }

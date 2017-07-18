@@ -3,8 +3,7 @@ import * as LibFs from "mz/fs";
 import * as _ from "underscore";
 import {ReadStream} from "fs";
 import {Context as KoaContext} from "koa";
-import {MiddlewareNext, ResponseSchema} from "../Router";
-import {ApiBase} from "../ApiBase";
+import {ApiBase, MiddlewareNext, ResponseSchema} from "../ApiBase";
 
 class PostInstall extends ApiBase {
 
@@ -16,21 +15,21 @@ class PostInstall extends ApiBase {
     }
 
     public async paramsValidate(ctx: KoaContext) {
-        const params = ctx.request.body;
+        const params = (ctx.request as any).body;
 
         if (!params.path || _.isEmpty(params.path)) {
-            throw new Error("path is required!");
+            throw new Error('path is required!');
         }
     }
 
     public async handle(ctx: KoaContext, next: MiddlewareNext): Promise<ResponseSchema | ReadStream> {
         try {
-            const params = ctx.request.body;
+            const params = (ctx.request as any).body;
             if (LibFs.statSync(params.path).isFile()) {
-                ctx.set('Content-Disposition', `attachment; filename="tmp.zip"`);
+                ctx.set('Content-Disposition', `attachment; filename='tmp.zip'`);
                 return LibFs.createReadStream(params.path);
             } else {
-                return this.buildResponse("Package file not found, path: " + params.path, -1);
+                return this.buildResponse('Package file not found, path: ' + params.path, -1);
             }
         } catch (err) {
             return this.buildResponse(err.message, -1);

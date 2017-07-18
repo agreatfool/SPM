@@ -72,7 +72,9 @@ SPM 包管理工具中管理的 proto 包的版本号使用 Semantic Versioning 
 
     CREATE TABLE spm_package (
       id            INTEGER   NOT NULL      PRIMARY KEY,
-      name          TEXT      NOT NULL
+      sid           INTEGER   NOT NULL,
+      name          TEXT      NOT NULL,
+      description   TEXT      NOT NULL
     );
     
     CREATE TABLE spm_package_version (
@@ -83,9 +85,16 @@ SPM 包管理工具中管理的 proto 包的版本号使用 Semantic Versioning 
       patch         INT       NOT NULL,
       filePath      TEXT      NOT NULL,
       time          INT       NOT NULL,
-      dependencies  TEXT      NOT NULL,
-      description   TEXT      NOT NULL
+      dependencies  TEXT      NOT NULL
     );
+    
+    CREATE TABLE spm_package_secret (
+      id            INTEGER   NOT NULL      PRIMARY KEY,
+      name          TEXT      NOT NULL,
+      secret        TEXT      NOT NULL
+    );
+    
+> 数据库 Spm.db 存放在 sasdn-pm 中心节点服务的根目录下
 
 #### 启动服务
 进入到sasdn-pm项目根目录，运行命令
@@ -96,24 +105,29 @@ SPM 包管理工具中管理的 proto 包的版本号使用 Semantic Versioning 
 
 #### 命令行
 
-    // 包管理工具下所有已安装的 proto 包名与版本号
-    spm list
-    				  
-    // 通过关键字在中心节点搜索匹配的 proto 包，
-    spm search 关键字 [-i --info]     // 启用 -i 参数，则是通过精确查找包名，并返回该包所有的版本
-     
-    // 从中心节点安装指定的 proto 包，不填写包名，则通过根目录spm.json安装所有依赖
-    spm install [包名<@version>]      // XXX@1.0.0, 则是指定安装XXX包的1.0.0版本
-    
-    // 卸载本地已安装的 proto 包，只能卸载顶级依赖
-    spm uninstall 包名
-    
-    // 将根目录下 proto 文件夹与包管理配置文件 spm.json 打包成 proto 包并发布到中心节点服务
-    spm publish
-    
-    // 设置密钥，用于发布的密钥验证(该功能尚未完善，只做简易验证)
-    spm secret 密钥
+包管理工具下所有已安装的 proto 包名与版本号。
 
+    sasdn-pm list
+    				  
+通过关键字在中心节点搜索匹配的 proto 包。
+    
+    sasdn-pm search 关键字 [-i --info]     // 启用 -i 参数，则是通过精确查找包名，并返回该包所有的版本
+     
+从中心节点安装指定的 proto 包，不填写包名，则通过根目录spm.json安装所有依赖
+    
+    sasdn-pm install [包名<@version>]      // XXX@1.0.0, 则是指定安装XXX包的1.0.0版本
+    
+卸载本地已安装的 proto 包，只能卸载顶级依赖
+    
+    sasdn-pm uninstall 包名
+    
+将根目录下 proto 文件夹与包管理配置文件 spm.json 打包成 proto 包并发布到中心节点服务
+   
+    sasdn-pm publish
+    
+向中心节点申请获取 secret，并更新到本地文件
+
+    sasdn-pm secret
 
 #### Proto 包的安装流程设计
 

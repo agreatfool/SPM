@@ -1,16 +1,13 @@
 import {Entity, Column, PrimaryColumn} from "typeorm";
 
 @Entity()
-export class SpmPackage {
+export class SpmPackageSecret {
     @PrimaryColumn("int", {generated: true})
     id: number;
-
-    @Column("int")
-    sid: number;
 
     @Column("text")
     name: string;
 
     @Column("text")
-    description: string;
+    secret: string;
 }

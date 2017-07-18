@@ -23,7 +23,7 @@ class PostInstall extends ApiBase_1.ApiBase {
         return __awaiter(this, void 0, void 0, function* () {
             const params = ctx.request.body;
             if (!params.path || _.isEmpty(params.path)) {
-                throw new Error("path is required!");
+                throw new Error('path is required!');
             }
         });
     }
@@ -32,11 +32,11 @@ class PostInstall extends ApiBase_1.ApiBase {
             try {
                 const params = ctx.request.body;
                 if (LibFs.statSync(params.path).isFile()) {
-                    ctx.set('Content-Disposition', `attachment; filename="tmp.zip"`);
+                    ctx.set('Content-Disposition', `attachment; filename='tmp.zip'`);
                     return LibFs.createReadStream(params.path);
                 }
                 else {
-                    return this.buildResponse("Package file not found, path: " + params.path, -1);
+                    return this.buildResponse('Package file not found, path: ' + params.path, -1);
                 }
             }
             catch (err) {

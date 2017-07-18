@@ -10,6 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 require("reflect-metadata");
 const _ = require("underscore");
+const Database_1 = require("../Database");
 const SpmPackage_1 = require("../entity/SpmPackage");
 const SpmPackageVersion_1 = require("../entity/SpmPackageVersion");
 const ApiBase_1 = require("../ApiBase");
@@ -17,26 +18,27 @@ class PostDepend extends ApiBase_1.ApiBase {
     constructor() {
         super();
         this.method = 'post';
-        this.uri = '/v1/depend';
+        this.uri = '/v1/searchDependence';
         this.type = 'application/json; charset=utf-8';
     }
     paramsValidate(ctx) {
         return __awaiter(this, void 0, void 0, function* () {
             const params = ctx.request.body;
             if (!params.name || _.isEmpty(params.name)) {
-                throw new Error("Name is required!");
+                throw new Error('Name is required!');
             }
             if (!params.name || _.isEmpty(params.name)) {
-                throw new Error("Name is required!");
+                throw new Error('Name is required!');
             }
         });
     }
     handle(ctx, next) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
+                const dbConn = Database_1.default.instance().conn;
                 const params = ctx.request.body;
                 const [name, version] = params.name.split('@');
-                return this.buildResponse(yield this.findDependencies(name, version, {}));
+                return this.buildResponse(yield this.findDependencies(dbConn, name, version, {}));
             }
             catch (err) {
                 return this.buildResponse(err.message, -1);
@@ -44,34 +46,34 @@ class PostDepend extends ApiBase_1.ApiBase {
         });
     }
     ;
-    findDependencies(name, version, dependencies, isDependencies = false) {
+    findDependencies(dbConn, name, version, dependencies, isDependencies = false) {
         return __awaiter(this, void 0, void 0, function* () {
             // if dependencies is exist, return ..
             if (dependencies.hasOwnProperty(`${name}@${version}`)) {
                 return dependencies;
             }
             // find package
-            let spmPackage = yield this.dbHandler
+            let spmPackage = yield dbConn
                 .getRepository(SpmPackage_1.SpmPackage)
-                .createQueryBuilder("package")
+                .createQueryBuilder('package')
                 .where('package.name=:name', { name: name })
                 .getOne();
             if (_.isEmpty(spmPackage)) {
-                throw new Error("Package not found, name: " + name);
+                throw new Error('Package not found, name: ' + name);
             }
             // build spm package version query
-            let sheetName = "version";
+            let sheetName = 'version';
             let columnPidWhereQuery = [`${sheetName}.pid=:pid`, { pid: spmPackage.id }];
-            let columnMajorWhereQuery = [`${sheetName}.major`, "DESC"];
-            let columnMinorWhereQuery = [`${sheetName}.minor`, "DESC"];
-            let columnPatchWhereQuery = [`${sheetName}.patch`, "DESC"];
+            let columnMajorWhereQuery = [`${sheetName}.major`, 'DESC'];
+            let columnMinorWhereQuery = [`${sheetName}.minor`, 'DESC'];
+            let columnPatchWhereQuery = [`${sheetName}.patch`, 'DESC'];
             if (!_.isEmpty(version)) {
                 const [major, minor, patch] = version.split('.');
                 columnMajorWhereQuery = [`${sheetName}.major=:major`, { major: major }];
                 columnMinorWhereQuery = [`${sheetName}.minor=:minor`, { minor: minor }];
                 columnPatchWhereQuery = [`${sheetName}.patch=:patch`, { patch: patch }];
             }
-            let spmPackageVersion = yield this.dbHandler
+            let spmPackageVersion = yield dbConn
                 .getRepository(SpmPackageVersion_1.SpmPackageVersion)
                 .createQueryBuilder(sheetName)
                 .where(columnPidWhereQuery[0], columnPidWhereQuery[1])
@@ -80,7 +82,7 @@ class PostDepend extends ApiBase_1.ApiBase {
                 .andWhere(columnPatchWhereQuery[0], columnPatchWhereQuery[1])
                 .getOne();
             if (_.isEmpty(spmPackageVersion)) {
-                throw new Error("Package version not found, name: " + spmPackage.name + ", version: " + version);
+                throw new Error('Package version not found, name: ' + spmPackage.name + ', version: ' + version);
             }
             let pkgDependencies = {};
             try {
@@ -98,11 +100,11 @@ class PostDepend extends ApiBase_1.ApiBase {
             };
             // deep loop
             for (let dependPackageName in pkgDependencies) {
-                dependencies = yield this.findDependencies(dependPackageName, pkgDependencies[dependPackageName], dependencies, true);
+                dependencies = yield this.findDependencies(dbConn, dependPackageName, pkgDependencies[dependPackageName], dependencies, true);
             }
             return dependencies;
         });
     }
 }
 exports.api = new PostDepend();
-//# sourceMappingURL=postDepend.js.map
+//# sourceMappingURL=postSearchDependence.js.map

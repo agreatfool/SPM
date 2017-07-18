@@ -5,7 +5,7 @@ import * as bluebird from "bluebird";
 import * as http from "http";
 import * as qs from "querystring";
 import * as recursive from "recursive-readdir";
-import {ResponseSchema} from "../../lib/Router";
+import {ResponseSchema} from "../../lib/ApiBase";
 
 export enum RequestMethod { post, get }
 
@@ -57,8 +57,8 @@ export const rmdir = (dirPath: string) => {
 
 export namespace Spm {
 
-    export const INSTALL_DIR_NAME: string = "spm_protos";
-    export const SPM_VERSION_CONNECTOR: string = "__v";
+    export const INSTALL_DIR_NAME: string = 'spm_protos';
+    export const SPM_VERSION_CONNECTOR: string = '__v';
     export const SPM_ROOT_PATH: string = LibPath.join(__dirname, '..', '..', '..');
 
     /**
@@ -67,8 +67,8 @@ export namespace Spm {
      * @returns {void}
      */
     export function saveSecret(value: string) {
-        let lrcPath = LibPath.join(SPM_ROOT_PATH, '.spmlrc');
-        LibFs.writeFileSync(lrcPath, value, "utf-8");
+        let lrcPath = LibPath.join(Spm.getProjectDir(), '.spmlrc');
+        LibFs.writeFileSync(lrcPath, value, 'utf-8');
     }
 
     /**
@@ -77,11 +77,11 @@ export namespace Spm {
      * @returns {string}
      */
     export function loadSecret(): string {
-        let lrcPath = LibPath.join(SPM_ROOT_PATH, '.spmlrc');
+        let lrcPath = LibPath.join(Spm.getProjectDir(), '.spmlrc');
         if (LibFs.statSync(lrcPath).isFile()) {
             return LibFs.readFileSync(lrcPath).toString();
         } else {
-            return "";
+            return '';
         }
     }
 
@@ -91,7 +91,7 @@ export namespace Spm {
      * @returns {SpmConfig}
      */
     export function getConfig(): SpmConfig {
-        let configPath = LibPath.join(SPM_ROOT_PATH, 'config', "config.json");
+        let configPath = LibPath.join(SPM_ROOT_PATH, 'config', 'config.json');
         if (LibFs.statSync(configPath).isFile()) {
             return JSON.parse(LibFs.readFileSync(configPath).toString());
         } else {
@@ -129,7 +129,8 @@ export namespace Spm {
 
         let spmPackageMap = {} as SpmPackageMap;
         if (LibFs.statSync(installDir).isDirectory()) {
-            let files = await recursive(installDir, [".DS_Store"]);
+            let files = await recursive(installDir, ['.DS_Store']);
+
             for (let file of files) {
                 let basename = LibPath.basename(file);
                 if (basename.match(/.+\.json/) !== null) {
@@ -153,7 +154,7 @@ export namespace Spm {
      * @param {Array<[RegExp, any]>} conditions
      * @returns {Promise<void>}
      */
-    export function _replaceStringInFile(filePath: string, conditions: Array<[RegExp, any]>) {
+    export function replaceStringInFile(filePath: string, conditions: Array<[RegExp, any]>) {
         try {
             if (LibFs.statSync(filePath).isFile()) {
                 let content = LibFs.readFileSync(filePath).toString();
@@ -253,7 +254,7 @@ export namespace SpmPackageRequest {
         req.setHeader('Content-Length', `${contentLength + Buffer.byteLength(enddata)}`);
         req.write(contentBinary);
 
-        if (filePath.length == 0) {
+        if (filePath.length === 0) {
             req.end(enddata);
         }
     }

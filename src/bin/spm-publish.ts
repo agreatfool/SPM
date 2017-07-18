@@ -60,7 +60,7 @@ class PublishCLI {
         }
 
         this._tmpDir = LibPath.join(Spm.SPM_ROOT_PATH, 'tmp');
-        this._tmpFileName = Math.random().toString(16) + ".zip";
+        this._tmpFileName = Math.random().toString(16) + '.zip';
         await mkdir(this._tmpDir);
     }
 
@@ -70,18 +70,20 @@ class PublishCLI {
         let tmpFilePath = LibPath.join(this._tmpDir, this._tmpFileName);
 
         // create a file to stream archive data to.
-        await new Promise((resolve, reject) => {
+        await new Promise(async (resolve, reject) => {
             // create write stream
             let writeStream = LibFs.createWriteStream(tmpFilePath)
-                .on("close", () => resolve());
+                .on('close', () => {
+                    resolve();
+                });
             // archive init
             let archive = archiver('zip', {zlib: {level: 9}})
                 .on('error', (err) => reject(err));
 
             archive.pipe(writeStream);
-            archive.directory(LibPath.join(this._projectDir, 'proto'), false);
+            archive.directory(LibPath.join(this._projectDir, 'proto'), null);
             archive.append(LibFs.createReadStream(LibPath.join(this._projectDir, 'spm.json')), {name: 'spm.json'});
-            archive.finalize();
+            await archive.finalize();
         });
 
         debug('PublishCLI compress finish.');
@@ -97,7 +99,7 @@ class PublishCLI {
             let params = {
                 name: this._packageConfig.name,
                 version: this._packageConfig.version,
-                description: this._packageConfig.description || "",
+                description: this._packageConfig.description || '',
                 dependencies: JSON.stringify(this._packageConfig.dependencies),
                 secret: Spm.loadSecret(),
             };
@@ -117,7 +119,6 @@ class PublishCLI {
                 } catch (e) {
                     reject(e);
                 }
-
             });
         });
     };

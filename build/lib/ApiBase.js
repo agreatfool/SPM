@@ -9,34 +9,26 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 class ApiBase {
-    register(options, dbHandler) {
-        this.options = options;
-        this.dbHandler = dbHandler;
+    register() {
         return [this.uri, this._validate(), this._execute()];
     }
     ;
     _validate() {
-        let _this = this;
-        return function (ctx, next) {
-            return __awaiter(this, void 0, void 0, function* () {
-                try {
-                    yield _this.paramsValidate(ctx);
-                    yield next();
-                }
-                catch (err) {
-                    ctx.body = _this.buildResponse(err.message, -1);
-                }
-            });
-        };
+        return (ctx, next) => __awaiter(this, void 0, void 0, function* () {
+            try {
+                yield this.paramsValidate(ctx);
+                yield next();
+            }
+            catch (err) {
+                ctx.body = this.buildResponse(err.message, -1);
+            }
+        });
     }
     _execute() {
-        let _this = this;
-        return function (ctx, next) {
-            return __awaiter(this, void 0, void 0, function* () {
-                ctx.body = yield _this.handle(ctx, next);
-                yield next();
-            });
-        };
+        return (ctx, next) => __awaiter(this, void 0, void 0, function* () {
+            ctx.body = yield this.handle(ctx, next);
+            yield next();
+        });
     }
     buildResponse(msg, code = 0) {
         if (code < 0) {
@@ -46,6 +38,9 @@ class ApiBase {
             code: code,
             msg: msg
         };
+    }
+    static genSecretToken(key1, key2, time) {
+        return require('md5')(key1 + key2 + time.toString()).substr(0, 8);
     }
 }
 exports.ApiBase = ApiBase;

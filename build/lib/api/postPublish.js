@@ -12,8 +12,10 @@ require("reflect-metadata");
 const LibPath = require("path");
 const LibFs = require("mz/fs");
 const _ = require("underscore");
+const Database_1 = require("../Database");
 const SpmPackage_1 = require("../entity/SpmPackage");
 const SpmPackageVersion_1 = require("../entity/SpmPackageVersion");
+const SpmPackageSecret_1 = require("../entity/SpmPackageSecret");
 const ApiBase_1 = require("../ApiBase");
 class PostPublish extends ApiBase_1.ApiBase {
     constructor() {
@@ -26,24 +28,34 @@ class PostPublish extends ApiBase_1.ApiBase {
         return __awaiter(this, void 0, void 0, function* () {
             const body = ctx.request.body;
             const params = body.fields;
-            if (!params.secret || params.secret != this.options.secret) {
-                throw new Error("Secret is required!");
+            if (!params.secret || _.isEmpty(params.secret)) {
+                throw new Error('Secret is wrong!');
             }
             if (!params.name || _.isEmpty(params.name)) {
-                throw new Error("Name is required!");
+                throw new Error('Name is required!');
             }
             if (!params.version || _.isEmpty(params.version)) {
-                throw new Error("Version is required!");
+                throw new Error('Version is required!');
             }
-            if (!body.hasOwnProperty("files") || !body.files.hasOwnProperty("fileUpload")) {
-                throw new Error("fileUpload is required!");
+            if (!body.hasOwnProperty('files') || !body.files.hasOwnProperty('fileUpload')) {
+                throw new Error('fileUpload is required!');
             }
         });
     }
     handle(ctx, next) {
         return __awaiter(this, void 0, void 0, function* () {
-            // file upload
+            const dbConn = Database_1.default.instance().conn;
             const params = ctx.request.body.fields;
+            // find package
+            let spmPackageSecret = yield dbConn
+                .getRepository(SpmPackageSecret_1.SpmPackageSecret)
+                .createQueryBuilder('user')
+                .where('user.name=:name', { name: params.name })
+                .getOne();
+            if (_.isEmpty(spmPackageSecret) || spmPackageSecret.secret !== params.secret) {
+                return this.buildResponse('Wrong secret', -1);
+            }
+            // file upload
             for (let key in params) {
                 params[key] = decodeURIComponent(params[key]);
             }
@@ -59,35 +71,36 @@ class PostPublish extends ApiBase_1.ApiBase {
             try {
                 const [major, minor, patch] = params.version.split('.');
                 // find package
-                let spmPackage = yield this.dbHandler
+                let spmPackage = yield dbConn
                     .getRepository(SpmPackage_1.SpmPackage)
-                    .createQueryBuilder("package")
+                    .createQueryBuilder('package')
                     .where('package.name=:name', { name: params.name })
                     .getOne();
                 // if package is not found, create package
                 if (_.isEmpty(spmPackage)) {
                     let entity = new SpmPackage_1.SpmPackage();
+                    entity.sid = spmPackageSecret.id;
                     entity.name = params.name;
                     entity.description = params.description;
-                    spmPackage = yield this.dbHandler.manager.persist(entity);
+                    spmPackage = yield dbConn.manager.save(entity);
                 }
                 else {
                     let entity = new SpmPackage_1.SpmPackage();
                     entity.id = spmPackage.id;
                     entity.description = params.description;
-                    spmPackage = yield this.dbHandler.manager.persist(entity);
+                    spmPackage = yield dbConn.manager.save(entity);
                 }
                 // find package version
-                let spmPackageVersion = yield this.dbHandler
+                let spmPackageVersion = yield dbConn
                     .getRepository(SpmPackageVersion_1.SpmPackageVersion)
-                    .createQueryBuilder("version")
+                    .createQueryBuilder('version')
                     .where('version.pid=:pid', { pid: spmPackage.id })
                     .andWhere('version.major=:major', { major: major })
                     .andWhere('version.minor=:minor', { minor: minor })
                     .andWhere('version.patch=:patch', { patch: patch })
                     .getOne();
                 if (!_.isEmpty(spmPackageVersion)) {
-                    return this.buildResponse(`Proto is exist! name:${params.name}, version:${params.version}`, -1);
+                    return this.buildResponse(`Proto already exists! name:${params.name}, version:${params.version}`, -1);
                 }
                 // if version is not found, create version
                 let entity = new SpmPackageVersion_1.SpmPackageVersion();
@@ -98,8 +111,8 @@ class PostPublish extends ApiBase_1.ApiBase {
                 entity.filePath = writeFilePath;
                 entity.time = new Date().getTime();
                 entity.dependencies = params.dependencies;
-                yield this.dbHandler.manager.persist(entity);
-                return this.buildResponse("succeed");
+                yield dbConn.manager.save(entity);
+                return this.buildResponse('succeed');
             }
             catch (err) {
                 return this.buildResponse(err.message, -1);

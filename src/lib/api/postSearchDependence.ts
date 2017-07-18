@@ -1,12 +1,12 @@
 import "reflect-metadata";
 import * as _ from "underscore";
+import Database from "../Database";
 import {Context as KoaContext} from "koa";
-import {MiddlewareNext, ResponseSchema} from "../Router";
 import {SpmPackage} from "../entity/SpmPackage";
 import {SpmPackageVersion} from "../entity/SpmPackageVersion";
 import {SpmPackageMap} from "../../bin/lib/lib";
-import {ApiBase} from "../ApiBase";
-
+import {ApiBase, MiddlewareNext, ResponseSchema} from "../ApiBase";
+import {Connection} from "typeorm";
 
 type SheetColumnWhereSchema = [string, any];
 
@@ -15,32 +15,33 @@ class PostDepend extends ApiBase {
     constructor() {
         super();
         this.method = 'post';
-        this.uri = '/v1/depend';
+        this.uri = '/v1/searchDependence';
         this.type = 'application/json; charset=utf-8';
     }
 
     public async paramsValidate(ctx: KoaContext) {
-        const params = ctx.request.body;
+        const params = (ctx.request as any).body;
         if (!params.name || _.isEmpty(params.name)) {
-            throw new Error("Name is required!");
+            throw new Error('Name is required!');
         }
 
         if (!params.name || _.isEmpty(params.name)) {
-            throw new Error("Name is required!");
+            throw new Error('Name is required!');
         }
     }
 
     public async handle(ctx: KoaContext, next: MiddlewareNext): Promise<ResponseSchema> {
         try {
-            const params = ctx.request.body;
+            const dbConn = Database.instance().conn;
+            const params = (ctx.request as any).body;
             const [name, version] = params.name.split('@');
-            return this.buildResponse(await this.findDependencies(name, version, {}));
+            return this.buildResponse(await this.findDependencies(dbConn, name, version, {}));
         } catch (err) {
             return this.buildResponse(err.message, -1);
         }
     };
 
-    public async findDependencies(name: string, version: string, dependencies: SpmPackageMap, isDependencies: boolean = false) {
+    public async findDependencies(dbConn: Connection, name: string, version: string, dependencies: SpmPackageMap, isDependencies: boolean = false): Promise<SpmPackageMap> {
 
         // if dependencies is exist, return ..
         if (dependencies.hasOwnProperty(`${name}@${version}`)) {
@@ -48,22 +49,22 @@ class PostDepend extends ApiBase {
         }
 
         // find package
-        let spmPackage = await this.dbHandler
+        let spmPackage = await dbConn
             .getRepository(SpmPackage)
-            .createQueryBuilder("package")
+            .createQueryBuilder('package')
             .where('package.name=:name', {name: name})
             .getOne();
 
         if (_.isEmpty(spmPackage)) {
-            throw new Error("Package not found, name: " + name);
+            throw new Error('Package not found, name: ' + name);
         }
 
         // build spm package version query
-        let sheetName = "version";
+        let sheetName = 'version';
         let columnPidWhereQuery = [`${sheetName}.pid=:pid`, {pid: spmPackage.id}] as SheetColumnWhereSchema;
-        let columnMajorWhereQuery = [`${sheetName}.major`, "DESC"] as SheetColumnWhereSchema;
-        let columnMinorWhereQuery = [`${sheetName}.minor`, "DESC"] as SheetColumnWhereSchema;
-        let columnPatchWhereQuery = [`${sheetName}.patch`, "DESC"] as SheetColumnWhereSchema;
+        let columnMajorWhereQuery = [`${sheetName}.major`, 'DESC'] as SheetColumnWhereSchema;
+        let columnMinorWhereQuery = [`${sheetName}.minor`, 'DESC'] as SheetColumnWhereSchema;
+        let columnPatchWhereQuery = [`${sheetName}.patch`, 'DESC'] as SheetColumnWhereSchema;
         if (!_.isEmpty(version)) {
             const [major, minor, patch] = version.split('.');
             columnMajorWhereQuery = [`${sheetName}.major=:major`, {major: major}] as SheetColumnWhereSchema;
@@ -71,7 +72,7 @@ class PostDepend extends ApiBase {
             columnPatchWhereQuery = [`${sheetName}.patch=:patch`, {patch: patch}] as SheetColumnWhereSchema;
         }
 
-        let spmPackageVersion = await this.dbHandler
+        let spmPackageVersion = await dbConn
             .getRepository(SpmPackageVersion)
             .createQueryBuilder(sheetName)
             .where(columnPidWhereQuery[0], columnPidWhereQuery[1])
@@ -81,7 +82,7 @@ class PostDepend extends ApiBase {
             .getOne();
 
         if (_.isEmpty(spmPackageVersion)) {
-            throw new Error("Package version not found, name: " + spmPackage.name + ", version: " + version);
+            throw new Error('Package version not found, name: ' + spmPackage.name + ', version: ' + version);
         }
 
         let pkgDependencies = {};
@@ -100,7 +101,7 @@ class PostDepend extends ApiBase {
 
         // deep loop
         for (let dependPackageName in pkgDependencies) {
-            dependencies = await this.findDependencies(dependPackageName, pkgDependencies[dependPackageName], dependencies, true);
+            dependencies = await this.findDependencies(dbConn, dependPackageName, pkgDependencies[dependPackageName], dependencies, true);
         }
 
         return dependencies;

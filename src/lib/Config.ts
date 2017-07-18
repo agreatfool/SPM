@@ -1,5 +1,5 @@
 "use strict";
-import * as LibPath from 'path';
+import * as LibPath from "path";
 import * as LibFs from "mz/fs";
 
 export interface ConfigOptions {
@@ -13,7 +13,7 @@ export default class Config {
     private static _instance: Config;
 
     private _initialized: boolean;
-    public options: ConfigOptions;
+    private _options: ConfigOptions;
 
     public static instance(): Config {
         if (Config._instance === undefined) {
@@ -26,12 +26,16 @@ export default class Config {
         this._initialized = false;
     }
 
+    public get options(): ConfigOptions {
+        return this._options;
+    }
+
     public async init() {
         let filePath = LibPath.join(__dirname, '..', '..', 'config', 'config.json');
         let stats = await LibFs.stat(filePath);
         if (stats.isFile()) {
             try {
-                this.options = JSON.parse(LibFs.readFileSync(filePath).toString());
+                this._options = JSON.parse(LibFs.readFileSync(filePath).toString());
                 this._initialized = true;
             } catch (e) {
                 throw new Error('[Config] Error:' + e.message);

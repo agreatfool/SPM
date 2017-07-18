@@ -1,11 +1,11 @@
 import "reflect-metadata";
 import * as _ from "underscore";
+import Database from "../Database";
 import {Context as KoaContext} from "koa";
-import {MiddlewareNext, ResponseSchema} from "../Router";
 import {SpmPackage} from "../entity/SpmPackage";
 import {SpmPackageVersion} from "../entity/SpmPackageVersion";
-import {ApiBase} from "../ApiBase";
-import {Spm} from "../../bin/lib/lib";
+import {ApiBase, MiddlewareNext, ResponseSchema} from "../ApiBase";
+import {Connection} from "typeorm";
 
 class PostSearch extends ApiBase {
 
@@ -17,30 +17,31 @@ class PostSearch extends ApiBase {
     }
 
     public async paramsValidate(ctx: KoaContext) {
-        const params = ctx.request.body;
+        const params = (ctx.request as any).body;
         if (!params.keyword || _.isEmpty(params.keyword)) {
-            throw new Error("keyword is required!");
+            throw new Error('keyword is required!');
         }
     }
 
     public async handle(ctx: KoaContext, next: MiddlewareNext): Promise<ResponseSchema> {
         try {
-            const params = ctx.request.body;
+            const params = (ctx.request as any).body;
+            const dbConn = Database.instance().conn;
             if (params.info == 'true') {
-                return this.buildResponse(await this.preciseSearch(params.keyword));
+                return this.buildResponse(await this.preciseSearch(params.keyword, dbConn));
             } else {
-                return this.buildResponse(await this.fuzzySearch(params.keyword));
+                return this.buildResponse(await this.fuzzySearch(params.keyword, dbConn));
             }
         } catch (err) {
             return this.buildResponse(err.message, -1);
         }
     };
 
-    public async fuzzySearch(keyword: string): Promise<Array<SpmPackage>> {
+    public async fuzzySearch(keyword: string, dbConn: Connection): Promise<Array<SpmPackage>> {
         let packageInfos = [] as Array<SpmPackage>;
-        let spmPackageList = await this.dbHandler
+        let spmPackageList = await dbConn
             .getRepository(SpmPackage)
-            .createQueryBuilder("package")
+            .createQueryBuilder('package')
             .where('package.name LIKE :keyword', {keyword: `%${keyword}%`})
             .orWhere('package.description LIKE :keyword', {keyword: `%${keyword}%`})
             .getMany();
@@ -51,11 +52,11 @@ class PostSearch extends ApiBase {
         return packageInfos;
     }
 
-    public async preciseSearch(keyword: string): Promise<Array<[SpmPackage, SpmPackageVersion]>> {
+    public async preciseSearch(keyword: string, dbConn: Connection): Promise<Array<[SpmPackage, SpmPackageVersion]>> {
         let packageInfos = [] as Array<[SpmPackage, SpmPackageVersion]>;
-        let spmPackage = await this.dbHandler
+        let spmPackage = await dbConn
             .getRepository(SpmPackage)
-            .createQueryBuilder("package")
+            .createQueryBuilder('package')
             .where('package.name=:keyword', {keyword: `${keyword}`})
             .getOne();
 
@@ -63,9 +64,9 @@ class PostSearch extends ApiBase {
             return packageInfos;
         }
 
-        let spmPackageVersionList = await this.dbHandler
+        let spmPackageVersionList = await dbConn
             .getRepository(SpmPackageVersion)
-            .createQueryBuilder("version")
+            .createQueryBuilder('version')
             .where('version.pid=:pid', {pid: spmPackage.id})
             .getMany();
 

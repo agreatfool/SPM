@@ -1,5 +1,5 @@
 "use strict";
-import * as LibPath from 'path';
+import * as LibPath from "path";
 import * as LibFs from "mz/fs";
 import {Connection, createConnection} from "typeorm";
 
@@ -8,7 +8,7 @@ export default class Database {
     private static _instance: Database;
 
     private _initialized: boolean;
-    public conn: Connection;
+    private _conn: Connection;
 
     public static instance(): Database {
         if (Database._instance === undefined) {
@@ -19,6 +19,10 @@ export default class Database {
 
     private constructor() {
         this._initialized = false;
+    }
+
+    public get conn(): Connection {
+        return this._conn;
     }
 
     public async init() {
@@ -36,7 +40,7 @@ export default class Database {
                 }
             }
 
-            this.conn = await createConnection({
+            this._conn = await createConnection({
                 type: 'sqlite',
                 database: LibPath.join(__dirname, '..', '..', 'Spm.db'),
                 entities: entities,

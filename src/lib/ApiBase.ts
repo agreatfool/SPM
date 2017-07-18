@@ -1,42 +1,39 @@
-import {Connection} from "typeorm";
-import {ConfigOptions} from "./Config";
 import {Context as KoaContext, Middleware as KoaMiddleware} from "koa";
-import {MiddlewareNext, ResponseSchema} from "./Router";
+
+export interface ResponseSchema {
+    code: number;
+    msg: string | object;
+}
+export type MiddlewareNext = () => Promise<any>;
 
 export abstract class ApiBase {
 
     public method: string;
     public uri: string;
     public type: string;
-    public options: ConfigOptions;
-    public dbHandler: Connection;
 
     public abstract handle(ctx: KoaContext, next: MiddlewareNext): Promise<any>;
 
     public abstract paramsValidate(ctx: KoaContext);
 
-    public register(options: ConfigOptions, dbHandler: Connection): Array<string | KoaMiddleware> {
-        this.options = options;
-        this.dbHandler = dbHandler;
+    public register(): Array<string | KoaMiddleware> {
         return [this.uri, this._validate(), this._execute()];
     };
 
     protected _validate(): KoaMiddleware {
-        let _this = this;
-        return async function (ctx: KoaContext, next: MiddlewareNext): Promise<void> {
+        return async (ctx: KoaContext, next: MiddlewareNext): Promise<void> => {
             try {
-                await _this.paramsValidate(ctx);
+                await this.paramsValidate(ctx);
                 await next();
             } catch (err) {
-                ctx.body = _this.buildResponse(err.message, -1);
+                ctx.body = this.buildResponse(err.message, -1);
             }
         };
     }
 
     protected _execute(): KoaMiddleware {
-        let _this: ApiBase = this;
-        return async function (ctx: KoaContext, next: MiddlewareNext): Promise<void> {
-            ctx.body = await _this.handle(ctx, next);
+        return async (ctx: KoaContext, next: MiddlewareNext): Promise<void> => {
+            ctx.body = await this.handle(ctx, next);
             await next();
         };
     }
@@ -50,5 +47,9 @@ export abstract class ApiBase {
             code: code,
             msg: msg
         };
+    }
+
+    public static genSecretToken(key1: string, key2: string, time: number): string {
+        return require('md5')(key1 + key2 + time.toString()).substr(0, 8);
     }
 }

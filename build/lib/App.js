@@ -16,30 +16,29 @@ const Database_1 = require("./Database");
 const Router_1 = require("./Router");
 class App {
     constructor() {
-        this.app = new Koa();
-        this.config = Config_1.default.instance();
-        this.database = Database_1.default.instance();
-        this.router = Router_1.default.instance();
+        this._app = new Koa();
         this._initialized = false;
     }
     init() {
         return __awaiter(this, void 0, void 0, function* () {
-            yield this.config.init();
-            yield this.database.init();
-            yield this.router.init(this.config.options, this.database.conn);
-            this.app.use(koaBody({ multipart: true }));
-            this.app.use(koaBodyParser({ formLimit: '2048kb' })); // post body parser
-            this.app.use(Router_1.default.instance().getRouter().routes());
+            yield Config_1.default.instance().init();
+            yield Database_1.default.instance().init();
+            yield Router_1.default.instance().init();
+            this._app.use(koaBody({ multipart: true }));
+            this._app.use(koaBodyParser({ formLimit: '2048kb' })); // post body parser
+            this._app.use(Router_1.default.instance().getRouter().routes());
             this._initialized = true;
         });
     }
     start() {
         if (!this._initialized) {
+            console.log(`SPM Server start failed!`);
             return;
         }
         // server start
-        this.app.listen(this.config.options.port, this.config.options.host, () => {
-            console.log(`SPM Server start! ${this.config.options.host}:${this.config.options.port}`);
+        let options = Config_1.default.instance().options;
+        this._app.listen(options.port, options.host, () => {
+            console.log(`SPM Server start! ${options.host}:${options.port}`);
         });
     }
 }
