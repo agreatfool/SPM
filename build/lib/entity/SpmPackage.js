@@ -20,6 +20,10 @@ __decorate([
     typeorm_1.Column("text"),
     __metadata("design:type", String)
 ], SpmPackage.prototype, "name", void 0);
+__decorate([
+    typeorm_1.Column("text"),
+    __metadata("design:type", String)
+], SpmPackage.prototype, "description", void 0);
 SpmPackage = __decorate([
     typeorm_1.Entity()
 ], SpmPackage);

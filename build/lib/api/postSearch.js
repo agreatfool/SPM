@@ -47,28 +47,29 @@ class PostSearch extends ApiBase_1.ApiBase {
     ;
     fuzzySearch(keyword) {
         return __awaiter(this, void 0, void 0, function* () {
-            let packages = [];
+            let packageInfos = [];
             let spmPackageList = yield this.dbHandler
                 .getRepository(SpmPackage_1.SpmPackage)
                 .createQueryBuilder("package")
                 .where('package.name LIKE :keyword', { keyword: `%${keyword}%` })
+                .orWhere('package.description LIKE :keyword', { keyword: `%${keyword}%` })
                 .getMany();
             for (let spmPackage of spmPackageList) {
-                packages.push(`${spmPackage.name}`);
+                packageInfos.push(spmPackage);
             }
-            return packages;
+            return packageInfos;
         });
     }
     preciseSearch(keyword) {
         return __awaiter(this, void 0, void 0, function* () {
-            let packages = [];
+            let packageInfos = [];
             let spmPackage = yield this.dbHandler
                 .getRepository(SpmPackage_1.SpmPackage)
                 .createQueryBuilder("package")
                 .where('package.name=:keyword', { keyword: `${keyword}` })
                 .getOne();
             if (_.isEmpty(spmPackage)) {
-                return packages;
+                return packageInfos;
             }
             let spmPackageVersionList = yield this.dbHandler
                 .getRepository(SpmPackageVersion_1.SpmPackageVersion)
@@ -76,9 +77,9 @@ class PostSearch extends ApiBase_1.ApiBase {
                 .where('version.pid=:pid', { pid: spmPackage.id })
                 .getMany();
             for (let spmPackageVersion of spmPackageVersionList) {
-                packages.push(`${spmPackage.name}@${spmPackageVersion.major}.${spmPackageVersion.minor}.${spmPackageVersion.patch}`);
+                packageInfos.push([spmPackage, spmPackageVersion]);
             }
-            return packages;
+            return packageInfos;
         });
     }
 }

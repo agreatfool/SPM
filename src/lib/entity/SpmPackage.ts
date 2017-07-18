@@ -7,4 +7,7 @@ export class SpmPackage {
 
     @Column("text")
     name: string;
+
+    @Column("text")
+    description: string;
 }

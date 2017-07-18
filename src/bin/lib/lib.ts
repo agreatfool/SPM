@@ -18,6 +18,7 @@ export interface SpmConfig {
 export interface SpmPackageConfig {
     name: string;
     version: string;
+    description?: string;
     dependencies?: {
         [key: string]: string;
     };

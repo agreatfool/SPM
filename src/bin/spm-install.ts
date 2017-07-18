@@ -153,6 +153,7 @@ class InstallCLI {
                 packageConfig = {
                     name: LibPath.basename(this._projectDir),
                     version: "0.0.0",
+                    description: "",
                     dependencies: {}
                 };
             }

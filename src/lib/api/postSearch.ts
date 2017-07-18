@@ -5,6 +5,7 @@ import {MiddlewareNext, ResponseSchema} from "../Router";
 import {SpmPackage} from "../entity/SpmPackage";
 import {SpmPackageVersion} from "../entity/SpmPackageVersion";
 import {ApiBase} from "../ApiBase";
+import {Spm} from "../../bin/lib/lib";
 
 class PostSearch extends ApiBase {
 
@@ -35,22 +36,23 @@ class PostSearch extends ApiBase {
         }
     };
 
-    public async fuzzySearch(keyword: string): Promise<Array<string>> {
-        let packages = [];
+    public async fuzzySearch(keyword: string): Promise<Array<SpmPackage>> {
+        let packageInfos = [] as Array<SpmPackage>;
         let spmPackageList = await this.dbHandler
             .getRepository(SpmPackage)
             .createQueryBuilder("package")
             .where('package.name LIKE :keyword', {keyword: `%${keyword}%`})
+            .orWhere('package.description LIKE :keyword', {keyword: `%${keyword}%`})
             .getMany();
         for (let spmPackage of spmPackageList) {
-            packages.push(`${spmPackage.name}`);
+            packageInfos.push(spmPackage);
         }
 
-        return packages;
+        return packageInfos;
     }
 
-    public async preciseSearch(keyword: string): Promise<Array<string>> {
-        let packages = [];
+    public async preciseSearch(keyword: string): Promise<Array<[SpmPackage, SpmPackageVersion]>> {
+        let packageInfos = [] as Array<[SpmPackage, SpmPackageVersion]>;
         let spmPackage = await this.dbHandler
             .getRepository(SpmPackage)
             .createQueryBuilder("package")
@@ -58,7 +60,7 @@ class PostSearch extends ApiBase {
             .getOne();
 
         if (_.isEmpty(spmPackage)) {
-            return packages;
+            return packageInfos;
         }
 
         let spmPackageVersionList = await this.dbHandler
@@ -68,10 +70,10 @@ class PostSearch extends ApiBase {
             .getMany();
 
         for (let spmPackageVersion of spmPackageVersionList) {
-            packages.push(`${spmPackage.name}@${spmPackageVersion.major}.${spmPackageVersion.minor}.${spmPackageVersion.patch}`);
+            packageInfos.push([spmPackage, spmPackageVersion]);
         }
 
-        return packages;
+        return packageInfos;
     }
 }
 

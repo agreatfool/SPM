@@ -71,6 +71,12 @@ class PostPublish extends ApiBase {
             if (_.isEmpty(spmPackage)) {
                 let entity = new SpmPackage();
                 entity.name = params.name;
+                entity.description = params.description;
+                spmPackage = await this.dbHandler.manager.persist(entity);
+            } else {
+                let entity = new SpmPackage();
+                entity.id = spmPackage.id;
+                entity.description = params.description;
                 spmPackage = await this.dbHandler.manager.persist(entity);
             }
 

@@ -1,5 +1,9 @@
 import * as program from "commander";
+import * as _ from "underscore";
 import {SpmPackageRequest} from "./lib/lib";
+import {SpmPackage} from "../lib/entity/SpmPackage";
+import {SpmPackageVersion} from "../lib/entity/SpmPackageVersion";
+import * as util from "util";
 
 const pkg = require('../../package.json');
 const debug = require('debug')('SPM:CLI:search');
@@ -43,11 +47,16 @@ class SearchCLI {
             SpmPackageRequest.postRequest('/v1/search', params, (chunk) => {
 
                 try {
-                    let response = SpmPackageRequest.parseResponse(chunk) as Array<string>;
+                    let response = SpmPackageRequest.parseResponse(chunk) as Array<SpmPackage | [SpmPackage, SpmPackageVersion]>;
                     console.log('--------------Search Response---------------');
                     if (response.length > 0) {
-                        for (let value of response) {
-                            console.log(value);
+                        for (let packageInfo of response) {
+                            if (_.isArray(packageInfo)) {
+                                let [spmPackage, spmPackageVersion] = packageInfo as [SpmPackage, SpmPackageVersion];
+                                console.log(`${spmPackage.name}@${spmPackageVersion.major}.${spmPackageVersion.minor}.${spmPackageVersion.patch}`)
+                            } else {
+                                console.log(`${packageInfo.name} | ${packageInfo.description}`)
+                            }
                         }
                     } else {
                         console.log('package not found!');

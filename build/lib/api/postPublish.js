@@ -68,6 +68,13 @@ class PostPublish extends ApiBase_1.ApiBase {
                 if (_.isEmpty(spmPackage)) {
                     let entity = new SpmPackage_1.SpmPackage();
                     entity.name = params.name;
+                    entity.description = params.description;
+                    spmPackage = yield this.dbHandler.manager.persist(entity);
+                }
+                else {
+                    let entity = new SpmPackage_1.SpmPackage();
+                    entity.id = spmPackage.id;
+                    entity.description = params.description;
                     spmPackage = yield this.dbHandler.manager.persist(entity);
                 }
                 // find package version

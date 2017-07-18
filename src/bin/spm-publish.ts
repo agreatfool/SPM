@@ -97,6 +97,7 @@ class PublishCLI {
             let params = {
                 name: this._packageConfig.name,
                 version: this._packageConfig.version,
+                description: this._packageConfig.description || "",
                 dependencies: JSON.stringify(this._packageConfig.dependencies),
                 secret: Spm.loadSecret(),
             };

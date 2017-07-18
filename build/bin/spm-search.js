@@ -9,6 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const program = require("commander");
+const _ = require("underscore");
 const lib_1 = require("./lib/lib");
 const pkg = require('../../package.json');
 const debug = require('debug')('SPM:CLI:search');
@@ -49,8 +50,14 @@ class SearchCLI {
                         let response = lib_1.SpmPackageRequest.parseResponse(chunk);
                         console.log('--------------Search Response---------------');
                         if (response.length > 0) {
-                            for (let value of response) {
-                                console.log(value);
+                            for (let packageInfo of response) {
+                                if (_.isArray(packageInfo)) {
+                                    let [spmPackage, spmPackageVersion] = packageInfo;
+                                    console.log(`${spmPackage.name}@${spmPackageVersion.major}.${spmPackageVersion.minor}.${spmPackageVersion.patch}`);
+                                }
+                                else {
+                                    console.log(`${packageInfo.name} | ${packageInfo.description}`);
+                                }
                             }
                         }
                         else {
