@@ -1,0 +1,1 @@
+{"version":3,"file":"SpmPackage.js","sourceRoot":"","sources":["../../../src/lib/entity/SpmPackage.ts"],"names":[],"mappings":";;;;;;;;;;;AAAA,qCAAsD;AAGtD,IAAa,UAAU,GAAvB;CASC,CAAA;AAPG;IADC,uBAAa,CAAC,KAAK,EAAE,EAAC,SAAS,EAAE,IAAI,EAAC,CAAC;;sCAC7B;AAGX;IADC,gBAAM,CAAC,MAAM,CAAC;;wCACF;AAGb;IADC,gBAAM,CAAC,MAAM,CAAC;;+CACK;AARX,UAAU;IADtB,gBAAM,EAAE;GACI,UAAU,CAStB;AATY,gCAAU"}
