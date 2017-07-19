@@ -90,8 +90,12 @@ class InstallCLI {
                 name: name,
             };
 
-            SpmPackageRequest.postRequest('/v1/search_dependencies', params, (chunk, reqResolve) => {
-                reqResolve(SpmPackageRequest.parseResponse(chunk));
+            SpmPackageRequest.postRequest('/v1/search_dependencies', params, (chunk, reqResolve, reqReject) => {
+                try {
+                    reqResolve(SpmPackageRequest.parseResponse(chunk));
+                } catch (e) {
+                    reqReject(e);
+                }
             }).then((response) => {
                 resolve(response);
             }).catch((e) => {
@@ -268,7 +272,7 @@ class InstallCLI {
                             for (let oldString in spmPackage.dependenciesChanged) {
                                 let newString = spmPackage.dependenciesChanged[oldString];
                                 Spm.replaceStringInFile(file, [
-                                    [new RegExp(`import '${oldString}/`, 'g'), `import '${newString}/`],
+                                    [new RegExp(`import "${oldString}/`, 'g'), `import "${newString}/`],
                                     [new RegExp(`\\((${oldString}.*?)\\)`, 'g'), (word) => word.replace(oldString, newString)],
                                     [new RegExp(` (${oldString}.*?) `, 'g'), (word) => word.replace(oldString, newString)]
                                 ]);

@@ -75,7 +75,7 @@ class PublishCLI {
                 let archive = archiver('zip', { zlib: { level: 9 } })
                     .on('error', (err) => reject(err));
                 archive.pipe(writeStream);
-                archive.directory(LibPath.join(this._projectDir, 'proto'), null);
+                archive.directory(LibPath.join(this._projectDir, 'proto'), false);
                 archive.append(LibFs.createReadStream(LibPath.join(this._projectDir, 'spm.json')), { name: 'spm.json' });
                 yield archive.finalize();
             }));
@@ -97,18 +97,14 @@ class PublishCLI {
                 };
                 let filePath = [tmpFilePath];
                 yield lib_1.SpmPackageRequest.postFormRequest('/v1/publish', params, filePath, (chunk, reqResolve) => __awaiter(this, void 0, void 0, function* () {
-                    console.log('async callback');
                     debug(`PublishCLI publish: [Response] - ${chunk}`);
-                    console.log(chunk);
                     reqResolve();
                 })).then(() => __awaiter(this, void 0, void 0, function* () {
-                    console.log('succeed');
                     if (filePath.length > 0) {
                         yield LibFs.unlink(filePath[0]);
                     }
                     resolve();
                 })).catch((e) => __awaiter(this, void 0, void 0, function* () {
-                    console.log('failed');
                     if (filePath.length > 0) {
                         yield LibFs.unlink(filePath[0]);
                     }

@@ -45,8 +45,13 @@ class SearchCLI {
                     keyword: KEYWORD_VALUE,
                     info: !!(INFO_VALUE)
                 };
-                lib_1.SpmPackageRequest.postRequest('/v1/search', params, (chunk, reqResolve) => {
-                    reqResolve(lib_1.SpmPackageRequest.parseResponse(chunk));
+                lib_1.SpmPackageRequest.postRequest('/v1/search', params, (chunk, reqResolve, reqReject) => {
+                    try {
+                        reqResolve(lib_1.SpmPackageRequest.parseResponse(chunk));
+                    }
+                    catch (e) {
+                        reqReject(e);
+                    }
                 }).then((response) => {
                     console.log('--------------Search Response---------------');
                     if (response.length > 0) {

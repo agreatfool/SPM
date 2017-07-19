@@ -50,8 +50,12 @@ class SecretCLI {
                 name: this._packageConfig.name
             };
 
-            SpmPackageRequest.postRequest('/v1/secret', params, async (chunk, reqResolve) => {
-                reqResolve(SpmPackageRequest.parseResponse(chunk));
+            SpmPackageRequest.postRequest('/v1/secret', params, async (chunk, reqResolve, reqReject) => {
+                try {
+                    reqResolve(SpmPackageRequest.parseResponse(chunk));
+                } catch (e) {
+                    reqReject(e);
+                }
             }).then(async (response: { secret: string }) => {
                 await Spm.saveSecret(response.secret);
                 resolve();

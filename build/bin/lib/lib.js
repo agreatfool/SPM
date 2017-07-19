@@ -193,18 +193,14 @@ var SpmPackageRequest;
     }
     SpmPackageRequest.postRequest = postRequest;
     function postFormRequest(uri, params, filePath, callback) {
-        console.log('postFormRequest');
         return new Promise((resolve, reject) => {
             // create request
             let reqOptions = SpmPackageRequest.getRequestOption(uri, RequestMethod.post);
             let req = http.request(reqOptions, (res) => {
-                console.log('res');
-                console.log(res);
                 res.on('data', (chunk) => callback(chunk, resolve, reject));
             }).on('error', (e) => {
                 reject(e);
             });
-            console.log('req');
             // send content
             let boundaryKey = Math.random().toString(16);
             let enddata = '\r\n----' + boundaryKey + '--';
@@ -232,16 +228,11 @@ var SpmPackageRequest;
                 });
                 fileStream.pipe(req, { end: false });
             }
-            console.log('filePath.length:' + filePath.length);
             // send request headers
             req.setHeader('Content-Type', 'multipart/form-data; boundary=--' + boundaryKey);
             req.setHeader('Content-Length', `${contentLength + Buffer.byteLength(enddata)}`);
-            console.log('req write');
-            console.log(contentBinary);
             req.write(contentBinary);
-            console.log('filePath.length:' + filePath.length);
             if (filePath.length === 0) {
-                console.log('enddata');
                 req.end(enddata);
             }
         });

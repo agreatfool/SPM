@@ -43,8 +43,12 @@ class SearchCLI {
                 info: !!(INFO_VALUE)
             };
 
-            SpmPackageRequest.postRequest('/v1/search', params, (chunk, reqResolve) => {
-                reqResolve(SpmPackageRequest.parseResponse(chunk));
+            SpmPackageRequest.postRequest('/v1/search', params, (chunk, reqResolve, reqReject) => {
+                try {
+                    reqResolve(SpmPackageRequest.parseResponse(chunk));
+                } catch (e) {
+                    reqReject(e);
+                }
             }).then((response: Array<SpmPackage | [SpmPackage, SpmPackageVersion]>) => {
                 console.log('--------------Search Response---------------');
                 if (response.length > 0) {
