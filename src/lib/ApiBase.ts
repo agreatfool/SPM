@@ -4,6 +4,7 @@ export interface ResponseSchema {
     code: number;
     msg: string | object;
 }
+
 export type MiddlewareNext = () => Promise<any>;
 
 export abstract class ApiBase {

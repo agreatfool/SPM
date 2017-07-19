@@ -44,7 +44,7 @@ class PostRegister extends ApiBase {
             entity.secret = ApiBase.genSecretToken(params.username, Config.instance().options.secret, Math.round(new Date().getTime() / 1000));
             spmPackageSecret = await dbConn.manager.save(entity);
 
-            return this.buildResponse({secret: spmPackageSecret.secret})
+            return this.buildResponse({secret: spmPackageSecret.secret});
         } catch (err) {
             return this.buildResponse(err.message, -1);
         }

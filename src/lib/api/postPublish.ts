@@ -53,7 +53,7 @@ class PostPublish extends ApiBase {
         if (_.isEmpty(spmPackageSecret) || spmPackageSecret.secret !== params.secret) {
             return this.buildResponse('Wrong secret', -1);
         }
-        
+
         // file upload
         for (let key in params) {
             params[key] = decodeURIComponent(params[key]);

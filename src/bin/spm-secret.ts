@@ -54,7 +54,7 @@ class SecretCLI {
             SpmPackageRequest.postRequest('/v1/secret', params, async (chunk) => {
 
                 try {
-                    let response = SpmPackageRequest.parseResponse(chunk) as {secret: string};
+                    let response = SpmPackageRequest.parseResponse(chunk) as { secret: string };
                     await Spm.saveSecret(response.secret);
                     resolve();
                 } catch (e) {

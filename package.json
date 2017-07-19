@@ -52,7 +52,6 @@
     "@types/koa-router": "^7.0.22",
     "@types/mz": "0.0.31",
     "@types/node": "^8.0.3",
-    "@types/typescript": "^2.0.0",
     "@types/underscore": "^1.8.1"
   }
 }
