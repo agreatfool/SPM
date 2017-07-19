@@ -50,6 +50,7 @@
     "@types/koa": "^2.0.39",
     "@types/koa-bodyparser": "^3.0.23",
     "@types/koa-router": "^7.0.22",
+    "@types/md5": "^2.1.32",
     "@types/mz": "0.0.31",
     "@types/node": "^8.0.3",
     "@types/underscore": "^1.8.1"

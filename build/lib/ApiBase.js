@@ -8,6 +8,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const md5 = require("md5");
 class ApiBase {
     register() {
         return [this.uri, this._validate(), this._execute()];
@@ -40,7 +41,7 @@ class ApiBase {
         };
     }
     static genSecretToken(key1, key2, time) {
-        return require('md5')(key1 + key2 + time.toString()).substr(0, 8);
+        return md5(key1 + key2 + time.toString()).substr(0, 8);
     }
 }
 exports.ApiBase = ApiBase;

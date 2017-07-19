@@ -1,4 +1,5 @@
 import {Context as KoaContext, Middleware as KoaMiddleware} from "koa";
+import * as md5 from "md5";
 
 export interface ResponseSchema {
     code: number;
@@ -51,6 +52,6 @@ export abstract class ApiBase {
     }
 
     public static genSecretToken(key1: string, key2: string, time: number): string {
-        return require('md5')(key1 + key2 + time.toString()).substr(0, 8);
+        return md5(key1 + key2 + time.toString()).substr(0, 8);
     }
 }
