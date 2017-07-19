@@ -43,29 +43,26 @@ class SearchCLI {
                 info: !!(INFO_VALUE)
             };
 
-            SpmPackageRequest.postRequest('/v1/search', params, (chunk) => {
-
-                try {
-                    let response = SpmPackageRequest.parseResponse(chunk) as Array<SpmPackage | [SpmPackage, SpmPackageVersion]>;
-                    console.log('--------------Search Response---------------');
-                    if (response.length > 0) {
-                        for (let packageInfo of response) {
-                            if (_.isArray(packageInfo)) {
-                                let [spmPackage, spmPackageVersion] = packageInfo as [SpmPackage, SpmPackageVersion];
-                                console.log(`${spmPackage.name}@${spmPackageVersion.major}.${spmPackageVersion.minor}.${spmPackageVersion.patch}`);
-                            } else {
-                                console.log(`${packageInfo.name} | ${packageInfo.description}`);
-                            }
+            SpmPackageRequest.postRequest('/v1/search', params, (chunk, reqResolve) => {
+                reqResolve(SpmPackageRequest.parseResponse(chunk));
+            }).then((response: Array<SpmPackage | [SpmPackage, SpmPackageVersion]>) => {
+                console.log('--------------Search Response---------------');
+                if (response.length > 0) {
+                    for (let packageInfo of response) {
+                        if (_.isArray(packageInfo)) {
+                            let [spmPackage, spmPackageVersion] = packageInfo as [SpmPackage, SpmPackageVersion];
+                            console.log(`${spmPackage.name}@${spmPackageVersion.major}.${spmPackageVersion.minor}.${spmPackageVersion.patch}`);
+                        } else {
+                            console.log(`${packageInfo.name} | ${packageInfo.description}`);
                         }
-                    } else {
-                        console.log('package not found!');
                     }
-                    console.log('--------------Search Response---------------');
-                    resolve();
-                } catch (e) {
-                    reject(e);
+                } else {
+                    console.log('package not found!');
                 }
-
+                console.log('--------------Search Response---------------');
+                resolve();
+            }).catch((e) => {
+                reject(e);
             });
         });
 

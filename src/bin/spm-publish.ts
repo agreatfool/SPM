@@ -81,7 +81,7 @@ class PublishCLI {
                 .on('error', (err) => reject(err));
 
             archive.pipe(writeStream);
-            archive.directory(LibPath.join(this._projectDir, 'proto'), null);
+            archive.directory(LibPath.join(this._projectDir, 'proto'), false);
             archive.append(LibFs.createReadStream(LibPath.join(this._projectDir, 'spm.json')), {name: 'spm.json'});
             await archive.finalize();
         });
@@ -105,20 +105,21 @@ class PublishCLI {
             };
 
             let filePath = [tmpFilePath];
-
-            SpmPackageRequest.postFormRequest('/v1/publish', params, filePath, async (chunk) => {
-
-                try {
-                    debug(`PublishCLI publish: [Response] - ${chunk}`);
-
-                    if (filePath.length > 0) {
-                        await LibFs.unlink(filePath[0]);
-                    }
-
-                    resolve();
-                } catch (e) {
-                    reject(e);
+            await SpmPackageRequest.postFormRequest('/v1/publish', params, filePath, async (chunk, reqResolve) => {
+                debug(`PublishCLI publish: [Response] - ${chunk}`);
+                reqResolve();
+            }).then(async () => {
+                if (filePath.length > 0) {
+                    await LibFs.unlink(filePath[0]);
                 }
+
+                resolve();
+            }).catch(async (e) => {
+                if (filePath.length > 0) {
+                    await LibFs.unlink(filePath[0]);
+                }
+
+                reject(e);
             });
         });
     };

@@ -49,16 +49,14 @@ class SecretCLI {
                 let params = {
                     name: this._packageConfig.name
                 };
-                lib_1.SpmPackageRequest.postRequest('/v1/secret', params, (chunk) => __awaiter(this, void 0, void 0, function* () {
-                    try {
-                        let response = lib_1.SpmPackageRequest.parseResponse(chunk);
-                        yield lib_1.Spm.saveSecret(response.secret);
-                        resolve();
-                    }
-                    catch (e) {
-                        reject(e);
-                    }
-                }));
+                lib_1.SpmPackageRequest.postRequest('/v1/secret', params, (chunk, reqResolve) => __awaiter(this, void 0, void 0, function* () {
+                    reqResolve(lib_1.SpmPackageRequest.parseResponse(chunk));
+                })).then((response) => __awaiter(this, void 0, void 0, function* () {
+                    yield lib_1.Spm.saveSecret(response.secret);
+                    resolve();
+                })).catch((e) => {
+                    reject(e);
+                });
             }));
         });
     }

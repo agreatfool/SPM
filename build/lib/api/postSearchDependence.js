@@ -14,11 +14,11 @@ const Database_1 = require("../Database");
 const SpmPackage_1 = require("../entity/SpmPackage");
 const SpmPackageVersion_1 = require("../entity/SpmPackageVersion");
 const ApiBase_1 = require("../ApiBase");
-class PostDepend extends ApiBase_1.ApiBase {
+class PostSearchDependence extends ApiBase_1.ApiBase {
     constructor() {
         super();
         this.method = 'post';
-        this.uri = '/v1/searchDependence';
+        this.uri = '/v1/search_dependencies';
         this.type = 'application/json; charset=utf-8';
     }
     paramsValidate(ctx) {
@@ -106,5 +106,5 @@ class PostDepend extends ApiBase_1.ApiBase {
         });
     }
 }
-exports.api = new PostDepend();
+exports.api = new PostSearchDependence();
 //# sourceMappingURL=postSearchDependence.js.map

@@ -33,7 +33,7 @@ __decorate([
     __metadata("design:type", Number)
 ], SpmPackageVersion.prototype, "patch", void 0);
 __decorate([
-    typeorm_1.Column("text"),
+    typeorm_1.Column("text", { name: "file_path" }),
     __metadata("design:type", String)
 ], SpmPackageVersion.prototype, "filePath", void 0);
 __decorate([

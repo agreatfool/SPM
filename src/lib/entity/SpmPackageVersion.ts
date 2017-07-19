@@ -17,7 +17,7 @@ export class SpmPackageVersion {
     @Column("int")
     patch: number;
 
-    @Column("text")
+    @Column("text", {name: "file_path"})
     filePath: string;
 
     @Column("int")

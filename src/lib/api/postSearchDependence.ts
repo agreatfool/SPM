@@ -10,17 +10,21 @@ import {Connection} from "typeorm";
 
 type SheetColumnWhereSchema = [string, any];
 
-class PostDepend extends ApiBase {
+interface SearchDependenceParams {
+    name: string;
+}
+
+class PostSearchDependence extends ApiBase {
 
     constructor() {
         super();
         this.method = 'post';
-        this.uri = '/v1/searchDependence';
+        this.uri = '/v1/search_dependencies';
         this.type = 'application/json; charset=utf-8';
     }
 
     public async paramsValidate(ctx: KoaContext) {
-        const params = (ctx.request as any).body;
+        const params = (ctx.request as any).body as SearchDependenceParams;
         if (!params.name || _.isEmpty(params.name)) {
             throw new Error('Name is required!');
         }
@@ -33,7 +37,7 @@ class PostDepend extends ApiBase {
     public async handle(ctx: KoaContext, next: MiddlewareNext): Promise<ResponseSchema> {
         try {
             const dbConn = Database.instance().conn;
-            const params = (ctx.request as any).body;
+            const params = (ctx.request as any).body as SearchDependenceParams;
             const [name, version] = params.name.split('@');
             return this.buildResponse(await this.findDependencies(dbConn, name, version, {}));
         } catch (err) {
@@ -108,4 +112,4 @@ class PostDepend extends ApiBase {
     }
 }
 
-export const api = new PostDepend();
+export const api = new PostSearchDependence();

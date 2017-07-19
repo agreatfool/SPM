@@ -69,7 +69,7 @@ class InstallCLI {
                 const debug = require('debug')(`SPM:CLI:install:` + pkgName);
                 debug('-----------------------------------');
                 try {
-                    let spmPackageDependMap = await this._request(debug, pkgName);
+                    let spmPackageDependMap = await this._searchDependencies(debug, pkgName);
                     let [mainSpmPackage, spmPackageInstallMap] = await this._comparison(debug, spmPackageDependMap, {});
                     await this._update(debug, mainSpmPackage);
                     await this._deploy(spmPackageInstallMap);
@@ -82,21 +82,20 @@ class InstallCLI {
         }
     }
 
-    private async _request(debug, name: string): Promise<SpmPackageMap | {}> {
-        debug('request');
+    private async _searchDependencies(debug, name: string): Promise<SpmPackageMap | {}> {
+        debug('search dependencies');
 
-        return new Promise((resolve, reject) => {
+        return new Promise(async (resolve, reject) => {
             let params = {
                 name: name,
             };
 
-            SpmPackageRequest.postRequest('/v1/searchDependence', params, (chunk) => {
-                try {
-                    let response = SpmPackageRequest.parseResponse(chunk) as SpmPackageMap;
-                    resolve(response);
-                } catch (e) {
-                    reject(e);
-                }
+            SpmPackageRequest.postRequest('/v1/search_dependencies', params, (chunk, reqResolve) => {
+                reqResolve(SpmPackageRequest.parseResponse(chunk));
+            }).then((response) => {
+                resolve(response);
+            }).catch((e) => {
+                reject(e);
             });
         });
     }
@@ -199,7 +198,7 @@ class InstallCLI {
 
     private _packageDownload(debug: any, spmPackage: SpmPackage, tmpZipPath: string): Promise<SpmPackageMap | {}> {
 
-        return new Promise((resolve, reject) => {
+        return new Promise(async (resolve, reject) => {
             debug('download.');
 
             let params = {
@@ -207,16 +206,22 @@ class InstallCLI {
             };
 
             let fileStream = LibFs.createWriteStream(tmpZipPath);
-            SpmPackageRequest.postRequest('/v1/install', params, null, (res) => {
+            SpmPackageRequest.postRequest('/v1/install', params, null, (res, reqResolve, reqReject) => {
                 if (res.headers['content-type'] == 'application/octet-stream') {
                     res.pipe(fileStream);
                     res.on('end', () => {
-                        debug('download finish. ' + tmpZipPath);
-                        resolve();
+                        reqResolve();
                     });
                 } else {
-                    res.on('data', (chunk) => reject(new Error(chunk.toString())));
+                    res.on('data', (chunk) => {
+                        reqReject(new Error(chunk.toString()));
+                    });
                 }
+            }).then(() => {
+                debug('download finish. ' + tmpZipPath);
+                resolve();
+            }).catch((e) => {
+                reject(e);
             });
         });
     }

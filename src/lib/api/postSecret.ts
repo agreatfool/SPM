@@ -6,7 +6,11 @@ import {Context as KoaContext} from "koa";
 import {SpmPackageSecret} from "../entity/SpmPackageSecret";
 import {ApiBase, MiddlewareNext, ResponseSchema} from "../ApiBase";
 
-class PostRegister extends ApiBase {
+interface SecretParams {
+    name: string;
+}
+
+class PostSecret extends ApiBase {
 
     constructor() {
         super();
@@ -16,7 +20,7 @@ class PostRegister extends ApiBase {
     }
 
     public async paramsValidate(ctx: KoaContext) {
-        const params = (ctx.request as any).body;
+        const params = (ctx.request as any).body as SecretParams;
         if (!params.name || _.isEmpty(params.name)) {
             throw new Error('name is required!');
         }
@@ -24,7 +28,7 @@ class PostRegister extends ApiBase {
 
     public async handle(ctx: KoaContext, next: MiddlewareNext): Promise<ResponseSchema> {
         try {
-            const params = (ctx.request as any).body;
+            const params = (ctx.request as any).body as SecretParams;
             const dbConn = Database.instance().conn;
 
             // find package
@@ -41,7 +45,7 @@ class PostRegister extends ApiBase {
 
             let entity = new SpmPackageSecret();
             entity.name = params.name;
-            entity.secret = ApiBase.genSecretToken(params.username, Config.instance().options.secret, Math.round(new Date().getTime() / 1000));
+            entity.secret = ApiBase.genSecretToken(params.name, Config.instance().options.secret, Math.round(new Date().getTime() / 1000));
             spmPackageSecret = await dbConn.manager.save(entity);
 
             return this.buildResponse({secret: spmPackageSecret.secret});
@@ -51,4 +55,4 @@ class PostRegister extends ApiBase {
     };
 }
 
-export const api = new PostRegister();
+export const api = new PostSecret();

@@ -17,6 +17,7 @@ const SpmPackage_1 = require("../entity/SpmPackage");
 const SpmPackageVersion_1 = require("../entity/SpmPackageVersion");
 const SpmPackageSecret_1 = require("../entity/SpmPackageSecret");
 const ApiBase_1 = require("../ApiBase");
+const lib_1 = require("../../bin/lib/lib");
 class PostPublish extends ApiBase_1.ApiBase {
     constructor() {
         super();
@@ -45,7 +46,8 @@ class PostPublish extends ApiBase_1.ApiBase {
     handle(ctx, next) {
         return __awaiter(this, void 0, void 0, function* () {
             const dbConn = Database_1.default.instance().conn;
-            const params = ctx.request.body.fields;
+            const body = ctx.request.body;
+            const params = body.fields;
             // find package
             let spmPackageSecret = yield dbConn
                 .getRepository(SpmPackageSecret_1.SpmPackageSecret)
@@ -60,12 +62,14 @@ class PostPublish extends ApiBase_1.ApiBase {
                 params[key] = decodeURIComponent(params[key]);
             }
             // read upload stream
-            const fileUpload = ctx.request.body.files['fileUpload'];
+            const storePath = LibPath.join(__dirname, '..', '..', '..', 'store');
+            yield lib_1.mkdir(storePath);
+            const fileUpload = body.files['fileUpload'];
             const fileStream = LibFs.createReadStream(fileUpload.path).on('end', () => __awaiter(this, void 0, void 0, function* () {
                 yield LibFs.unlink(fileUpload.path);
             }));
             // write file stream
-            const writeFilePath = LibPath.join(__dirname, '..', '..', '..', 'store', `${params.name}@${params.version}.zip`);
+            const writeFilePath = LibPath.join(storePath, `${params.name}@${params.version}.zip`);
             const writeFileStream = LibFs.createWriteStream(writeFilePath);
             yield fileStream.pipe(writeFileStream);
             try {
@@ -105,9 +109,9 @@ class PostPublish extends ApiBase_1.ApiBase {
                 // if version is not found, create version
                 let entity = new SpmPackageVersion_1.SpmPackageVersion();
                 entity.pid = spmPackage.id;
-                entity.major = major | 0;
-                entity.minor = minor | 0;
-                entity.patch = patch | 0;
+                entity.major = parseInt(major) | 0;
+                entity.minor = parseInt(minor) | 0;
+                entity.patch = parseInt(patch) | 0;
                 entity.filePath = writeFilePath;
                 entity.time = new Date().getTime();
                 entity.dependencies = params.dependencies;

@@ -68,7 +68,7 @@ class InstallCLI {
                     const debug = require('debug')(`SPM:CLI:install:` + pkgName);
                     debug('-----------------------------------');
                     try {
-                        let spmPackageDependMap = yield this._request(debug, pkgName);
+                        let spmPackageDependMap = yield this._searchDependencies(debug, pkgName);
                         let [mainSpmPackage, spmPackageInstallMap] = yield this._comparison(debug, spmPackageDependMap, {});
                         yield this._update(debug, mainSpmPackage);
                         yield this._deploy(spmPackageInstallMap);
@@ -82,23 +82,21 @@ class InstallCLI {
             }
         });
     }
-    _request(debug, name) {
+    _searchDependencies(debug, name) {
         return __awaiter(this, void 0, void 0, function* () {
-            debug('request');
-            return new Promise((resolve, reject) => {
+            debug('search dependencies');
+            return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
                 let params = {
                     name: name,
                 };
-                lib_1.SpmPackageRequest.postRequest('/v1/searchDependence', params, (chunk) => {
-                    try {
-                        let response = lib_1.SpmPackageRequest.parseResponse(chunk);
-                        resolve(response);
-                    }
-                    catch (e) {
-                        reject(e);
-                    }
+                lib_1.SpmPackageRequest.postRequest('/v1/search_dependencies', params, (chunk, reqResolve) => {
+                    reqResolve(lib_1.SpmPackageRequest.parseResponse(chunk));
+                }).then((response) => {
+                    resolve(response);
+                }).catch((e) => {
+                    reject(e);
                 });
-            });
+            }));
         });
     }
     _comparison(debug, spmPackageDependMap, spmPackageInstallMap) {
@@ -185,25 +183,31 @@ class InstallCLI {
         });
     }
     _packageDownload(debug, spmPackage, tmpZipPath) {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
             debug('download.');
             let params = {
                 path: spmPackage.downloadUrl,
             };
             let fileStream = LibFs.createWriteStream(tmpZipPath);
-            lib_1.SpmPackageRequest.postRequest('/v1/install', params, null, (res) => {
+            lib_1.SpmPackageRequest.postRequest('/v1/install', params, null, (res, reqResolve, reqReject) => {
                 if (res.headers['content-type'] == 'application/octet-stream') {
                     res.pipe(fileStream);
                     res.on('end', () => {
-                        debug('download finish. ' + tmpZipPath);
-                        resolve();
+                        reqResolve();
                     });
                 }
                 else {
-                    res.on('data', (chunk) => reject(new Error(chunk.toString())));
+                    res.on('data', (chunk) => {
+                        reqReject(new Error(chunk.toString()));
+                    });
                 }
+            }).then(() => {
+                debug('download finish. ' + tmpZipPath);
+                resolve();
+            }).catch((e) => {
+                reject(e);
             });
-        });
+        }));
     }
     _packageUncompress(debug, tmpZipPath, tmpPkgPath) {
         return new Promise((resolve, reject) => {

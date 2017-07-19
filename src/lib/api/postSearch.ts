@@ -7,6 +7,11 @@ import {SpmPackageVersion} from "../entity/SpmPackageVersion";
 import {ApiBase, MiddlewareNext, ResponseSchema} from "../ApiBase";
 import {Connection} from "typeorm";
 
+interface SearchParams {
+    keyword: string;
+    info?: string
+}
+
 class PostSearch extends ApiBase {
 
     constructor() {
@@ -17,7 +22,7 @@ class PostSearch extends ApiBase {
     }
 
     public async paramsValidate(ctx: KoaContext) {
-        const params = (ctx.request as any).body;
+        const params = (ctx.request as any).body as SearchParams;
         if (!params.keyword || _.isEmpty(params.keyword)) {
             throw new Error('keyword is required!');
         }
@@ -25,19 +30,19 @@ class PostSearch extends ApiBase {
 
     public async handle(ctx: KoaContext, next: MiddlewareNext): Promise<ResponseSchema> {
         try {
-            const params = (ctx.request as any).body;
+            const params = (ctx.request as any).body as SearchParams;
             const dbConn = Database.instance().conn;
             if (params.info == 'true') {
-                return this.buildResponse(await this.preciseSearch(params.keyword, dbConn));
+                return this.buildResponse(await this.preciseQuery(params.keyword, dbConn));
             } else {
-                return this.buildResponse(await this.fuzzySearch(params.keyword, dbConn));
+                return this.buildResponse(await this.fuzzyQuery(params.keyword, dbConn));
             }
         } catch (err) {
             return this.buildResponse(err.message, -1);
         }
     };
 
-    public async fuzzySearch(keyword: string, dbConn: Connection): Promise<Array<SpmPackage>> {
+    public async fuzzyQuery(keyword: string, dbConn: Connection): Promise<Array<SpmPackage>> {
         let packageInfos = [] as Array<SpmPackage>;
         let spmPackageList = await dbConn
             .getRepository(SpmPackage)
@@ -52,7 +57,7 @@ class PostSearch extends ApiBase {
         return packageInfos;
     }
 
-    public async preciseSearch(keyword: string, dbConn: Connection): Promise<Array<[SpmPackage, SpmPackageVersion]>> {
+    public async preciseQuery(keyword: string, dbConn: Connection): Promise<Array<[SpmPackage, SpmPackageVersion]>> {
         let packageInfos = [] as Array<[SpmPackage, SpmPackageVersion]>;
         let spmPackage = await dbConn
             .getRepository(SpmPackage)

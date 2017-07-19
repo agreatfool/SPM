@@ -46,21 +46,17 @@ class SecretCLI {
         debug('SecretCLI save.');
 
         await new Promise(async (resolve, reject) => {
-
             let params = {
                 name: this._packageConfig.name
             };
 
-            SpmPackageRequest.postRequest('/v1/secret', params, async (chunk) => {
-
-                try {
-                    let response = SpmPackageRequest.parseResponse(chunk) as { secret: string };
-                    await Spm.saveSecret(response.secret);
-                    resolve();
-                } catch (e) {
-                    reject(e);
-                }
-
+            SpmPackageRequest.postRequest('/v1/secret', params, async (chunk, reqResolve) => {
+                reqResolve(SpmPackageRequest.parseResponse(chunk));
+            }).then(async (response: { secret: string }) => {
+                await Spm.saveSecret(response.secret);
+                resolve();
+            }).catch((e) => {
+                reject(e);
             });
         });
     }

@@ -11,6 +11,6 @@ export class SpmPackage {
     @Column("text")
     name: string;
 
-    @Column("text")
+    @Column("text", {default: "no description"})
     description: string;
 }

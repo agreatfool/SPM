@@ -8,6 +8,22 @@ import {SpmPackage} from "../entity/SpmPackage";
 import {SpmPackageVersion} from "../entity/SpmPackageVersion";
 import {SpmPackageSecret} from "../entity/SpmPackageSecret";
 import {ApiBase, MiddlewareNext, ResponseSchema} from "../ApiBase";
+import {mkdir} from "../../bin/lib/lib";
+
+interface PublishParams {
+    fields: {
+        secret: string;
+        name: string;
+        version: string;
+        description: string;
+        dependencies: string;
+    };
+    files?: {
+        fileUpload: {
+            path: string;
+        };
+    };
+}
 
 class PostPublish extends ApiBase {
 
@@ -19,7 +35,7 @@ class PostPublish extends ApiBase {
     }
 
     public async paramsValidate(ctx: KoaContext) {
-        const body = (ctx.request as any).body;
+        const body = (ctx.request as any).body as PublishParams;
         const params = body.fields;
 
         if (!params.secret || _.isEmpty(params.secret)) {
@@ -41,7 +57,8 @@ class PostPublish extends ApiBase {
 
     public async handle(ctx: KoaContext, next: MiddlewareNext): Promise<ResponseSchema> {
         const dbConn = Database.instance().conn;
-        const params = (ctx.request as any).body.fields;
+        const body = (ctx.request as any).body as PublishParams;
+        const params = body.fields;
 
         // find package
         let spmPackageSecret = await dbConn
@@ -60,13 +77,16 @@ class PostPublish extends ApiBase {
         }
 
         // read upload stream
-        const fileUpload = (ctx.request as any).body.files['fileUpload'];
+        const storePath = LibPath.join(__dirname, '..', '..', '..', 'store');
+        await mkdir(storePath);
+
+        const fileUpload = body.files['fileUpload'];
         const fileStream = LibFs.createReadStream(fileUpload.path).on('end', async () => {
             await LibFs.unlink(fileUpload.path);
         });
 
         // write file stream
-        const writeFilePath = LibPath.join(__dirname, '..', '..', '..', 'store', `${params.name}@${params.version}.zip`);
+        const writeFilePath = LibPath.join(storePath, `${params.name}@${params.version}.zip`);
         const writeFileStream = LibFs.createWriteStream(writeFilePath);
         await fileStream.pipe(writeFileStream);
 
@@ -111,9 +131,9 @@ class PostPublish extends ApiBase {
             // if version is not found, create version
             let entity = new SpmPackageVersion();
             entity.pid = spmPackage.id;
-            entity.major = major | 0;
-            entity.minor = minor | 0;
-            entity.patch = patch | 0;
+            entity.major = parseInt(major) | 0;
+            entity.minor = parseInt(minor) | 0;
+            entity.patch = parseInt(patch) | 0;
             entity.filePath = writeFilePath;
             entity.time = new Date().getTime();
             entity.dependencies = params.dependencies;

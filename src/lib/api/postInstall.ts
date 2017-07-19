@@ -5,6 +5,10 @@ import {ReadStream} from "fs";
 import {Context as KoaContext} from "koa";
 import {ApiBase, MiddlewareNext, ResponseSchema} from "../ApiBase";
 
+interface InstallParams {
+    path: string;
+}
+
 class PostInstall extends ApiBase {
 
     constructor() {
@@ -15,7 +19,7 @@ class PostInstall extends ApiBase {
     }
 
     public async paramsValidate(ctx: KoaContext) {
-        const params = (ctx.request as any).body;
+        const params = (ctx.request as any).body as InstallParams;
 
         if (!params.path || _.isEmpty(params.path)) {
             throw new Error('path is required!');
@@ -24,7 +28,7 @@ class PostInstall extends ApiBase {
 
     public async handle(ctx: KoaContext, next: MiddlewareNext): Promise<ResponseSchema | ReadStream> {
         try {
-            const params = (ctx.request as any).body;
+            const params = (ctx.request as any).body as InstallParams;
             if (LibFs.statSync(params.path).isFile()) {
                 ctx.set('Content-Disposition', `attachment; filename='tmp.zip'`);
                 return LibFs.createReadStream(params.path);

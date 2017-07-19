@@ -14,7 +14,7 @@ const Config_1 = require("../Config");
 const Database_1 = require("../Database");
 const SpmPackageSecret_1 = require("../entity/SpmPackageSecret");
 const ApiBase_1 = require("../ApiBase");
-class PostRegister extends ApiBase_1.ApiBase {
+class PostSecret extends ApiBase_1.ApiBase {
     constructor() {
         super();
         this.method = 'post';
@@ -46,7 +46,7 @@ class PostRegister extends ApiBase_1.ApiBase {
                 }
                 let entity = new SpmPackageSecret_1.SpmPackageSecret();
                 entity.name = params.name;
-                entity.secret = ApiBase_1.ApiBase.genSecretToken(params.username, Config_1.default.instance().options.secret, Math.round(new Date().getTime() / 1000));
+                entity.secret = ApiBase_1.ApiBase.genSecretToken(params.name, Config_1.default.instance().options.secret, Math.round(new Date().getTime() / 1000));
                 spmPackageSecret = yield dbConn.manager.save(entity);
                 return this.buildResponse({ secret: spmPackageSecret.secret });
             }
@@ -57,5 +57,5 @@ class PostRegister extends ApiBase_1.ApiBase {
     }
     ;
 }
-exports.api = new PostRegister();
+exports.api = new PostSecret();
 //# sourceMappingURL=postSecret.js.map

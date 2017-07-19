@@ -1,4 +1,3 @@
-"use strict";
 import * as LibPath from "path";
 import * as LibFs from "mz/fs";
 

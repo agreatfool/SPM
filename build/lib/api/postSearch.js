@@ -35,10 +35,10 @@ class PostSearch extends ApiBase_1.ApiBase {
                 const params = ctx.request.body;
                 const dbConn = Database_1.default.instance().conn;
                 if (params.info == 'true') {
-                    return this.buildResponse(yield this.preciseSearch(params.keyword, dbConn));
+                    return this.buildResponse(yield this.preciseQuery(params.keyword, dbConn));
                 }
                 else {
-                    return this.buildResponse(yield this.fuzzySearch(params.keyword, dbConn));
+                    return this.buildResponse(yield this.fuzzyQuery(params.keyword, dbConn));
                 }
             }
             catch (err) {
@@ -47,7 +47,7 @@ class PostSearch extends ApiBase_1.ApiBase {
         });
     }
     ;
-    fuzzySearch(keyword, dbConn) {
+    fuzzyQuery(keyword, dbConn) {
         return __awaiter(this, void 0, void 0, function* () {
             let packageInfos = [];
             let spmPackageList = yield dbConn
@@ -62,7 +62,7 @@ class PostSearch extends ApiBase_1.ApiBase {
             return packageInfos;
         });
     }
-    preciseSearch(keyword, dbConn) {
+    preciseQuery(keyword, dbConn) {
         return __awaiter(this, void 0, void 0, function* () {
             let packageInfos = [];
             let spmPackage = yield dbConn

@@ -25,7 +25,7 @@ __decorate([
     __metadata("design:type", String)
 ], SpmPackage.prototype, "name", void 0);
 __decorate([
-    typeorm_1.Column("text"),
+    typeorm_1.Column("text", { default: "no description" }),
     __metadata("design:type", String)
 ], SpmPackage.prototype, "description", void 0);
 SpmPackage = __decorate([

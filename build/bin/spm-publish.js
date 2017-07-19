@@ -96,17 +96,23 @@ class PublishCLI {
                     secret: lib_1.Spm.loadSecret(),
                 };
                 let filePath = [tmpFilePath];
-                lib_1.SpmPackageRequest.postFormRequest('/v1/publish', params, filePath, (chunk) => __awaiter(this, void 0, void 0, function* () {
-                    try {
-                        debug(`PublishCLI publish: [Response] - ${chunk}`);
-                        if (filePath.length > 0) {
-                            yield LibFs.unlink(filePath[0]);
-                        }
-                        resolve();
+                yield lib_1.SpmPackageRequest.postFormRequest('/v1/publish', params, filePath, (chunk, reqResolve) => __awaiter(this, void 0, void 0, function* () {
+                    console.log('async callback');
+                    debug(`PublishCLI publish: [Response] - ${chunk}`);
+                    console.log(chunk);
+                    reqResolve();
+                })).then(() => __awaiter(this, void 0, void 0, function* () {
+                    console.log('succeed');
+                    if (filePath.length > 0) {
+                        yield LibFs.unlink(filePath[0]);
                     }
-                    catch (e) {
-                        reject(e);
+                    resolve();
+                })).catch((e) => __awaiter(this, void 0, void 0, function* () {
+                    console.log('failed');
+                    if (filePath.length > 0) {
+                        yield LibFs.unlink(filePath[0]);
                     }
+                    reject(e);
                 }));
             }));
         });
