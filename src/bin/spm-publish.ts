@@ -3,7 +3,9 @@ import * as LibPath from "path";
 import * as program from "commander";
 import * as archiver from "archiver";
 import * as _ from "underscore";
-import {Spm, SpmPackageRequest, SpmPackageConfig, mkdir} from "./lib/lib";
+import * as request from "./lib/request";
+import {Spm, SpmPackageConfig, mkdir} from "./lib/lib";
+import {Archiver} from "../../typings/archiver/index";
 
 const pkg = require('../../package.json');
 const debug = require('debug')('SPM:CLI:publish');
@@ -11,7 +13,7 @@ const debug = require('debug')('SPM:CLI:publish');
 program.version(pkg.version)
     .parse(process.argv);
 
-class PublishCLI {
+export class PublishCLI {
     private _projectDir: string;
     private _packageConfig: SpmPackageConfig;
     private _tmpDir: string;
@@ -78,7 +80,7 @@ class PublishCLI {
                 });
             // archive init
             let archive = archiver('zip', {zlib: {level: 9}})
-                .on('error', (err) => reject(err));
+                .on('error', (err) => reject(err)) as Archiver;
 
             archive.pipe(writeStream);
             archive.directory(LibPath.join(this._projectDir, 'proto'), false);
@@ -105,7 +107,7 @@ class PublishCLI {
             };
 
             let filePath = [tmpFilePath];
-            await SpmPackageRequest.postFormRequest('/v1/publish', params, filePath, async (chunk, reqResolve) => {
+            await request.postForm('/v1/publish', params, filePath, async (chunk, reqResolve) => {
                 debug(`PublishCLI publish: [Response] - ${chunk}`);
                 reqResolve();
             }).then(async () => {

@@ -66,6 +66,7 @@ class SecretCLI {
         });
     }
 }
+exports.SecretCLI = SecretCLI;
 SecretCLI.instance().run().catch((err) => {
     debug('err: %O', err.message);
 });

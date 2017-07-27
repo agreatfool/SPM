@@ -12,7 +12,7 @@ program.version(pkg.version)
 
 const PKG_NAME_VALUE = program.args[0] === undefined ? undefined : program.args[0];
 
-class UninstallCLI {
+export class UninstallCLI {
 
     private _projectDir: string;
     private _packageOption: SpmPackageConfig;

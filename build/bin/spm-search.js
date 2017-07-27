@@ -77,6 +77,7 @@ class SearchCLI {
         });
     }
 }
+exports.SearchCLI = SearchCLI;
 SearchCLI.instance().run().catch((err) => {
     debug('err: %O', err.message);
 });

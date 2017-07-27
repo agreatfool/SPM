@@ -13,8 +13,8 @@ const LibFs = require("mz/fs");
 const LibMkdirP = require("mkdirp");
 const bluebird = require("bluebird");
 const http = require("http");
-const qs = require("querystring");
 const recursive = require("recursive-readdir");
+const request = require("./request");
 var RequestMethod;
 (function (RequestMethod) {
     RequestMethod[RequestMethod["post"] = 0] = "post";
@@ -42,6 +42,15 @@ var Spm;
     Spm.SPM_VERSION_CONNECTOR = '__v';
     Spm.SPM_ROOT_PATH = LibPath.join(__dirname, '..', '..', '..');
     /**
+     * Find project dir
+     *
+     * @returns {string}
+     */
+    function getProjectDir() {
+        return process.cwd();
+    }
+    Spm.getProjectDir = getProjectDir;
+    /**
      * Save secret value into .spmlrc
      *
      * @returns {void}
@@ -58,7 +67,7 @@ var Spm;
      */
     function loadSecret() {
         let lrcPath = LibPath.join(Spm.getProjectDir(), '.spmlrc');
-        if (LibFs.statSync(lrcPath).isFile()) {
+        if (LibFs.existsSync(lrcPath) && LibFs.statSync(lrcPath).isFile()) {
             return LibFs.readFileSync(lrcPath).toString();
         }
         else {
@@ -71,9 +80,9 @@ var Spm;
      *
      * @returns {SpmConfig}
      */
-    function getConfig() {
-        let configPath = LibPath.join(Spm.SPM_ROOT_PATH, 'config', 'config.json');
-        if (LibFs.statSync(configPath).isFile()) {
+    function getConfig(path) {
+        let configPath = (path) ? path : LibPath.join(Spm.SPM_ROOT_PATH, 'config', 'config.json');
+        if (LibFs.existsSync(configPath) && LibFs.statSync(configPath).isFile()) {
             return JSON.parse(LibFs.readFileSync(configPath).toString());
         }
         else {
@@ -81,15 +90,6 @@ var Spm;
         }
     }
     Spm.getConfig = getConfig;
-    /**
-     * Find project dir
-     *
-     * @returns {string}
-     */
-    function getProjectDir() {
-        return process.cwd();
-    }
-    Spm.getProjectDir = getProjectDir;
     /**
      * Read spm.json via config path
      *
@@ -105,13 +105,13 @@ var Spm;
      *
      * @returns {Promise<SpmPackageMap>}
      */
-    function getInstalledSpmPackageMap() {
+    function getInstalledSpmPackageMap(path) {
         return __awaiter(this, void 0, void 0, function* () {
-            let projectDir = Spm.getProjectDir();
+            let projectDir = path ? path : Spm.getProjectDir();
             let installDir = LibPath.join(projectDir, Spm.INSTALL_DIR_NAME);
-            let spmPackageMap = {};
-            if (LibFs.statSync(installDir).isDirectory()) {
+            if (LibFs.existsSync(installDir) && LibFs.statSync(installDir).isDirectory()) {
                 let files = yield recursive(installDir, ['.DS_Store']);
+                let spmPackageMap = {};
                 for (let file of files) {
                     let basename = LibPath.basename(file);
                     if (basename.match(/.+\.json/) !== null) {
@@ -124,8 +124,11 @@ var Spm;
                         };
                     }
                 }
+                return spmPackageMap;
             }
-            return spmPackageMap;
+            else {
+                return {};
+            }
         });
     }
     Spm.getInstalledSpmPackageMap = getInstalledSpmPackageMap;
@@ -137,22 +140,19 @@ var Spm;
      * @returns {Promise<void>}
      */
     function replaceStringInFile(filePath, conditions) {
-        try {
-            if (LibFs.statSync(filePath).isFile()) {
-                let content = LibFs.readFileSync(filePath).toString();
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                let buffer = yield LibFs.readFile(filePath);
+                let content = buffer.toString();
                 for (let [reg, word] of conditions) {
-                    content = content.toString().replace(reg, word);
+                    content = content.replace(reg, word);
                 }
-                LibFs.writeFileSync(filePath, Buffer.from(content), (err) => {
-                    if (err) {
-                        throw err;
-                    }
-                });
+                LibFs.writeFileSync(filePath, Buffer.from(content));
             }
-        }
-        catch (e) {
-            throw e;
-        }
+            catch (e) {
+                throw e;
+            }
+        });
     }
     Spm.replaceStringInFile = replaceStringInFile;
 })(Spm = exports.Spm || (exports.Spm = {}));
@@ -173,22 +173,32 @@ var SpmPackageRequest;
         };
     }
     SpmPackageRequest.getRequestOption = getRequestOption;
-    function postRequest(uri, params, callback, handleResponse) {
+    function parseResponse(chunk) {
+        let response = JSON.parse(chunk);
+        if (response.code < 0) {
+            throw new Error(response.msg.toString());
+        }
+        return response.msg;
+    }
+    SpmPackageRequest.parseResponse = parseResponse;
+    function postRequest(uri, params, callback, fileStream) {
         return new Promise((resolve, reject) => {
-            // create request
-            let reqOptions = SpmPackageRequest.getRequestOption(uri, RequestMethod.post);
-            let req = http.request(reqOptions, (res) => {
-                (handleResponse)
-                    ? handleResponse(res, resolve)
-                    : res.on('data', (chunk) => callback(chunk, resolve, reject));
-            }).on('error', (e) => {
-                reject(e);
-            });
-            // send content
-            let reqParamsStr = qs.stringify(params);
-            req.setHeader('Content-Type', 'application/x-www-form-urlencoded');
-            req.setHeader('Content-Length', Buffer.byteLength(reqParamsStr, 'utf8').toString());
-            req.write(reqParamsStr);
+            request.fetch(params, SpmPackageRequest.getRequestOption(uri, RequestMethod.post))
+                .then((res) => {
+                if (res.headers['content-type'] == 'application/octet-stream') {
+                    res.pipe(fileStream);
+                    res.on('end', () => callback("finish", resolve, reject));
+                }
+                else {
+                    let chunk = '';
+                    res.on('data', _chunk => (chunk += _chunk));
+                    res.on('end', () => callback(chunk, resolve, reject));
+                }
+                // (handleResponse)
+                //     ? handleResponse(res, resolve)
+                //     : res.on('data', (chunk) => callback(chunk, resolve, reject));
+            })
+                .catch((e) => reject(e));
         });
     }
     SpmPackageRequest.postRequest = postRequest;
@@ -238,13 +248,5 @@ var SpmPackageRequest;
         });
     }
     SpmPackageRequest.postFormRequest = postFormRequest;
-    function parseResponse(chunk) {
-        let response = JSON.parse(chunk);
-        if (response.code < 0) {
-            throw new Error(response.msg.toString());
-        }
-        return response.msg;
-    }
-    SpmPackageRequest.parseResponse = parseResponse;
 })(SpmPackageRequest = exports.SpmPackageRequest || (exports.SpmPackageRequest = {}));
 //# sourceMappingURL=lib.js.map

@@ -1,5 +1,6 @@
 import * as program from "commander";
 import * as _ from "underscore";
+import * as request from "./lib/request";
 import {SpmPackageRequest} from "./lib/lib";
 import {SpmPackage} from "../lib/entity/SpmPackage";
 import {SpmPackageVersion} from "../lib/entity/SpmPackageVersion";
@@ -14,7 +15,7 @@ program.version(pkg.version)
 const INFO_VALUE = (program as any).info === undefined ? undefined : (program as any).info;
 const KEYWORD_VALUE = program.args[0] === undefined ? undefined : program.args[0];
 
-class SearchCLI {
+export class SearchCLI {
 
     static instance() {
         return new SearchCLI();
@@ -43,7 +44,7 @@ class SearchCLI {
                 info: !!(INFO_VALUE)
             };
 
-            SpmPackageRequest.postRequest('/v1/search', params, (chunk, reqResolve, reqReject) => {
+            request.post('/v1/search', params, (chunk, reqResolve, reqReject) => {
                 try {
                     reqResolve(SpmPackageRequest.parseResponse(chunk));
                 } catch (e) {

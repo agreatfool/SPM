@@ -2,6 +2,7 @@ import * as LibPath from "path";
 import * as LibFs from "mz/fs";
 import * as program from "commander";
 import * as _ from "underscore";
+import * as request from "./lib/request";
 import {Spm, SpmPackageConfig, SpmPackageRequest} from "./lib/lib";
 
 const pkg = require('../../package.json');
@@ -10,7 +11,7 @@ const debug = require('debug')('SPM:CLI:secret');
 program.version(pkg.version)
     .parse(process.argv);
 
-class SecretCLI {
+export class SecretCLI {
 
     private _projectDir: string;
     private _packageConfig: SpmPackageConfig;
@@ -50,7 +51,7 @@ class SecretCLI {
                 name: this._packageConfig.name
             };
 
-            SpmPackageRequest.postRequest('/v1/secret', params, async (chunk, reqResolve, reqReject) => {
+            request.post('/v1/secret', params, async (chunk, reqResolve, reqReject) => {
                 try {
                     reqResolve(SpmPackageRequest.parseResponse(chunk));
                 } catch (e) {

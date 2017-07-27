@@ -5,6 +5,7 @@ import * as unzip from "unzip";
 import * as _ from "underscore";
 import * as recursive from "recursive-readdir";
 import {Spm, SpmPackageRequest, mkdir, rmdir, SpmPackageMap, SpmPackage, SpmPackageConfig} from "./lib/lib";
+import * as request from "./lib/request";
 
 const pkg = require('../../package.json');
 const debug = require('debug')('SPM:CLI:install');
@@ -14,7 +15,7 @@ program.version(pkg.version)
 
 const PKG_NAME_VALUE = program.args[0] === undefined ? undefined : program.args[0];
 
-class InstallCLI {
+export class InstallCLI {
     private _tmpDir: string;
     private _tmpFileName: string;
 
@@ -90,7 +91,7 @@ class InstallCLI {
                 name: name,
             };
 
-            SpmPackageRequest.postRequest('/v1/search_dependencies', params, (chunk, reqResolve, reqReject) => {
+            request.post('/v1/search_dependencies', params, (chunk, reqResolve, reqReject) => {
                 try {
                     reqResolve(SpmPackageRequest.parseResponse(chunk));
                 } catch (e) {
@@ -210,7 +211,7 @@ class InstallCLI {
             };
 
             let fileStream = LibFs.createWriteStream(tmpZipPath);
-            SpmPackageRequest.postRequest('/v1/install', params, null, (res, reqResolve, reqReject) => {
+            request.post('/v1/install', params, null, (res, reqResolve, reqReject) => {
                 if (res.headers['content-type'] == 'application/octet-stream') {
                     res.pipe(fileStream);
                     res.on('end', () => {

@@ -1,0 +1,9 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`SpmInstall _prepare: prepare data and validate data is right 1`] = `"E:\\\\data1\\\\www\\\\demo\\\\SASDN-PM\\\\tmp"`;
+
+exports[`SpmInstall _prepare: prepare data and validate data is right 2`] = `"E:\\\\data1\\\\www\\\\demo\\\\SASDN-PM\\\\demo"`;
+
+exports[`SpmInstall _prepare: prepare data and validate data is right 3`] = `"E:\\\\data1\\\\www\\\\demo\\\\SASDN-PM\\\\demo\\\\spm_protos"`;
+
+exports[`SpmInstall _prepare: prepare data and validate data is right 4`] = `Object {}`;

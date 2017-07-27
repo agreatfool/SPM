@@ -8,7 +8,7 @@ const debug = require('debug')('SPM:CLI:list');
 program.version(pkg.version)
     .parse(process.argv);
 
-class ListCLI {
+export class ListCLI {
     private _projectDir: string;
     private _spmPackageInstallDir: string;
 

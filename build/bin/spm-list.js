@@ -49,6 +49,7 @@ class ListCLI {
         });
     }
 }
+exports.ListCLI = ListCLI;
 ListCLI.instance().run().catch((err) => {
     debug('err: %O', err.message);
 });

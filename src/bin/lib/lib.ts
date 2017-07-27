@@ -3,10 +3,8 @@ import * as LibFs from "mz/fs";
 import * as LibMkdirP from "mkdirp";
 import * as bluebird from "bluebird";
 import * as http from "http";
-import * as qs from "querystring";
 import * as recursive from "recursive-readdir";
 import {ResponseSchema} from "../../lib/ApiBase";
-import {error} from "util";
 
 export enum RequestMethod { post, get }
 
@@ -63,6 +61,15 @@ export namespace Spm {
     export const SPM_ROOT_PATH: string = LibPath.join(__dirname, '..', '..', '..');
 
     /**
+     * Find project dir
+     *
+     * @returns {string}
+     */
+    export function getProjectDir(): string {
+        return process.cwd();
+    }
+
+    /**
      * Save secret value into .spmlrc
      *
      * @returns {void}
@@ -79,7 +86,7 @@ export namespace Spm {
      */
     export function loadSecret(): string {
         let lrcPath = LibPath.join(Spm.getProjectDir(), '.spmlrc');
-        if (LibFs.statSync(lrcPath).isFile()) {
+        if (LibFs.existsSync(lrcPath) && LibFs.statSync(lrcPath).isFile()) {
             return LibFs.readFileSync(lrcPath).toString();
         } else {
             return '';
@@ -91,22 +98,13 @@ export namespace Spm {
      *
      * @returns {SpmConfig}
      */
-    export function getConfig(): SpmConfig {
-        let configPath = LibPath.join(SPM_ROOT_PATH, 'config', 'config.json');
-        if (LibFs.statSync(configPath).isFile()) {
+    export function getConfig(path?: string): SpmConfig {
+        let configPath = (path) ? path : LibPath.join(SPM_ROOT_PATH, 'config', 'config.json');
+        if (LibFs.existsSync(configPath) && LibFs.statSync(configPath).isFile()) {
             return JSON.parse(LibFs.readFileSync(configPath).toString());
         } else {
             throw new Error('[Config] config file path have to be an absolute path!');
         }
-    }
-
-    /**
-     * Find project dir
-     *
-     * @returns {string}
-     */
-    export function getProjectDir(): string {
-        return process.cwd();
     }
 
     /**
@@ -124,14 +122,14 @@ export namespace Spm {
      *
      * @returns {Promise<SpmPackageMap>}
      */
-    export async function getInstalledSpmPackageMap(): Promise<SpmPackageMap> {
-        let projectDir = Spm.getProjectDir();
+    export async function getInstalledSpmPackageMap(path?: string): Promise<SpmPackageMap> {
+        let projectDir = path ? path : Spm.getProjectDir();
         let installDir = LibPath.join(projectDir, Spm.INSTALL_DIR_NAME);
 
-        let spmPackageMap = {} as SpmPackageMap;
-        if (LibFs.statSync(installDir).isDirectory()) {
+        if (LibFs.existsSync(installDir) && LibFs.statSync(installDir).isDirectory()) {
             let files = await recursive(installDir, ['.DS_Store']);
 
+            let spmPackageMap = {} as SpmPackageMap;
             for (let file of files) {
                 let basename = LibPath.basename(file);
                 if (basename.match(/.+\.json/) !== null) {
@@ -144,8 +142,10 @@ export namespace Spm {
                     };
                 }
             }
+            return spmPackageMap;
+        } else {
+            return {};
         }
-        return spmPackageMap;
     }
 
     /**
@@ -155,19 +155,14 @@ export namespace Spm {
      * @param {Array<[RegExp, any]>} conditions
      * @returns {Promise<void>}
      */
-    export function replaceStringInFile(filePath: string, conditions: Array<[RegExp, any]>) {
+    export async function replaceStringInFile(filePath: string, conditions: Array<[RegExp, any]>) {
         try {
-            if (LibFs.statSync(filePath).isFile()) {
-                let content = LibFs.readFileSync(filePath).toString();
-                for (let [reg, word] of conditions) {
-                    content = content.toString().replace(reg, word);
-                }
-                LibFs.writeFileSync(filePath, Buffer.from(content), (err) => {
-                    if (err) {
-                        throw err;
-                    }
-                });
+            let buffer = await LibFs.readFile(filePath);
+            let content = buffer.toString();
+            for (let [reg, word] of conditions) {
+                content = content.replace(reg, word);
             }
+            LibFs.writeFileSync(filePath, Buffer.from(content));
         } catch (e) {
             throw e;
         }
@@ -190,88 +185,17 @@ export namespace SpmPackageRequest {
         };
     }
 
-    export function postRequest(uri: string, params: Object, callback: (chunk: Buffer | string, resolve: any, reject: any) => void, handleResponse?: Function) {
-
-        return new Promise((resolve, reject) => {
-            // create request
-            let reqOptions = SpmPackageRequest.getRequestOption(uri, RequestMethod.post);
-
-            let req = http.request(reqOptions, (res) => {
-                (handleResponse)
-                    ? handleResponse(res, resolve)
-                    : res.on('data', (chunk) => callback(chunk, resolve, reject));
-            }).on('error', (e) => {
-                reject(e);
-            });
-
-            // send content
-            let reqParamsStr = qs.stringify(params);
-            req.setHeader('Content-Type', 'application/x-www-form-urlencoded');
-            req.setHeader('Content-Length', Buffer.byteLength(reqParamsStr, 'utf8').toString());
-            req.write(reqParamsStr);
-        });
-    }
-
-    export function postFormRequest(uri: string, params: Object, filePath: Array<string>, callback: (chunk: Buffer | string, resolve: any, reject: any) => void) {
-        return new Promise((resolve, reject) => {
-            // create request
-            let reqOptions = SpmPackageRequest.getRequestOption(uri, RequestMethod.post);
-            let req = http.request(reqOptions, (res) => {
-                res.on('data', (chunk) => callback(chunk, resolve, reject));
-            }).on('error', (e) => {
-                reject(e);
-            });
-
-            // send content
-            let boundaryKey = Math.random().toString(16);
-            let enddata = '\r\n----' + boundaryKey + '--';
-
-            // build form params head
-            let content = '';
-            for (let key in params) {
-                content += '\r\n----' + boundaryKey + '\r\n'
-                    + 'Content-Disposition: form-data; name="' + key + '" \r\n\r\n'
-                    + encodeURIComponent(params[key]);
-            }
-
-            let contentBinary = new Buffer(content, 'utf-8');
-            let contentLength = contentBinary.length;
-
-            // build upload file head
-            if (filePath.length > 0) {
-                content += '\r\n----' + boundaryKey + '\r\n'
-                    + 'Content-Type: application/octet-stream\r\n'
-                    + 'Content-Disposition: form-data; name="fileUpload"; filename="' + `${Math.random().toString(16)}.zip` + '"\r\n'
-                    + "Content-Transfer-Encoding: binary\r\n\r\n";
-                contentBinary = new Buffer(content, 'utf-8');
-                contentLength = LibFs.statSync(filePath[0]).size + contentBinary.length;
-
-                // send request stream
-                let fileStream = LibFs.createReadStream(filePath[0]);
-                fileStream.on('end', () => {
-                    req.end(enddata);
-                });
-                fileStream.pipe(req, {end: false});
-            }
-
-            // send request headers
-            req.setHeader('Content-Type', 'multipart/form-data; boundary=--' + boundaryKey);
-            req.setHeader('Content-Length', `${contentLength + Buffer.byteLength(enddata)}`);
-            req.write(contentBinary);
-
-            if (filePath.length === 0) {
-                req.end(enddata);
-            }
-        });
-    }
-
-    export function parseResponse(chunk): any {
-        let response = JSON.parse(chunk) as ResponseSchema;
-
+    /**
+     * Parse request response
+     *
+     * @param {string} chunk
+     * @returns {any}
+     */
+    export function parseResponse(chunk: Buffer | string): any {
+        let response = JSON.parse(chunk.toString()) as ResponseSchema;
         if (response.code < 0) {
             throw new Error(response.msg.toString());
         }
-
         return response.msg;
     }
 }

@@ -194,22 +194,20 @@ class InstallCLI {
                 path: spmPackage.downloadUrl,
             };
             let fileStream = LibFs.createWriteStream(tmpZipPath);
-            lib_1.SpmPackageRequest.postRequest('/v1/install', params, null, (res, reqResolve, reqReject) => {
-                if (res.headers['content-type'] == 'application/octet-stream') {
-                    res.pipe(fileStream);
-                    res.on('end', () => {
-                        reqResolve();
-                    });
+            lib_1.SpmPackageRequest.postRequest('/v1/install', params, (res, reqResolve, reqReject) => {
+                console.log(res);
+                if (res !== "finish") {
+                    reqReject(new Error(res.toString()));
                 }
                 else {
-                    res.on('data', (chunk) => {
-                        reqReject(new Error(chunk.toString()));
-                    });
+                    reqResolve();
                 }
-            }).then(() => {
+            }, fileStream)
+                .then(() => {
                 debug('download finish. ' + tmpZipPath);
                 resolve();
-            }).catch((e) => {
+            })
+                .catch((e) => {
                 reject(e);
             });
         }));
@@ -309,6 +307,7 @@ class InstallCLI {
         return spmPackageInstallMap;
     }
 }
+exports.InstallCLI = InstallCLI;
 InstallCLI.instance().run().catch((err) => {
     debug('err: %O', err.message);
 });

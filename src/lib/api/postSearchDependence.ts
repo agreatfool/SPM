@@ -28,10 +28,6 @@ class PostSearchDependence extends ApiBase {
         if (!params.name || _.isEmpty(params.name)) {
             throw new Error('Name is required!');
         }
-
-        if (!params.name || _.isEmpty(params.name)) {
-            throw new Error('Name is required!');
-        }
     }
 
     public async handle(ctx: KoaContext, next: MiddlewareNext): Promise<ResponseSchema> {
