@@ -9,7 +9,8 @@
     "emitDecoratorMetadata": true
   },
   "include": [
-    "src/**/*.ts"
+    "src/**/*.ts",
+    "typings/**/*.d.ts"
   ],
   "exclude": [
     "node_modules"
