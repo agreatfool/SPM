@@ -1,6 +1,6 @@
 {
   "name": "sasdn-pm",
-  "version": "0.0.2",
+  "version": "0.0.5",
   "description": "SASDN package manager",
   "main": "index.js",
   "bin": {
