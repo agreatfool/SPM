@@ -4,7 +4,7 @@
   "description": "SASDN package manager",
   "main": "index.js",
   "bin": {
-    "sasdn-pm": "./build/bin/spm.js"
+    "sasdn-pm": "./build/bin/sasdn-pm.js"
   },
   "scripts": {
     "start": "node index.js",
