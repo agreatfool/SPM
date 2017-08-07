@@ -36,7 +36,7 @@ export interface SpmPackageMap {
 }
 
 export const mkdir = bluebird.promisify<string>(LibMkdirP) as {
-    <T>(path: string): bluebird<T>
+    <T>(path: string): bluebird<T>;
 };
 
 export const rmdir = (dirPath: string) => {

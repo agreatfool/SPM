@@ -9,7 +9,7 @@ import {Connection} from "typeorm";
 
 interface SearchParams {
     keyword: string;
-    info?: string
+    info?: string;
 }
 
 class PostSearch extends ApiBase {
