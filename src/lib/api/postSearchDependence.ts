@@ -61,7 +61,7 @@ class PostSearchDependence extends ApiBase {
 
         // build spm package version query
         let sheetName = 'version';
-        let columnPidWhereQuery = [`${sheetName}.pid=:pid`, {pid: spmPackage.id}] as SheetColumnWhereSchema;
+        let columnPidWhereQuery = [`${sheetName}.name=:name`, {pid: spmPackage.name}] as SheetColumnWhereSchema;
         let columnMajorWhereQuery = [`${sheetName}.major`, 'DESC'] as SheetColumnWhereSchema;
         let columnMinorWhereQuery = [`${sheetName}.minor`, 'DESC'] as SheetColumnWhereSchema;
         let columnPatchWhereQuery = [`${sheetName}.patch`, 'DESC'] as SheetColumnWhereSchema;

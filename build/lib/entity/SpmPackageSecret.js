@@ -13,11 +13,7 @@ const typeorm_1 = require("typeorm");
 let SpmPackageSecret = class SpmPackageSecret {
 };
 __decorate([
-    typeorm_1.PrimaryColumn("int", { generated: true }),
-    __metadata("design:type", Number)
-], SpmPackageSecret.prototype, "id", void 0);
-__decorate([
-    typeorm_1.Column("text"),
+    typeorm_1.PrimaryColumn("text"),
     __metadata("design:type", String)
 ], SpmPackageSecret.prototype, "name", void 0);
 __decorate([

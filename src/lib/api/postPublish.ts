@@ -103,22 +103,19 @@ class PostPublish extends ApiBase {
             // if package is not found, create package
             if (_.isEmpty(spmPackage)) {
                 let entity = new SpmPackage();
-                entity.sid = spmPackageSecret.id;
-                entity.name = params.name;
+                entity.name = spmPackageSecret.name;
                 entity.description = params.description;
                 spmPackage = await dbConn.manager.save(entity);
             } else {
-                let entity = new SpmPackage();
-                entity.id = spmPackage.id;
-                entity.description = params.description;
-                spmPackage = await dbConn.manager.save(entity);
+                spmPackage.description = params.description;
+                spmPackage = await dbConn.manager.save(spmPackage);
             }
 
             // find package version
             let spmPackageVersion = await dbConn
                 .getRepository(SpmPackageVersion)
                 .createQueryBuilder('version')
-                .where('version.pid=:pid', {pid: spmPackage.id})
+                .where('version.name=:name', {pid: spmPackage.name})
                 .andWhere('version.major=:major', {major: major})
                 .andWhere('version.minor=:minor', {minor: minor})
                 .andWhere('version.patch=:patch', {patch: patch})
@@ -130,7 +127,7 @@ class PostPublish extends ApiBase {
 
             // if version is not found, create version
             let entity = new SpmPackageVersion();
-            entity.pid = spmPackage.id;
+            entity.name = spmPackage.name;
             entity.major = parseInt(major) | 0;
             entity.minor = parseInt(minor) | 0;
             entity.patch = parseInt(patch) | 0;

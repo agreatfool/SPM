@@ -76,7 +76,7 @@ class PostSearch extends ApiBase_1.ApiBase {
             let spmPackageVersionList = yield dbConn
                 .getRepository(SpmPackageVersion_1.SpmPackageVersion)
                 .createQueryBuilder('version')
-                .where('version.pid=:pid', { pid: spmPackage.id })
+                .where('version.name=:name', { name: spmPackage.name })
                 .getMany();
             for (let spmPackageVersion of spmPackageVersionList) {
                 packageInfos.push([spmPackage, spmPackageVersion]);

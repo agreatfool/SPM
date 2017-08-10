@@ -72,7 +72,7 @@ class PostSearch extends ApiBase {
         let spmPackageVersionList = await dbConn
             .getRepository(SpmPackageVersion)
             .createQueryBuilder('version')
-            .where('version.pid=:pid', {pid: spmPackage.id})
+            .where('version.name=:name', {name: spmPackage.name})
             .getMany();
 
         for (let spmPackageVersion of spmPackageVersionList) {
