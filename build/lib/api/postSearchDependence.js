@@ -104,4 +104,3 @@ class PostSearchDependence extends ApiBase_1.ApiBase {
     }
 }
 exports.api = new PostSearchDependence();
-//# sourceMappingURL=postSearchDependence.js.map

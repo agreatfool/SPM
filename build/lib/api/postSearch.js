@@ -86,4 +86,3 @@ class PostSearch extends ApiBase_1.ApiBase {
     }
 }
 exports.api = new PostSearch();
-//# sourceMappingURL=postSearch.js.map

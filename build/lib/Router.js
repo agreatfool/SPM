@@ -27,9 +27,10 @@ class RouteLoader {
             let dir = LibPath.join(__dirname, 'api');
             let files = yield LibFs.readdir(dir);
             for (let file of files) {
-                if (LibPath.basename(file).match(/.+\.js$/) !== null) {
-                    yield this._createRouter(LibPath.join(dir, file));
+                if (LibPath.basename(file).match(/.+\.js$/) === null) {
+                    continue;
                 }
+                yield this._createRouter(LibPath.join(dir, file));
             }
             this._initialized = true;
         });
@@ -50,4 +51,3 @@ class RouteLoader {
     }
 }
 exports.default = RouteLoader;
-//# sourceMappingURL=Router.js.map

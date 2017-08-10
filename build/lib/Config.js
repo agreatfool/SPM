@@ -37,10 +37,9 @@ class Config {
                 }
             }
             else {
-                throw new Error('[Config] config file path have to be an absolute path!');
+                throw new Error('[Config] Config file not found!');
             }
         });
     }
 }
 exports.default = Config;
-//# sourceMappingURL=Config.js.map

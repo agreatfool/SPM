@@ -146,4 +146,3 @@ exports.UninstallCLI = UninstallCLI;
 UninstallCLI.instance().run().catch((err) => {
     debug('err: %O', err.message);
 });
-//# sourceMappingURL=sasdn-pm-uninstall.js.map

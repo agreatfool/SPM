@@ -31,11 +31,12 @@ class Database {
                 let files = yield LibFs.readdir(dir);
                 let entities = [];
                 for (let file of files) {
-                    if (LibPath.basename(file).match(/.+\.js$/) !== null) {
-                        let outputs = require(LibPath.join(dir, file));
-                        for (let key in outputs) {
-                            entities.push(outputs[key]);
-                        }
+                    if (LibPath.basename(file).match(/.+\.js$/) === null) {
+                        continue;
+                    }
+                    let outputs = require(LibPath.join(dir, file));
+                    for (let key in outputs) {
+                        entities.push(outputs[key]);
                     }
                 }
                 this._conn = yield typeorm_1.createConnection({
@@ -47,10 +48,9 @@ class Database {
                 this._initialized = true;
             }
             catch (e) {
-                throw new Error('[Database] Error:' + e.message);
+                throw new Error(`[Database] Error: ${e.message}`);
             }
         });
     }
 }
 exports.default = Database;
-//# sourceMappingURL=Database.js.map

@@ -40,7 +40,7 @@ export default class Config {
                 throw new Error('[Config] Error:' + e.message);
             }
         } else {
-            throw new Error('[Config] config file path have to be an absolute path!');
+            throw new Error('[Config] Config file not found!');
         }
     }
 }

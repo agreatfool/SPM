@@ -25,9 +25,10 @@ export default class RouteLoader {
         let dir = LibPath.join(__dirname, 'api');
         let files = await LibFs.readdir(dir);
         for (let file of files) {
-            if (LibPath.basename(file).match(/.+\.js$/) !== null) {
-                await this._createRouter(LibPath.join(dir, file));
+            if (LibPath.basename(file).match(/.+\.js$/) === null) {
+                continue;
             }
+            await this._createRouter(LibPath.join(dir, file));
         }
 
         this._initialized = true;

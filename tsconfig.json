@@ -11,8 +11,7 @@
   "include": [
     "src/**/*.ts",
     "test/**/*.ts",
-    "typings/**/*.d.ts",
-    "__tests__/**/*.ts"
+    "typings/**/*.d.ts"
   ],
   "exclude": [
     "node_modules",

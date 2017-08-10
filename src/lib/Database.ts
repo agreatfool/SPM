@@ -31,11 +31,12 @@ export default class Database {
 
             let entities = [];
             for (let file of files) {
-                if (LibPath.basename(file).match(/.+\.js$/) !== null) {
-                    let outputs = require(LibPath.join(dir, file)) as { [key: string]: any };
-                    for (let key in outputs) {
-                        entities.push(outputs[key]);
-                    }
+                if (LibPath.basename(file).match(/.+\.js$/) === null) {
+                    continue;
+                }
+                let outputs = require(LibPath.join(dir, file)) as { [key: string]: any };
+                for (let key in outputs) {
+                    entities.push(outputs[key]);
                 }
             }
 
@@ -43,12 +44,12 @@ export default class Database {
                 type: 'sqlite',
                 database: LibPath.join(__dirname, '..', '..', 'Spm.db'),
                 entities: entities,
-                autoSchemaSync: true,
+                autoSchemaSync: true, // only works when creating db file, no effect when changing schema
             });
 
             this._initialized = true;
         } catch (e) {
-            throw new Error('[Database] Error:' + e.message);
+            throw new Error(`[Database] Error: ${e.message}`);
         }
     }
 }

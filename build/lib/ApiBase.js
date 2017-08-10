@@ -45,4 +45,3 @@ class ApiBase {
     }
 }
 exports.ApiBase = ApiBase;
-//# sourceMappingURL=ApiBase.js.map

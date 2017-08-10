@@ -22,7 +22,7 @@ class PostSecret extends ApiBase {
     public async paramsValidate(ctx: KoaContext) {
         const params = (ctx.request as any).body as SecretParams;
         if (!params.name || _.isEmpty(params.name)) {
-            throw new Error('name is required!');
+            throw new Error('Param name is required!');
         }
     }
 

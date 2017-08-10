@@ -186,4 +186,3 @@ var SpmPackageRequest;
     }
     SpmPackageRequest.parseResponse = parseResponse;
 })(SpmPackageRequest = exports.SpmPackageRequest || (exports.SpmPackageRequest = {}));
-//# sourceMappingURL=lib.js.map

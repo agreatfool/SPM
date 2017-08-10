@@ -12,4 +12,3 @@ function postForm(uri, params, filePath, callback) {
     });
 }
 exports.postForm = postForm;
-//# sourceMappingURL=request.js.map

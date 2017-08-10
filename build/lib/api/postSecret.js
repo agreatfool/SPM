@@ -25,7 +25,7 @@ class PostSecret extends ApiBase_1.ApiBase {
         return __awaiter(this, void 0, void 0, function* () {
             const params = ctx.request.body;
             if (!params.name || _.isEmpty(params.name)) {
-                throw new Error('name is required!');
+                throw new Error('Param name is required!');
             }
         });
     }
@@ -58,4 +58,3 @@ class PostSecret extends ApiBase_1.ApiBase {
     ;
 }
 exports.api = new PostSecret();
-//# sourceMappingURL=postSecret.js.map

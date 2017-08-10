@@ -27,14 +27,14 @@ export default class App {
 
     public start(): void {
         if (!this._initialized) {
-            console.log(`SPM Server start failed!`);
+            console.log('SPM Server not initialized yet');
             return;
         }
 
         // server start
         let options = Config.instance().options;
         this._app.listen(options.port, options.host, () => {
-            console.log(`SPM Server start! ${options.host}:${options.port}`);
+            console.log(`SPM Server started, listening on: ${options.host}:${options.port}`);
         });
     }
 }
