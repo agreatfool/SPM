@@ -1,0 +1,8 @@
+{
+  "name": "demo",
+  "version": "0.0.0",
+  "dependencies": {
+    "bookPb": "0.0.0",
+    "userPb": "2.0.0"
+  }
+}

@@ -4,11 +4,11 @@
   "description": "SASDN package manager",
   "main": "index.js",
   "bin": {
-    "sasdn-pm": "./build/bin/spm.js"
+    "sasdn-pm": "./build/bin/sasdn-pm.js"
   },
   "scripts": {
     "start": "node index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest"
   },
   "repository": {
     "type": "git",
@@ -44,15 +44,30 @@
     "unzip": "^0.1.11"
   },
   "devDependencies": {
-    "@types/archiver": "^2.0.0",
     "@types/bluebird": "^3.5.8",
     "@types/commander": "^2.9.1",
+    "@types/jest": "^20.0.4",
     "@types/koa": "^2.0.39",
     "@types/koa-bodyparser": "^3.0.23",
     "@types/koa-router": "^7.0.22",
     "@types/md5": "^2.1.32",
     "@types/mz": "0.0.31",
     "@types/node": "^8.0.3",
-    "@types/underscore": "^1.8.1"
+    "@types/underscore": "^1.8.1",
+    "jest": "^20.0.4",
+    "ts-jest": "^20.0.7",
+    "typescript": "^2.4.1"
+  },
+  "jest": {
+    "collectCoverage": true,
+    "transform": {
+      "^.+\\.(ts|tsx)?$": "<rootDir>/node_modules/ts-jest/preprocessor.js"
+    },
+    "testRegex": "(/__tests__/.*|\\.(test|spec))\\.(ts|tsx|js?)$",
+    "moduleFileExtensions": [
+      "ts",
+      "tsx",
+      "js"
+    ]
   }
 }

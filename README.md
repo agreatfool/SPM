@@ -12,11 +12,10 @@ The version number of the proto package managed in SPM is governed by the Semant
 
 * The version number format: MAJOR.MINOR.PATCH:
 * The version number increment rule:
-	* `MAJOR `: when you make `not backwards compatible ` API changes
-	* `MINOR`: when you add functionality in a backwards-compatible manner
-	* `修订号`: 改动中做了`向下兼容`的问题修正
+	* MAJOR: when you make `not backwards compatibility` API changes
+	* MINOR: when you add functionality in a backwards-compatible manner
+	* PATCH: when you make `backward compatibility ` problem fixed
 
-	Changes made in ` not backwards compatible ` API changes
 ### 文件结构
 每一个微服务项目的文件结构如下：
 
