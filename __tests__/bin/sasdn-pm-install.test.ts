@@ -1,6 +1,6 @@
 import * as LibFs from 'mz/fs';
 import * as LibPath from 'path';
-import {InstallCLI} from "../../src/bin/spm-install";
+import {InstallCLI} from "../../src/bin/sasdn-pm-install";
 import {Spm, rmdir} from "../../src/bin/lib/lib";
 
 jest.mock('../../src/bin/lib/request');
@@ -10,12 +10,14 @@ describe('SpmInstall', async () => {
     let installCLI = InstallCLI.instance();
 
     beforeAll(async () => {
+        process.chdir('__tests__');
         process.chdir('demo');
         //await rmdir(LibPath.join(process.cwd(), Spm.INSTALL_DIR_NAME));
 
     });
 
     afterAll(async() => {
+        process.chdir('..');
         process.chdir('..');
     });
 

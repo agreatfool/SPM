@@ -120,3 +120,4 @@ exports.PublishCLI = PublishCLI;
 PublishCLI.instance().run().catch((err) => {
     debug('err: %O', err.message);
 });
+//# sourceMappingURL=sasdn-pm-publish.js.map

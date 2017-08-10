@@ -60,7 +60,7 @@
     "typescript": "^2.4.1"
   },
   "jest": {
-    "collectCoverage": true,
+    "collectCoverage": false,
     "transform": {
       "^.+\\.(ts|tsx)?$": "<rootDir>/node_modules/ts-jest/preprocessor.js"
     },

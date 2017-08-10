@@ -8,11 +8,13 @@ const TMP_DIR_NAME = "tmp";
 describe('mkdir', async () => {
 
     beforeAll(() => {
+        process.chdir('__tests__');
         process.chdir('demo');
     });
 
     afterAll(async() => {
         await lib.rmdir(LibPath.join(process.cwd(), TMP_DIR_NAME));
+        process.chdir('..');
         process.chdir('..');
     });
 
@@ -31,6 +33,7 @@ describe('mkdir', async () => {
 describe('rmdir', async () => {
 
     beforeAll(async() => {
+        process.chdir('__tests__');
         process.chdir('demo');
         await lib.mkdir(LibPath.join(process.cwd(), TMP_DIR_NAME));
         await lib.mkdir(LibPath.join(process.cwd(), TMP_DIR_NAME, "mock"));
@@ -38,6 +41,7 @@ describe('rmdir', async () => {
     });
 
     afterAll(async() => {
+        process.chdir('..');
         process.chdir('..');
     });
 
@@ -54,9 +58,10 @@ describe('rmdir', async () => {
 });
 
 describe('Spm', async () => {
-    let lrcPath = LibPath.join(process.cwd(), 'demo', '.spmlrc');
+    let lrcPath = LibPath.join(process.cwd(), '__tests__', 'demo', '.spmlrc');
 
     beforeAll(() => {
+        process.chdir('__tests__');
         process.chdir('demo');
         if (LibFs.existsSync(lrcPath)) {
             LibFs.unlinkSync(lrcPath);
@@ -64,6 +69,7 @@ describe('Spm', async () => {
     });
 
     afterAll(() => {
+        process.chdir('..');
         process.chdir('..');
     });
 

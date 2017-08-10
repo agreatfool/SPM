@@ -73,15 +73,13 @@ The version number of the proto package managed in SPM is governed by the Semant
 使用数据库: sqlite3
 
     CREATE TABLE spm_package (
-      id            INTEGER   NOT NULL      PRIMARY KEY,
-      sid           INTEGER   NOT NULL,
-      name          TEXT      NOT NULL,
+      name          TEXT      NOT NULL      PRIMARY KEY,
       description   TEXT      NOT NULL
     );
     
     CREATE TABLE spm_package_version (
       id            INTEGER   NOT NULL      PRIMARY KEY,
-      pid           INT       NOT NULL,
+      name          TEXT      NOT NULL,
       major         INT       NOT NULL,
       minor         INT       NOT NULL,
       patch         INT       NOT NULL,
@@ -91,8 +89,7 @@ The version number of the proto package managed in SPM is governed by the Semant
     );
     
     CREATE TABLE spm_package_secret (
-      id            INTEGER   NOT NULL      PRIMARY KEY,
-      name          TEXT      NOT NULL,
+      name          TEXT      NOT NULL      PRIMARY KEY,  
       secret        TEXT      NOT NULL
     );
     

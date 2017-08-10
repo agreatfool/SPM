@@ -47,3 +47,4 @@ class PostInstall extends ApiBase_1.ApiBase {
     ;
 }
 exports.api = new PostInstall();
+//# sourceMappingURL=postInstall.js.map

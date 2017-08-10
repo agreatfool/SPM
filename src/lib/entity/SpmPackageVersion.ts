@@ -5,8 +5,8 @@ export class SpmPackageVersion {
     @PrimaryColumn("int", {generated: true})
     id: number;
 
-    @Column("int")
-    pid: number;
+    @Column("text")
+    name: string;
 
     @Column("int")
     major: number;

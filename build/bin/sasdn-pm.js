@@ -10,4 +10,6 @@ program.version(pkg.version)
     .command('search [options]', 'search proto from spm server')
     .command('secret [options]', 'set secret key in spm commander')
     .command('uninstall [options]', 'install proto from spm server')
+    .command('backup [options]', 'backup store dir and sqlite db file')
     .parse(process.argv);
+//# sourceMappingURL=sasdn-pm.js.map
