@@ -71,3 +71,4 @@ exports.SecretCLI = SecretCLI;
 SecretCLI.instance().run().catch((err) => {
     debug('err: %O', err.message);
 });
+//# sourceMappingURL=sasdn-pm-secret.js.map

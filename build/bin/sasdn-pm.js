@@ -11,3 +11,4 @@ program.version(pkg.version)
     .command('secret [options]', 'set secret key in spm commander')
     .command('uninstall [options]', 'install proto from spm server')
     .parse(process.argv);
+//# sourceMappingURL=sasdn-pm.js.map

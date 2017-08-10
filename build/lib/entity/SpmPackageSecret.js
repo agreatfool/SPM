@@ -28,3 +28,4 @@ SpmPackageSecret = __decorate([
     typeorm_1.Entity()
 ], SpmPackageSecret);
 exports.SpmPackageSecret = SpmPackageSecret;
+//# sourceMappingURL=SpmPackageSecret.js.map
