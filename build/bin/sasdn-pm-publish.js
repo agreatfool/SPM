@@ -56,6 +56,10 @@ class PublishCLI {
             if (!this._packageConfig.version || _.isEmpty(this._packageConfig.version) || typeof this._packageConfig.version !== 'string') {
                 throw new Error('Package param: `version` is required');
             }
+            let packageStat = yield LibFs.stat(LibPath.join(this._projectDir, 'proto', this._packageConfig.name));
+            if (!packageStat.isDirectory()) {
+                throw new Error(`Dir: ${this._packageConfig.name} not found in project:' + this._projectDir`);
+            }
             this._tmpDir = LibPath.join(lib_1.Spm.SPM_ROOT_PATH, 'tmp');
             this._tmpFileName = Math.random().toString(16) + '.zip';
             yield lib_1.mkdir(this._tmpDir);
@@ -119,5 +123,6 @@ class PublishCLI {
 exports.PublishCLI = PublishCLI;
 PublishCLI.instance().run().catch((err) => {
     debug('err: %O', err.message);
+    console.log(err.message);
 });
 //# sourceMappingURL=sasdn-pm-publish.js.map

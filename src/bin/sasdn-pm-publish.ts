@@ -5,7 +5,6 @@ import * as archiver from "archiver";
 import * as _ from "underscore";
 import * as request from "./lib/request";
 import {Spm, SpmPackageConfig, mkdir} from "./lib/lib";
-import {Archiver} from "../../typings/archiver/index";
 
 const pkg = require('../../package.json');
 const debug = require('debug')('SPM:CLI:publish');
@@ -61,6 +60,11 @@ export class PublishCLI {
             throw new Error('Package param: `version` is required');
         }
 
+        let packageStat = await LibFs.stat(LibPath.join(this._projectDir, 'proto', this._packageConfig.name));
+        if (!packageStat.isDirectory()) {
+            throw new Error(`Dir: ${this._packageConfig.name} not found in project:' + this._projectDir`);
+        }
+
         this._tmpDir = LibPath.join(Spm.SPM_ROOT_PATH, 'tmp');
         this._tmpFileName = Math.random().toString(16) + '.zip';
         await mkdir(this._tmpDir);
@@ -80,7 +84,7 @@ export class PublishCLI {
                 });
             // archive init
             let archive = archiver('zip', {zlib: {level: 9}})
-                .on('error', (err) => reject(err)) as Archiver;
+                .on('error', (err) => reject(err)) as archiver.Archiver;
 
             archive.pipe(writeStream);
             archive.directory(LibPath.join(this._projectDir, 'proto'), false);
@@ -129,4 +133,5 @@ export class PublishCLI {
 
 PublishCLI.instance().run().catch((err: Error) => {
     debug('err: %O', err.message);
+    console.log(err.message);
 });

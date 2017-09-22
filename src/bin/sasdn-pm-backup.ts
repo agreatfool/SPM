@@ -68,7 +68,7 @@ export class BackupCLI {
                 });
             // archive init
             let archive = archiver('zip', {zlib: {level: 9}})
-                .on('error', (err) => reject(err)) as archiver;
+                .on('error', (err) => reject(err)) as archiver.Archiver;
 
             archive.pipe(writeStream);
 
