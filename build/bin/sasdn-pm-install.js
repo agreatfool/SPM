@@ -11,7 +11,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const LibFs = require("mz/fs");
 const LibPath = require("path");
 const program = require("commander");
-const unzip = require("unzip");
+const unzip = require("unzip2");
 const _ = require("underscore");
 const recursive = require("recursive-readdir");
 const lib_1 = require("./lib/lib");
@@ -30,6 +30,8 @@ class InstallCLI {
             debug('InstallCLI start.');
             yield this._prepare();
             yield this._install();
+            debug('InstallCLI complete.');
+            console.log("InstallCLI complete.");
         });
     }
     _prepare() {
@@ -42,6 +44,7 @@ class InstallCLI {
             this._spmPackageInstallDir = LibPath.join(this._projectDir, lib_1.Spm.INSTALL_DIR_NAME);
             yield lib_1.mkdir(this._spmPackageInstallDir);
             this._spmPackageInstalledMap = yield lib_1.Spm.getInstalledSpmPackageMap();
+            this._downloadInstalled = new Map();
         });
     }
     _install() {
@@ -155,7 +158,8 @@ class InstallCLI {
                         dependencies: {}
                     };
                 }
-                if (packageConfig.dependencies.hasOwnProperty(mainSpmPackage.name) && packageConfig.dependencies[mainSpmPackage.name] == mainSpmPackage.version) {
+                if (packageConfig.dependencies.hasOwnProperty(mainSpmPackage.name)
+                    && packageConfig.dependencies[mainSpmPackage.name] == mainSpmPackage.version) {
                     resolve();
                     return;
                 }
@@ -176,15 +180,20 @@ class InstallCLI {
             for (let dirname in spmPackageInstallMap) {
                 const debug = require('debug')(`SPM:CLI:deploy:` + dirname);
                 debug('start');
-                let tmpName = dirname + this._tmpFileName;
-                let tmpZipPath = LibPath.join(this._tmpDir, tmpName);
-                let tmpPkgPath = LibPath.join(this._tmpDir, dirname);
+                const tmpName = dirname + this._tmpFileName;
+                const tmpZipPath = LibPath.join(this._tmpDir, tmpName);
+                const tmpPkgPath = LibPath.join(this._tmpDir, dirname);
                 // download file
-                yield this._packageDownload(debug, spmPackageInstallMap[dirname], tmpZipPath);
-                yield this._packageUncompress(debug, tmpZipPath, tmpPkgPath);
-                yield this._packageReplaceName(debug, dirname, spmPackageInstallMap[dirname], tmpPkgPath);
-                yield this._packageCopy(debug, dirname, tmpPkgPath);
-                debug('end');
+                const spmPackage = spmPackageInstallMap[dirname];
+                const spmPackageName = `${spmPackage.name}@${spmPackage.version}`;
+                if (this._downloadInstalled.get(spmPackageName) !== true) {
+                    yield this._packageDownload(debug, spmPackageInstallMap[dirname], tmpZipPath);
+                    yield this._packageUncompress(debug, tmpZipPath, tmpPkgPath);
+                    yield this._packageReplaceName(debug, dirname, spmPackageInstallMap[dirname], tmpPkgPath);
+                    yield this._packageCopy(debug, dirname, tmpPkgPath);
+                    this._downloadInstalled.set(spmPackageName, true);
+                    console.log(`Package：${spmPackageName} complete!`);
+                }
             }
         });
     }
@@ -221,7 +230,6 @@ class InstallCLI {
             if (LibFs.statSync(tmpZipPath).isFile()) {
                 LibFs.createReadStream(tmpZipPath).pipe(unzip.Extract({ path: tmpPkgPath })
                     .on('close', () => {
-                    debug('uncompress finish.');
                     LibFs.unlinkSync(tmpZipPath);
                     resolve();
                 }));
@@ -260,7 +268,6 @@ class InstallCLI {
                             }
                         }
                         if (count == files.length) {
-                            debug('replace name finish.');
                             resolve();
                         }
                     });
@@ -313,5 +320,6 @@ class InstallCLI {
 exports.InstallCLI = InstallCLI;
 InstallCLI.instance().run().catch((err) => {
     debug('err: %O', err.message);
+    console.log(err.message);
 });
 //# sourceMappingURL=sasdn-pm-install.js.map

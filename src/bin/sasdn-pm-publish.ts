@@ -24,11 +24,12 @@ export class PublishCLI {
 
     public async run() {
         debug('PublishCLI start.');
-
         await this._validate();
         await this._prepare();
         await this._compress();
         await this._publish();
+        debug('PublishCLI complete.');
+        console.log("PublishCLI complete.");
     }
 
     private async _validate() {
@@ -87,12 +88,10 @@ export class PublishCLI {
                 .on('error', (err) => reject(err)) as archiver.Archiver;
 
             archive.pipe(writeStream);
-            archive.directory(LibPath.join(this._projectDir, 'proto'), false);
+            archive.directory(LibPath.join(this._projectDir, 'proto', this._packageConfig.name), false);
             archive.append(LibFs.createReadStream(LibPath.join(this._projectDir, 'spm.json')), {name: 'spm.json'});
             await archive.finalize();
         });
-
-        debug('PublishCLI compress finish.');
     }
 
     private async _publish() {

@@ -1,7 +1,7 @@
 import * as LibFs from "mz/fs";
 import * as LibPath from "path";
 import * as program from "commander";
-import * as unzip from "unzip";
+import * as unzip from "unzip2";
 import * as _ from "underscore";
 import * as recursive from "recursive-readdir";
 import {Spm, SpmPackageRequest, mkdir, rmdir, SpmPackageMap, SpmPackage, SpmPackageConfig} from "./lib/lib";
@@ -22,6 +22,7 @@ export class InstallCLI {
     private _projectDir: string;
     private _spmPackageInstallDir: string;
     private _spmPackageInstalledMap: SpmPackageMap;
+    private _downloadInstalled: Map<string, boolean>;
 
     static instance() {
         return new InstallCLI();
@@ -31,6 +32,8 @@ export class InstallCLI {
         debug('InstallCLI start.');
         await this._prepare();
         await this._install();
+        debug('InstallCLI complete.');
+        console.log("InstallCLI complete.");
     }
 
     private async _prepare() {
@@ -45,6 +48,7 @@ export class InstallCLI {
         await mkdir(this._spmPackageInstallDir);
 
         this._spmPackageInstalledMap = await Spm.getInstalledSpmPackageMap();
+        this._downloadInstalled = new Map();
     }
 
     private async _install() {
@@ -162,7 +166,8 @@ export class InstallCLI {
                 };
             }
 
-            if (packageConfig.dependencies.hasOwnProperty(mainSpmPackage.name) && packageConfig.dependencies[mainSpmPackage.name] == mainSpmPackage.version) {
+            if (packageConfig.dependencies.hasOwnProperty(mainSpmPackage.name)
+                && packageConfig.dependencies[mainSpmPackage.name] == mainSpmPackage.version) {
                 resolve();
                 return;
             }
@@ -182,22 +187,26 @@ export class InstallCLI {
     }
 
     private async _deploy(spmPackageInstallMap: SpmPackageMap) {
-
         for (let dirname in spmPackageInstallMap) {
             const debug = require('debug')(`SPM:CLI:deploy:` + dirname);
             debug('start');
 
-            let tmpName = dirname + this._tmpFileName;
-            let tmpZipPath = LibPath.join(this._tmpDir, tmpName);
-            let tmpPkgPath = LibPath.join(this._tmpDir, dirname);
+            const tmpName = dirname + this._tmpFileName;
+            const tmpZipPath = LibPath.join(this._tmpDir, tmpName);
+            const tmpPkgPath = LibPath.join(this._tmpDir, dirname);
 
             // download file
-            await this._packageDownload(debug, spmPackageInstallMap[dirname], tmpZipPath);
-            await this._packageUncompress(debug, tmpZipPath, tmpPkgPath);
-            await this._packageReplaceName(debug, dirname, spmPackageInstallMap[dirname], tmpPkgPath);
-            await this._packageCopy(debug, dirname, tmpPkgPath);
+            const spmPackage = spmPackageInstallMap[dirname];
+            const spmPackageName = `${spmPackage.name}@${spmPackage.version}`;
 
-            debug('end');
+            if (this._downloadInstalled.get(spmPackageName) !== true) {
+                await this._packageDownload(debug, spmPackageInstallMap[dirname], tmpZipPath);
+                await this._packageUncompress(debug, tmpZipPath, tmpPkgPath);
+                await this._packageReplaceName(debug, dirname, spmPackageInstallMap[dirname], tmpPkgPath);
+                await this._packageCopy(debug, dirname, tmpPkgPath);
+                this._downloadInstalled.set(spmPackageName, true);
+                console.log(`Package：${spmPackageName} complete!`);
+            }
         }
     }
 
@@ -238,7 +247,6 @@ export class InstallCLI {
             if (LibFs.statSync(tmpZipPath).isFile()) {
                 LibFs.createReadStream(tmpZipPath).pipe(unzip.Extract({path: tmpPkgPath})
                     .on('close', () => {
-                        debug('uncompress finish.');
                         LibFs.unlinkSync(tmpZipPath);
                         resolve();
                     }));
@@ -253,7 +261,6 @@ export class InstallCLI {
 
         return new Promise(async (resolve, reject) => {
             debug('replace name.');
-
             if (_.isEmpty(spmPackage.dependenciesChanged) && spmPackage.name == dirname) {
                 resolve();
             } else {
@@ -281,7 +288,6 @@ export class InstallCLI {
                         }
 
                         if (count == files.length) {
-                            debug('replace name finish.');
                             resolve();
                         }
                     });
@@ -297,13 +303,13 @@ export class InstallCLI {
 
         return new Promise(async (resolve) => {
             debug('copy.');
-            let packageDir = LibPath.join(this._spmPackageInstallDir, dirname);
 
+            let packageDir = LibPath.join(this._spmPackageInstallDir, dirname);
             if (LibFs.existsSync(packageDir) && LibFs.statSync(packageDir).isDirectory()) {
                 await rmdir(packageDir);
             }
-
             await LibFs.rename(tmpPkgPath, packageDir);
+
             debug('copy finish.');
             resolve();
         });
@@ -339,4 +345,5 @@ export class InstallCLI {
 
 InstallCLI.instance().run().catch((err: Error) => {
     debug('err: %O', err.message);
+    console.log(err.message);
 });

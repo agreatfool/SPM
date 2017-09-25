@@ -30,6 +30,8 @@ class PublishCLI {
             yield this._prepare();
             yield this._compress();
             yield this._publish();
+            debug('PublishCLI complete.');
+            console.log("PublishCLI complete.");
         });
     }
     _validate() {
@@ -80,11 +82,10 @@ class PublishCLI {
                 let archive = archiver('zip', { zlib: { level: 9 } })
                     .on('error', (err) => reject(err));
                 archive.pipe(writeStream);
-                archive.directory(LibPath.join(this._projectDir, 'proto'), false);
+                archive.directory(LibPath.join(this._projectDir, 'proto', this._packageConfig.name), false);
                 archive.append(LibFs.createReadStream(LibPath.join(this._projectDir, 'spm.json')), { name: 'spm.json' });
                 yield archive.finalize();
             }));
-            debug('PublishCLI compress finish.');
         });
     }
     _publish() {

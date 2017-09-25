@@ -28,6 +28,8 @@ export class BackupCLI {
         await this._prepare();
         await this._compress();
         await this._backup();
+        debug('BackupCLI complete.');
+        console.log("BackupCLI complete.");
     }
 
     private async _validate() {
@@ -86,12 +88,11 @@ export class BackupCLI {
 
             await archive.finalize();
         });
-
-        debug('BackupCLI compress finish.');
     }
 
     private async _backup() {
         debug('BackupCLI backup.');
+
         let sourceFile = LibPath.join(this._tmpDir, this._tmpFileName);
         let destFile = LibPath.join(OUTPUT_PATH, this._tmpFileName);
 
@@ -99,7 +100,6 @@ export class BackupCLI {
             if (err) throw err;
             LibFs.stat(destFile, (err) => {
                 if (err) throw err;
-                debug('BackupCLI backup finish.');
             });
         });
     }
@@ -107,4 +107,5 @@ export class BackupCLI {
 
 BackupCLI.instance().run().catch((err: Error) => {
     debug('err: %O', err.message);
+    console.log(err.message);
 });

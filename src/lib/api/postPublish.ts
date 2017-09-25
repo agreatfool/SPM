@@ -115,7 +115,7 @@ class PostPublish extends ApiBase {
             let spmPackageVersion = await dbConn
                 .getRepository(SpmPackageVersion)
                 .createQueryBuilder('version')
-                .where('version.name=:name', {pid: spmPackage.name})
+                .where('version.name=:name', {name: spmPackage.name})
                 .andWhere('version.major=:major', {major: major})
                 .andWhere('version.minor=:minor', {minor: minor})
                 .andWhere('version.patch=:patch', {patch: patch})

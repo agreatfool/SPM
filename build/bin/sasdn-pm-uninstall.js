@@ -30,6 +30,8 @@ class UninstallCLI {
             yield this._comparison();
             yield this._remove();
             yield this._save();
+            debug('UninstallCLI complete.');
+            console.log("UninstallCLI complete.");
         });
     }
     _validate() {
@@ -145,5 +147,6 @@ class UninstallCLI {
 exports.UninstallCLI = UninstallCLI;
 UninstallCLI.instance().run().catch((err) => {
     debug('err: %O', err.message);
+    console.log(err.message);
 });
 //# sourceMappingURL=sasdn-pm-uninstall.js.map

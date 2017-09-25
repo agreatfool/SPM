@@ -3,7 +3,7 @@ export interface ExtractOption {
     path: string;
 }
 
-export declare namespace unzip {
+export declare namespace unzip2 {
     interface Extract {
         (options: ExtractOption): void;
     }

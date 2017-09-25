@@ -62,7 +62,7 @@ class SearchCLI {
                                 console.log(`${spmPackage.name}@${spmPackageVersion.major}.${spmPackageVersion.minor}.${spmPackageVersion.patch}`);
                             }
                             else {
-                                console.log(`${packageInfo.name} | ${packageInfo.description}`);
+                                console.log(`${packageInfo.name} | ${(packageInfo.description) ? packageInfo.description : "no description"}`);
                             }
                         }
                     }
@@ -81,5 +81,6 @@ class SearchCLI {
 exports.SearchCLI = SearchCLI;
 SearchCLI.instance().run().catch((err) => {
     debug('err: %O', err.message);
+    console.log(err.message);
 });
 //# sourceMappingURL=sasdn-pm-search.js.map

@@ -27,6 +27,8 @@ class SecretCLI {
             debug('SecretCLI start.');
             yield this._validate();
             yield this._save();
+            debug('SecretCLI complete.');
+            console.log("SecretCLI complete.");
         });
     }
     _validate() {
@@ -70,5 +72,6 @@ class SecretCLI {
 exports.SecretCLI = SecretCLI;
 SecretCLI.instance().run().catch((err) => {
     debug('err: %O', err.message);
+    console.log(err.message);
 });
 //# sourceMappingURL=sasdn-pm-secret.js.map

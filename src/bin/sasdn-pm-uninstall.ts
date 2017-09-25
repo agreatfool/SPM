@@ -32,6 +32,8 @@ export class UninstallCLI {
         await this._comparison();
         await this._remove();
         await this._save();
+        debug('UninstallCLI complete.');
+        console.log("UninstallCLI complete.");
     }
 
     private async _validate() {
@@ -156,4 +158,5 @@ export class UninstallCLI {
 
 UninstallCLI.instance().run().catch((err: Error) => {
     debug('err: %O', err.message);
+    console.log(err.message);
 });
