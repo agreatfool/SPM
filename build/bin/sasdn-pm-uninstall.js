@@ -31,7 +31,7 @@ class UninstallCLI {
             yield this._remove();
             yield this._save();
             debug('UninstallCLI complete.');
-            console.log("UninstallCLI complete.");
+            console.log('UninstallCLI complete.');
         });
     }
     _validate() {

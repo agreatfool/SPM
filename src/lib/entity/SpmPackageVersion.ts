@@ -1,28 +1,28 @@
-import {Entity, Column, PrimaryColumn} from "typeorm";
+import {Entity, Column, PrimaryColumn} from 'typeorm';
 
 @Entity()
 export class SpmPackageVersion {
-    @PrimaryColumn("int", {generated: true})
+    @PrimaryColumn('int', {generated: true})
     id: number;
 
-    @Column("text")
+    @Column('text')
     name: string;
 
-    @Column("int")
+    @Column('int')
     major: number;
 
-    @Column("int")
+    @Column('int')
     minor: number;
 
-    @Column("int")
+    @Column('int')
     patch: number;
 
-    @Column("text", {name: "file_path"})
+    @Column('text', {name: 'file_path'})
     filePath: string;
 
-    @Column("int")
+    @Column('int')
     time: number;
 
-    @Column("text")
+    @Column('text')
     dependencies: string;
 }

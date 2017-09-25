@@ -13,35 +13,35 @@ const typeorm_1 = require("typeorm");
 let SpmPackageVersion = class SpmPackageVersion {
 };
 __decorate([
-    typeorm_1.PrimaryColumn("int", { generated: true }),
+    typeorm_1.PrimaryColumn('int', { generated: true }),
     __metadata("design:type", Number)
 ], SpmPackageVersion.prototype, "id", void 0);
 __decorate([
-    typeorm_1.Column("text"),
+    typeorm_1.Column('text'),
     __metadata("design:type", String)
 ], SpmPackageVersion.prototype, "name", void 0);
 __decorate([
-    typeorm_1.Column("int"),
+    typeorm_1.Column('int'),
     __metadata("design:type", Number)
 ], SpmPackageVersion.prototype, "major", void 0);
 __decorate([
-    typeorm_1.Column("int"),
+    typeorm_1.Column('int'),
     __metadata("design:type", Number)
 ], SpmPackageVersion.prototype, "minor", void 0);
 __decorate([
-    typeorm_1.Column("int"),
+    typeorm_1.Column('int'),
     __metadata("design:type", Number)
 ], SpmPackageVersion.prototype, "patch", void 0);
 __decorate([
-    typeorm_1.Column("text", { name: "file_path" }),
+    typeorm_1.Column('text', { name: 'file_path' }),
     __metadata("design:type", String)
 ], SpmPackageVersion.prototype, "filePath", void 0);
 __decorate([
-    typeorm_1.Column("int"),
+    typeorm_1.Column('int'),
     __metadata("design:type", Number)
 ], SpmPackageVersion.prototype, "time", void 0);
 __decorate([
-    typeorm_1.Column("text"),
+    typeorm_1.Column('text'),
     __metadata("design:type", String)
 ], SpmPackageVersion.prototype, "dependencies", void 0);
 SpmPackageVersion = __decorate([

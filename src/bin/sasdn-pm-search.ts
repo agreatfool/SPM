@@ -1,9 +1,9 @@
-import * as program from "commander";
-import * as _ from "underscore";
-import * as request from "./lib/request";
-import {SpmPackageRequest} from "./lib/lib";
-import {SpmPackage} from "../lib/entity/SpmPackage";
-import {SpmPackageVersion} from "../lib/entity/SpmPackageVersion";
+import * as program from 'commander';
+import * as _ from 'underscore';
+import * as request from './lib/request';
+import {SpmPackageRequest} from './lib/lib';
+import {SpmPackage} from '../lib/entity/SpmPackage';
+import {SpmPackageVersion} from '../lib/entity/SpmPackageVersion';
 
 const pkg = require('../../package.json');
 const debug = require('debug')('SPM:CLI:search');
@@ -58,7 +58,7 @@ export class SearchCLI {
                             let [spmPackage, spmPackageVersion] = packageInfo as [SpmPackage, SpmPackageVersion];
                             console.log(`${spmPackage.name}@${spmPackageVersion.major}.${spmPackageVersion.minor}.${spmPackageVersion.patch}`);
                         } else {
-                            console.log(`${packageInfo.name} | ${(packageInfo.description) ? packageInfo.description : "no description"}`);
+                            console.log(`${packageInfo.name} | ${(packageInfo.description) ? packageInfo.description : 'no description'}`);
                         }
                     }
                 } else {

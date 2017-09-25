@@ -28,7 +28,7 @@ class SecretCLI {
             yield this._validate();
             yield this._save();
             debug('SecretCLI complete.');
-            console.log("SecretCLI complete.");
+            console.log('SecretCLI complete.');
         });
     }
     _validate() {

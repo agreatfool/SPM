@@ -1,8 +1,8 @@
-import * as LibFs from "mz/fs";
-import * as LibPath from "path";
-import * as program from "commander";
-import * as archiver from "archiver";
-import {mkdir, Spm} from "./lib/lib";
+import * as LibFs from 'mz/fs';
+import * as LibPath from 'path';
+import * as program from 'commander';
+import * as archiver from 'archiver';
+import {mkdir, Spm} from './lib/lib';
 
 const pkg = require('../../package.json');
 const debug = require('debug')('SPM:CLI:install');
@@ -29,7 +29,7 @@ export class BackupCLI {
         await this._compress();
         await this._backup();
         debug('BackupCLI complete.');
-        console.log("BackupCLI complete.");
+        console.log('BackupCLI complete.');
     }
 
     private async _validate() {

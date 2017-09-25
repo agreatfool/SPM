@@ -31,7 +31,7 @@ class PublishCLI {
             yield this._compress();
             yield this._publish();
             debug('PublishCLI complete.');
-            console.log("PublishCLI complete.");
+            console.log('PublishCLI complete.');
         });
     }
     _validate() {

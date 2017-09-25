@@ -1,6 +1,6 @@
-import * as program from "commander";
-import * as LibPath from "path";
-import {Spm} from "./lib/lib";
+import * as program from 'commander';
+import * as LibPath from 'path';
+import {Spm} from './lib/lib';
 
 const pkg = require('../../package.json');
 const debug = require('debug')('SPM:CLI:list');
@@ -21,7 +21,7 @@ export class ListCLI {
         await this._prepare();
         await this._show();
         debug('ListCLI complete.');
-        console.log('ListCLI complete.')
+        console.log('ListCLI complete.');
     }
 
     private async _prepare() {

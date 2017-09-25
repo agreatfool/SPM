@@ -1,10 +1,10 @@
-import {Entity, Column, PrimaryColumn} from "typeorm";
+import {Entity, Column, PrimaryColumn} from 'typeorm';
 
 @Entity()
 export class SpmPackageSecret {
-    @PrimaryColumn("text")
+    @PrimaryColumn('text')
     name: string;
 
-    @Column("text")
+    @Column('text')
     secret: string;
 }

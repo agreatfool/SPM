@@ -30,7 +30,7 @@ class BackupCLI {
             yield this._compress();
             yield this._backup();
             debug('BackupCLI complete.');
-            console.log("BackupCLI complete.");
+            console.log('BackupCLI complete.');
         });
     }
     _validate() {

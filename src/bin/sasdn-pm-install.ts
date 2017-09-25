@@ -1,11 +1,11 @@
-import * as LibFs from "mz/fs";
-import * as LibPath from "path";
-import * as program from "commander";
-import * as unzip from "unzip2";
-import * as _ from "underscore";
-import * as recursive from "recursive-readdir";
-import {Spm, SpmPackageRequest, mkdir, rmdir, SpmPackageMap, SpmPackage, SpmPackageConfig} from "./lib/lib";
-import * as request from "./lib/request";
+import * as LibFs from 'mz/fs';
+import * as LibPath from 'path';
+import * as program from 'commander';
+import * as unzip from 'unzip2';
+import * as _ from 'underscore';
+import * as recursive from 'recursive-readdir';
+import {Spm, SpmPackageRequest, mkdir, rmdir, SpmPackageMap, SpmPackage, SpmPackageConfig} from './lib/lib';
+import * as request from './lib/request';
 
 const pkg = require('../../package.json');
 const debug = require('debug')('SPM:CLI:install');
@@ -33,7 +33,7 @@ export class InstallCLI {
         await this._prepare();
         await this._install();
         debug('InstallCLI complete.');
-        console.log("InstallCLI complete.");
+        console.log('InstallCLI complete.');
     }
 
     private async _prepare() {

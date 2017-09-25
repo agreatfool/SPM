@@ -1,8 +1,8 @@
-import * as LibFs from "mz/fs";
-import * as LibPath from "path";
-import * as program from "commander";
-import * as _ from "underscore";
-import {Spm, rmdir, SpmPackageMap, SpmPackage, SpmPackageConfig} from "./lib/lib";
+import * as LibFs from 'mz/fs';
+import * as LibPath from 'path';
+import * as program from 'commander';
+import * as _ from 'underscore';
+import {Spm, rmdir, SpmPackageMap, SpmPackage, SpmPackageConfig} from './lib/lib';
 
 const pkg = require('../../package.json');
 const debug = require('debug')('SPM:CLI:Uninstall');
@@ -33,7 +33,7 @@ export class UninstallCLI {
         await this._remove();
         await this._save();
         debug('UninstallCLI complete.');
-        console.log("UninstallCLI complete.");
+        console.log('UninstallCLI complete.');
     }
 
     private async _validate() {

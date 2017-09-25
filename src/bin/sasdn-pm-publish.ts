@@ -1,10 +1,10 @@
-import * as LibFs from "mz/fs";
-import * as LibPath from "path";
-import * as program from "commander";
-import * as archiver from "archiver";
-import * as _ from "underscore";
-import * as request from "./lib/request";
-import {Spm, SpmPackageConfig, mkdir} from "./lib/lib";
+import * as LibFs from 'mz/fs';
+import * as LibPath from 'path';
+import * as program from 'commander';
+import * as archiver from 'archiver';
+import * as _ from 'underscore';
+import * as request from './lib/request';
+import {Spm, SpmPackageConfig, mkdir} from './lib/lib';
 
 const pkg = require('../../package.json');
 const debug = require('debug')('SPM:CLI:publish');
@@ -29,7 +29,7 @@ export class PublishCLI {
         await this._compress();
         await this._publish();
         debug('PublishCLI complete.');
-        console.log("PublishCLI complete.");
+        console.log('PublishCLI complete.');
     }
 
     private async _validate() {

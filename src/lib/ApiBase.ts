@@ -1,5 +1,5 @@
-import {Context as KoaContext, Middleware as KoaMiddleware} from "koa";
-import * as md5 from "md5";
+import {Context as KoaContext, Middleware as KoaMiddleware} from 'koa';
+import * as md5 from 'md5';
 
 export interface ResponseSchema {
     code: number;

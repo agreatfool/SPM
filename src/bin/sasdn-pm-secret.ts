@@ -1,9 +1,9 @@
-import * as LibPath from "path";
-import * as LibFs from "mz/fs";
-import * as program from "commander";
-import * as _ from "underscore";
-import * as request from "./lib/request";
-import {Spm, SpmPackageConfig, SpmPackageRequest} from "./lib/lib";
+import * as LibPath from 'path';
+import * as LibFs from 'mz/fs';
+import * as program from 'commander';
+import * as _ from 'underscore';
+import * as request from './lib/request';
+import {Spm, SpmPackageConfig, SpmPackageRequest} from './lib/lib';
 
 const pkg = require('../../package.json');
 const debug = require('debug')('SPM:CLI:secret');
@@ -25,7 +25,7 @@ export class SecretCLI {
         await this._validate();
         await this._save();
         debug('SecretCLI complete.');
-        console.log("SecretCLI complete.");
+        console.log('SecretCLI complete.');
     }
 
     private async _validate() {

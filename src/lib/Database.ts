@@ -1,6 +1,6 @@
-import * as LibPath from "path";
-import * as LibFs from "mz/fs";
-import {Connection, createConnection} from "typeorm";
+import * as LibPath from 'path';
+import * as LibFs from 'mz/fs';
+import {Connection, createConnection} from 'typeorm';
 
 export default class Database {
 

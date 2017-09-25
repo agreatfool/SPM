@@ -1,7 +1,7 @@
-import * as KoaRouter from "koa-router";
-import * as LibPath from "path";
-import * as LibFs from "mz/fs";
-import {ApiBase} from "./ApiBase";
+import * as KoaRouter from 'koa-router';
+import * as LibPath from 'path';
+import * as LibFs from 'mz/fs';
+import {ApiBase} from './ApiBase';
 
 export default class RouteLoader {
     private static _instance: RouteLoader;

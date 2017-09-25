@@ -1,10 +1,10 @@
-import "reflect-metadata";
-import * as _ from "underscore";
-import Config from "../Config";
-import Database from "../Database";
-import {Context as KoaContext} from "koa";
-import {SpmPackageSecret} from "../entity/SpmPackageSecret";
-import {ApiBase, MiddlewareNext, ResponseSchema} from "../ApiBase";
+import 'reflect-metadata';
+import * as _ from 'underscore';
+import Config from '../Config';
+import Database from '../Database';
+import {Context as KoaContext} from 'koa';
+import {SpmPackageSecret} from '../entity/SpmPackageSecret';
+import {ApiBase, MiddlewareNext, ResponseSchema} from '../ApiBase';
 
 interface SecretParams {
     name: string;

@@ -62,7 +62,7 @@ class SearchCLI {
                                 console.log(`${spmPackage.name}@${spmPackageVersion.major}.${spmPackageVersion.minor}.${spmPackageVersion.patch}`);
                             }
                             else {
-                                console.log(`${packageInfo.name} | ${(packageInfo.description) ? packageInfo.description : "no description"}`);
+                                console.log(`${packageInfo.name} | ${(packageInfo.description) ? packageInfo.description : 'no description'}`);
                             }
                         }
                     }

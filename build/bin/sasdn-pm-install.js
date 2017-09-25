@@ -31,7 +31,7 @@ class InstallCLI {
             yield this._prepare();
             yield this._install();
             debug('InstallCLI complete.');
-            console.log("InstallCLI complete.");
+            console.log('InstallCLI complete.');
         });
     }
     _prepare() {
