@@ -24,6 +24,8 @@ export class SecretCLI {
         debug('SecretCLI start.');
         await this._validate();
         await this._save();
+        debug('SecretCLI complete.');
+        console.log("SecretCLI complete.");
     }
 
     private async _validate() {
@@ -69,4 +71,5 @@ export class SecretCLI {
 
 SecretCLI.instance().run().catch((err: Error) => {
     debug('err: %O', err.message);
+    console.log(err.message);
 });

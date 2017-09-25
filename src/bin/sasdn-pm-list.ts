@@ -20,6 +20,8 @@ export class ListCLI {
         debug('ListCLI start.');
         await this._prepare();
         await this._show();
+        debug('ListCLI complete.');
+        console.log('ListCLI complete.')
     }
 
     private async _prepare() {
@@ -48,4 +50,5 @@ export class ListCLI {
 
 ListCLI.instance().run().catch((err: Error) => {
     debug('err: %O', err.message);
+    console.log(err.message);
 });

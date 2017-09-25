@@ -58,7 +58,7 @@ export class SearchCLI {
                             let [spmPackage, spmPackageVersion] = packageInfo as [SpmPackage, SpmPackageVersion];
                             console.log(`${spmPackage.name}@${spmPackageVersion.major}.${spmPackageVersion.minor}.${spmPackageVersion.patch}`);
                         } else {
-                            console.log(`${packageInfo.name} | ${packageInfo.description}`);
+                            console.log(`${packageInfo.name} | ${(packageInfo.description) ? packageInfo.description : "no description"}`);
                         }
                     }
                 } else {
@@ -76,4 +76,5 @@ export class SearchCLI {
 
 SearchCLI.instance().run().catch((err: Error) => {
     debug('err: %O', err.message);
+    console.log(err.message);
 });

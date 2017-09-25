@@ -29,6 +29,8 @@ class BackupCLI {
             yield this._prepare();
             yield this._compress();
             yield this._backup();
+            debug('BackupCLI complete.');
+            console.log("BackupCLI complete.");
         });
     }
     _validate() {
@@ -80,7 +82,6 @@ class BackupCLI {
                 }
                 yield archive.finalize();
             }));
-            debug('BackupCLI compress finish.');
         });
     }
     _backup() {
@@ -94,7 +95,6 @@ class BackupCLI {
                 LibFs.stat(destFile, (err) => {
                     if (err)
                         throw err;
-                    debug('BackupCLI backup finish.');
                 });
             });
         });
@@ -103,5 +103,6 @@ class BackupCLI {
 exports.BackupCLI = BackupCLI;
 BackupCLI.instance().run().catch((err) => {
     debug('err: %O', err.message);
+    console.log(err.message);
 });
 //# sourceMappingURL=sasdn-pm-backup.js.map

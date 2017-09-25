@@ -60,24 +60,29 @@ class PostSearchDependence extends ApiBase_1.ApiBase {
             }
             // build spm package version query
             let sheetName = 'version';
-            let columnPidWhereQuery = [`${sheetName}.name=:name`, { pid: spmPackage.name }];
-            let columnMajorWhereQuery = [`${sheetName}.major`, 'DESC'];
-            let columnMinorWhereQuery = [`${sheetName}.minor`, 'DESC'];
-            let columnPatchWhereQuery = [`${sheetName}.patch`, 'DESC'];
+            let spmPackageVersion;
+            let columnNameWhereQuery = [`${sheetName}.name=:name`, { name: spmPackage.name }];
             if (!_.isEmpty(version)) {
                 const [major, minor, patch] = version.split('.');
-                columnMajorWhereQuery = [`${sheetName}.major=:major`, { major: major }];
-                columnMinorWhereQuery = [`${sheetName}.minor=:minor`, { minor: minor }];
-                columnPatchWhereQuery = [`${sheetName}.patch=:patch`, { patch: patch }];
+                spmPackageVersion = yield dbConn
+                    .getRepository(SpmPackageVersion_1.SpmPackageVersion)
+                    .createQueryBuilder(sheetName)
+                    .where(columnNameWhereQuery[0], columnNameWhereQuery[1])
+                    .andWhere(`${sheetName}.major=:major`, { major: major })
+                    .andWhere(`${sheetName}.minor=:minor`, { minor: minor })
+                    .andWhere(`${sheetName}.patch=:patch`, { patch: patch })
+                    .getOne();
             }
-            let spmPackageVersion = yield dbConn
-                .getRepository(SpmPackageVersion_1.SpmPackageVersion)
-                .createQueryBuilder(sheetName)
-                .where(columnPidWhereQuery[0], columnPidWhereQuery[1])
-                .andWhere(columnMajorWhereQuery[0], columnMajorWhereQuery[1])
-                .andWhere(columnMinorWhereQuery[0], columnMinorWhereQuery[1])
-                .andWhere(columnPatchWhereQuery[0], columnPatchWhereQuery[1])
-                .getOne();
+            else {
+                spmPackageVersion = yield dbConn
+                    .getRepository(SpmPackageVersion_1.SpmPackageVersion)
+                    .createQueryBuilder(sheetName)
+                    .where(columnNameWhereQuery[0], columnNameWhereQuery[1])
+                    .orderBy(`${sheetName}.major`, 'DESC')
+                    .addOrderBy(`${sheetName}.minor`, 'DESC')
+                    .addOrderBy(`${sheetName}.patch`, 'DESC')
+                    .getOne();
+            }
             if (_.isEmpty(spmPackageVersion)) {
                 throw new Error('Package version not found, name: ' + spmPackage.name + ', version: ' + version);
             }

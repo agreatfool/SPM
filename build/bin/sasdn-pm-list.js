@@ -24,6 +24,8 @@ class ListCLI {
             debug('ListCLI start.');
             yield this._prepare();
             yield this._show();
+            debug('ListCLI complete.');
+            console.log('ListCLI complete.');
         });
     }
     _prepare() {
@@ -52,5 +54,6 @@ class ListCLI {
 exports.ListCLI = ListCLI;
 ListCLI.instance().run().catch((err) => {
     debug('err: %O', err.message);
+    console.log(err.message);
 });
 //# sourceMappingURL=sasdn-pm-list.js.map

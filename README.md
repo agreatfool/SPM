@@ -38,6 +38,7 @@ The version number of the proto package managed in SPM is governed by the Semant
 
 每一个微服务项目的根目录下都会有两个文件夹：proto 和 spm_protos
 * proto文件夹：用于存放项目中自编写的proto文件
+    > 约定：请根据 spm.json 的 name 字段创建文件夹，并将自编写的 proto 文件放在这个文件夹内。
 * spm_protos文件夹：用于存放通过包管理软件下载安装的protos文件   
 
 每一个微服务项目的根目录下都会有一个包管理配置文件：spm.json

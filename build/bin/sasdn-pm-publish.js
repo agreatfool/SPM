@@ -30,6 +30,8 @@ class PublishCLI {
             yield this._prepare();
             yield this._compress();
             yield this._publish();
+            debug('PublishCLI complete.');
+            console.log("PublishCLI complete.");
         });
     }
     _validate() {
@@ -56,6 +58,10 @@ class PublishCLI {
             if (!this._packageConfig.version || _.isEmpty(this._packageConfig.version) || typeof this._packageConfig.version !== 'string') {
                 throw new Error('Package param: `version` is required');
             }
+            let packageStat = yield LibFs.stat(LibPath.join(this._projectDir, 'proto', this._packageConfig.name));
+            if (!packageStat.isDirectory()) {
+                throw new Error(`Dir: ${this._packageConfig.name} not found in project:' + this._projectDir`);
+            }
             this._tmpDir = LibPath.join(lib_1.Spm.SPM_ROOT_PATH, 'tmp');
             this._tmpFileName = Math.random().toString(16) + '.zip';
             yield lib_1.mkdir(this._tmpDir);
@@ -76,11 +82,10 @@ class PublishCLI {
                 let archive = archiver('zip', { zlib: { level: 9 } })
                     .on('error', (err) => reject(err));
                 archive.pipe(writeStream);
-                archive.directory(LibPath.join(this._projectDir, 'proto'), false);
+                archive.directory(LibPath.join(this._projectDir, 'proto', this._packageConfig.name), false);
                 archive.append(LibFs.createReadStream(LibPath.join(this._projectDir, 'spm.json')), { name: 'spm.json' });
                 yield archive.finalize();
             }));
-            debug('PublishCLI compress finish.');
         });
     }
     _publish() {
@@ -119,5 +124,6 @@ class PublishCLI {
 exports.PublishCLI = PublishCLI;
 PublishCLI.instance().run().catch((err) => {
     debug('err: %O', err.message);
+    console.log(err.message);
 });
 //# sourceMappingURL=sasdn-pm-publish.js.map

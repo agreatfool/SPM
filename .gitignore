@@ -58,3 +58,4 @@ jspm_packages/
 
 store
 __snapshots__
+*.db
