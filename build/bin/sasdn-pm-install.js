@@ -44,7 +44,7 @@ class InstallCLI {
             this._spmPackageInstallDir = LibPath.join(this._projectDir, lib_1.Spm.INSTALL_DIR_NAME);
             yield lib_1.mkdir(this._spmPackageInstallDir);
             this._spmPackageInstalledMap = yield lib_1.Spm.getInstalledSpmPackageMap();
-            this._downloadInstalled = new Map();
+            this._spmPackageDeployedMap = new Map();
         });
     }
     _install() {
@@ -186,12 +186,12 @@ class InstallCLI {
                 // download file
                 const spmPackage = spmPackageInstallMap[dirname];
                 const spmPackageName = `${spmPackage.name}@${spmPackage.version}`;
-                if (this._downloadInstalled.get(spmPackageName) !== true) {
+                if (this._spmPackageDeployedMap.get(spmPackageName) !== true) {
                     yield this._packageDownload(debug, spmPackageInstallMap[dirname], tmpZipPath);
                     yield this._packageUncompress(debug, tmpZipPath, tmpPkgPath);
                     yield this._packageReplaceName(debug, dirname, spmPackageInstallMap[dirname], tmpPkgPath);
                     yield this._packageCopy(debug, dirname, tmpPkgPath);
-                    this._downloadInstalled.set(spmPackageName, true);
+                    this._spmPackageDeployedMap.set(spmPackageName, true);
                     console.log(`Package：${spmPackageName} complete!`);
                 }
             }

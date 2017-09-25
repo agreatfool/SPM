@@ -22,7 +22,7 @@ export class InstallCLI {
     private _projectDir: string;
     private _spmPackageInstallDir: string;
     private _spmPackageInstalledMap: SpmPackageMap;
-    private _downloadInstalled: Map<string, boolean>;
+    private _spmPackageDeployedMap: Map<string, boolean>;
 
     static instance() {
         return new InstallCLI();
@@ -48,7 +48,7 @@ export class InstallCLI {
         await mkdir(this._spmPackageInstallDir);
 
         this._spmPackageInstalledMap = await Spm.getInstalledSpmPackageMap();
-        this._downloadInstalled = new Map();
+        this._spmPackageDeployedMap = new Map();
     }
 
     private async _install() {
@@ -199,12 +199,12 @@ export class InstallCLI {
             const spmPackage = spmPackageInstallMap[dirname];
             const spmPackageName = `${spmPackage.name}@${spmPackage.version}`;
 
-            if (this._downloadInstalled.get(spmPackageName) !== true) {
+            if (this._spmPackageDeployedMap.get(spmPackageName) !== true) {
                 await this._packageDownload(debug, spmPackageInstallMap[dirname], tmpZipPath);
                 await this._packageUncompress(debug, tmpZipPath, tmpPkgPath);
                 await this._packageReplaceName(debug, dirname, spmPackageInstallMap[dirname], tmpPkgPath);
                 await this._packageCopy(debug, dirname, tmpPkgPath);
-                this._downloadInstalled.set(spmPackageName, true);
+                this._spmPackageDeployedMap.set(spmPackageName, true);
                 console.log(`Package：${spmPackageName} complete!`);
             }
         }
