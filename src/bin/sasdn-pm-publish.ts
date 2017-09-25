@@ -7,7 +7,6 @@ import * as request from './lib/request';
 import {Spm, SpmPackageConfig, mkdir} from './lib/lib';
 
 const pkg = require('../../package.json');
-const debug = require('debug')('SPM:CLI:publish');
 
 program.version(pkg.version)
     .parse(process.argv);
@@ -23,17 +22,16 @@ export class PublishCLI {
     }
 
     public async run() {
-        debug('PublishCLI start.');
+        console.log('PublishCLI start.');
         await this._validate();
         await this._prepare();
         await this._compress();
         await this._publish();
-        debug('PublishCLI complete.');
         console.log('PublishCLI complete.');
     }
 
     private async _validate() {
-        debug('PublishCLI validate.');
+        console.log('PublishCLI validate.');
 
         this._projectDir = Spm.getProjectDir();
 
@@ -49,7 +47,7 @@ export class PublishCLI {
     }
 
     private async _prepare() {
-        debug('PublishCLI prepare.');
+        console.log('PublishCLI prepare.');
 
         this._packageConfig = Spm.getSpmPackageConfig(LibPath.join(this._projectDir, 'spm.json'));
 
@@ -72,7 +70,7 @@ export class PublishCLI {
     }
 
     private async _compress() {
-        debug('PublishCLI compress.');
+        console.log('PublishCLI compress.');
 
         let tmpFilePath = LibPath.join(this._tmpDir, this._tmpFileName);
 
@@ -95,7 +93,7 @@ export class PublishCLI {
     }
 
     private async _publish() {
-        debug('PublishCLI publish.');
+        console.log('PublishCLI publish.');
 
         let tmpFilePath = LibPath.join(this._tmpDir, this._tmpFileName);
 
@@ -111,7 +109,7 @@ export class PublishCLI {
 
             let filePath = [tmpFilePath];
             await request.postForm('/v1/publish', params, filePath, async (chunk, reqResolve) => {
-                debug(`PublishCLI publish: [Response] - ${chunk}`);
+                console.log(`PublishCLI publish: [Response] - ${chunk}`);
                 reqResolve();
             }).then(async () => {
                 if (filePath.length > 0) {
@@ -131,6 +129,5 @@ export class PublishCLI {
 }
 
 PublishCLI.instance().run().catch((err: Error) => {
-    debug('err: %O', err.message);
-    console.log(err.message);
+    console.log('error:', err.message);
 });

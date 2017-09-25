@@ -5,7 +5,6 @@ import * as _ from 'underscore';
 import {Spm, rmdir, SpmPackageMap, SpmPackage, SpmPackageConfig} from './lib/lib';
 
 const pkg = require('../../package.json');
-const debug = require('debug')('SPM:CLI:Uninstall');
 
 program.version(pkg.version)
     .parse(process.argv);
@@ -26,18 +25,17 @@ export class UninstallCLI {
     }
 
     public async run() {
-        debug('UninstallCLI start.');
+        console.log('UninstallCLI start.');
         await this._validate();
         await this._prepare();
         await this._comparison();
         await this._remove();
         await this._save();
-        debug('UninstallCLI complete.');
         console.log('UninstallCLI complete.');
     }
 
     private async _validate() {
-        debug('UninstallCLI validate.');
+        console.log('UninstallCLI validate.');
 
         if (!PKG_NAME_VALUE) {
             throw new Error('name is required');
@@ -66,7 +64,7 @@ export class UninstallCLI {
     }
 
     private async _prepare() {
-        debug('UninstallCLI prepare.');
+        console.log('UninstallCLI prepare.');
 
         this._spmPackageInstallDir = LibPath.join(this._projectDir, Spm.INSTALL_DIR_NAME);
         this._spmPackageInstalledMap = await Spm.getInstalledSpmPackageMap();
@@ -74,7 +72,7 @@ export class UninstallCLI {
     }
 
     private async _comparison() {
-        debug('UninstallCLI comparison.');
+        console.log('UninstallCLI comparison.');
 
         this._findRemoveDir(this._removePackage.name, this._removePackage.version, this._spmPackageInstalledMap);
         this._checkInstalledDependencies(this._spmPackageInstalledMap);
@@ -87,13 +85,10 @@ export class UninstallCLI {
     }
 
     private async _save() {
-        debug('UninstallCLI save.');
+        console.log('UninstallCLI save.');
 
-        await LibFs.writeFile(LibPath.join(this._projectDir, 'spm.json'), Buffer.from(JSON.stringify(this._packageOption, null, 2)), (err) => {
-            if (err) {
-                throw err;
-            }
-        });
+        await LibFs.writeFile(LibPath.join(this._projectDir, 'spm.json'),
+            Buffer.from(JSON.stringify(this._packageOption, null, 2)));
     }
 
     private _findRemoveDir(pkgName: string, pkgVersion: string, spmPackageInstalledMap: SpmPackageMap) {
@@ -157,6 +152,5 @@ export class UninstallCLI {
 }
 
 UninstallCLI.instance().run().catch((err: Error) => {
-    debug('err: %O', err.message);
-    console.log(err.message);
+    console.log('error:', err.message);
 });

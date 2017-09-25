@@ -6,7 +6,6 @@ import * as request from './lib/request';
 import {Spm, SpmPackageConfig, SpmPackageRequest} from './lib/lib';
 
 const pkg = require('../../package.json');
-const debug = require('debug')('SPM:CLI:secret');
 
 program.version(pkg.version)
     .parse(process.argv);
@@ -21,15 +20,14 @@ export class SecretCLI {
     }
 
     public async run() {
-        debug('SecretCLI start.');
+        console.log('SecretCLI start.');
         await this._validate();
         await this._save();
-        debug('SecretCLI complete.');
         console.log('SecretCLI complete.');
     }
 
     private async _validate() {
-        debug('SecretCLI validate.');
+        console.log('SecretCLI validate.');
 
         this._projectDir = Spm.getProjectDir();
 
@@ -46,7 +44,7 @@ export class SecretCLI {
     }
 
     private async _save() {
-        debug('SecretCLI save.');
+        console.log('SecretCLI save.');
 
         await new Promise(async (resolve, reject) => {
             let params = {
@@ -70,6 +68,5 @@ export class SecretCLI {
 }
 
 SecretCLI.instance().run().catch((err: Error) => {
-    debug('err: %O', err.message);
-    console.log(err.message);
+    console.log('error:', err.message);
 });

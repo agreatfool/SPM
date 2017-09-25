@@ -3,7 +3,6 @@ import * as LibPath from 'path';
 import {Spm} from './lib/lib';
 
 const pkg = require('../../package.json');
-const debug = require('debug')('SPM:CLI:list');
 
 program.version(pkg.version)
     .parse(process.argv);
@@ -17,21 +16,20 @@ export class ListCLI {
     }
 
     public async run() {
-        debug('ListCLI start.');
+        console.log('ListCLI start.');
         await this._prepare();
         await this._show();
-        debug('ListCLI complete.');
         console.log('ListCLI complete.');
     }
 
     private async _prepare() {
-        debug('ListCLI prepare.');
+        console.log('ListCLI prepare.');
         this._projectDir = Spm.getProjectDir();
         this._spmPackageInstallDir = LibPath.join(this._projectDir, Spm.INSTALL_DIR_NAME);
     }
 
     private async _show() {
-        debug('ListCLI show.');
+        console.log('ListCLI show.');
 
         let spmPackageMap = await Spm.getInstalledSpmPackageMap();
 
@@ -49,6 +47,5 @@ export class ListCLI {
 }
 
 ListCLI.instance().run().catch((err: Error) => {
-    debug('err: %O', err.message);
-    console.log(err.message);
+    console.log('error:', err.message);
 });

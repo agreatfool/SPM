@@ -6,7 +6,6 @@ import {SpmPackage} from '../lib/entity/SpmPackage';
 import {SpmPackageVersion} from '../lib/entity/SpmPackageVersion';
 
 const pkg = require('../../package.json');
-const debug = require('debug')('SPM:CLI:search');
 
 program.version(pkg.version)
     .option('-i, --info', 'show proto info')
@@ -22,13 +21,13 @@ export class SearchCLI {
     }
 
     public async run() {
-        debug('SearchCLI start.');
+        console.log('SearchCLI start.');
         await this._validate();
         await this._search();
     }
 
     private async _validate() {
-        debug('SearchCLI validate.');
+        console.log('SearchCLI validate.');
 
         if (!KEYWORD_VALUE) {
             throw new Error('keyword is required');
@@ -36,7 +35,7 @@ export class SearchCLI {
     }
 
     private async _search() {
-        debug('SearchCLI search.');
+        console.log('SearchCLI search.');
 
         await new Promise(async (resolve, reject) => {
             let params = {
@@ -75,6 +74,5 @@ export class SearchCLI {
 }
 
 SearchCLI.instance().run().catch((err: Error) => {
-    debug('err: %O', err.message);
-    console.log(err.message);
+    console.log('error:', err.message);
 });

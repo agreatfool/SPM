@@ -27,7 +27,7 @@ class UninstallCLI {
             debug('UninstallCLI start.');
             yield this._validate();
             yield this._prepare();
-            yield this._comparison();
+            yield this._compare();
             yield this._remove();
             yield this._save();
             debug('UninstallCLI complete.');

@@ -73,7 +73,7 @@ class InstallCLI {
                     debug('-----------------------------------');
                     try {
                         let spmPackageDependMap = yield this._searchDependencies(debug, pkgName);
-                        let [mainSpmPackage, spmPackageInstallMap] = yield this._comparison(debug, spmPackageDependMap, {});
+                        let [mainSpmPackage, spmPackageInstallMap] = yield this._compare(debug, spmPackageDependMap, {});
                         yield this._update(debug, mainSpmPackage);
                         yield this._deploy(spmPackageInstallMap);
                     }

@@ -5,7 +5,6 @@ import * as archiver from 'archiver';
 import {mkdir, Spm} from './lib/lib';
 
 const pkg = require('../../package.json');
-const debug = require('debug')('SPM:CLI:install');
 
 program.version(pkg.version)
     .parse(process.argv);
@@ -23,17 +22,16 @@ export class BackupCLI {
     }
 
     public async run() {
-        debug('BackupCLI start.');
+        console.log('BackupCLI start.');
         await this._validate();
         await this._prepare();
         await this._compress();
         await this._backup();
-        debug('BackupCLI complete.');
         console.log('BackupCLI complete.');
     }
 
     private async _validate() {
-        debug('BackupCLI validate.');
+        console.log('BackupCLI validate.');
 
         if (!OUTPUT_PATH) {
             throw new Error('output path is required, "sasdn-pm backup /tmp"');
@@ -46,7 +44,7 @@ export class BackupCLI {
     }
 
     private async _prepare() {
-        debug('PublishCLI prepare.');
+        console.log('PublishCLI prepare.');
 
         const now = new Date();
 
@@ -57,7 +55,7 @@ export class BackupCLI {
     }
 
     private async _compress() {
-        debug('BackupCLI compress.');
+        console.log('BackupCLI compress.');
 
         let tmpFilePath = LibPath.join(this._tmpDir, this._tmpFileName);
 
@@ -91,7 +89,7 @@ export class BackupCLI {
     }
 
     private async _backup() {
-        debug('BackupCLI backup.');
+        console.log('BackupCLI backup.');
 
         let sourceFile = LibPath.join(this._tmpDir, this._tmpFileName);
         let destFile = LibPath.join(OUTPUT_PATH, this._tmpFileName);
@@ -106,6 +104,5 @@ export class BackupCLI {
 }
 
 BackupCLI.instance().run().catch((err: Error) => {
-    debug('err: %O', err.message);
-    console.log(err.message);
+    console.log('error:', err.message);
 });
