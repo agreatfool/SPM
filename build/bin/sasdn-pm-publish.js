@@ -12,11 +12,10 @@ const LibFs = require("mz/fs");
 const LibPath = require("path");
 const program = require("commander");
 const archiver = require("archiver");
+const request = require("request");
 const _ = require("underscore");
-const request = require("./lib/request");
 const lib_1 = require("./lib/lib");
 const pkg = require('../../package.json');
-const debug = require('debug')('SPM:CLI:publish');
 program.version(pkg.version)
     .parse(process.argv);
 class PublishCLI {
@@ -25,18 +24,23 @@ class PublishCLI {
     }
     run() {
         return __awaiter(this, void 0, void 0, function* () {
-            debug('PublishCLI start.');
+            console.log('PublishCLI start.');
             yield this._validate();
             yield this._prepare();
             yield this._compress();
             yield this._publish();
-            debug('PublishCLI complete.');
             console.log('PublishCLI complete.');
         });
     }
+    /**
+     * 验证参数，数据，环境是否正确
+     *
+     * @returns {Promise<void>}
+     * @private
+     */
     _validate() {
         return __awaiter(this, void 0, void 0, function* () {
-            debug('PublishCLI validate.');
+            console.log('PublishCLI validate.');
             this._projectDir = lib_1.Spm.getProjectDir();
             let configStat = yield LibFs.stat(LibPath.join(this._projectDir, 'spm.json'));
             if (!configStat.isFile()) {
@@ -48,9 +52,15 @@ class PublishCLI {
             }
         });
     }
+    /**
+     * 准备命令中需要使用的参数，或创建文件夹。
+     *
+     * @returns {Promise<void>}
+     * @private
+     */
     _prepare() {
         return __awaiter(this, void 0, void 0, function* () {
-            debug('PublishCLI prepare.');
+            console.log('PublishCLI prepare.');
             this._packageConfig = lib_1.Spm.getSpmPackageConfig(LibPath.join(this._projectDir, 'spm.json'));
             if (!this._packageConfig.name || _.isEmpty(this._packageConfig.name) || typeof this._packageConfig.name !== 'string') {
                 throw new Error('Package param: `name` is required');
@@ -62,68 +72,87 @@ class PublishCLI {
             if (!packageStat.isDirectory()) {
                 throw new Error(`Dir: ${this._packageConfig.name} not found in project:' + this._projectDir`);
             }
-            this._tmpDir = LibPath.join(lib_1.Spm.SPM_ROOT_PATH, 'tmp');
+            // 创建临时文件夹，生成临时文件名
+            this._tmpFilePath = LibPath.join(lib_1.Spm.SPM_ROOT_PATH, 'tmp');
             this._tmpFileName = Math.random().toString(16) + '.zip';
-            yield lib_1.mkdir(this._tmpDir);
+            yield lib_1.mkdir(this._tmpFilePath);
         });
     }
+    /**
+     * 创建发布使用的压缩包。
+     *
+     * @returns {Promise<void>}
+     * @private
+     */
     _compress() {
         return __awaiter(this, void 0, void 0, function* () {
-            debug('PublishCLI compress.');
-            let tmpFilePath = LibPath.join(this._tmpDir, this._tmpFileName);
-            // create a file to stream archive data to.
-            yield new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
-                // create write stream
-                let writeStream = LibFs.createWriteStream(tmpFilePath)
-                    .on('close', () => {
+            console.log('PublishCLI compress.');
+            // 创建 archive 对象
+            let archive = archiver('zip', { zlib: { level: 9 } });
+            archive.on('error', (err) => {
+                console.log(err.message);
+            });
+            // 添加 ${pwd}/proto/${pkgName} 到 archive 对象
+            archive.directory(LibPath.join(this._projectDir, 'proto', this._packageConfig.name), false);
+            // 添加 ${pwd}/spm.json 到 archive 对象
+            archive.append(LibFs.createReadStream(LibPath.join(this._projectDir, 'spm.json')), { name: 'spm.json' });
+            // 由于执行 archive finalize 时，实际压缩包并未完成，所以需要用 promise 将下述代码包起来。
+            // 通过判断 writeSteam 的 close 事件，来判断压缩包是否完成创建。
+            yield new Promise((resolve, reject) => {
+                let writeStream = LibFs.createWriteStream(LibPath.join(this._tmpFilePath, this._tmpFileName));
+                writeStream.on('close', () => {
+                    console.log('PublishCLI compress completed!');
                     resolve();
                 });
-                // archive init
-                let archive = archiver('zip', { zlib: { level: 9 } })
-                    .on('error', (err) => reject(err));
                 archive.pipe(writeStream);
-                archive.directory(LibPath.join(this._projectDir, 'proto', this._packageConfig.name), false);
-                archive.append(LibFs.createReadStream(LibPath.join(this._projectDir, 'spm.json')), { name: 'spm.json' });
-                yield archive.finalize();
-            }));
+                archive.finalize().catch((e) => {
+                    reject(e);
+                });
+            });
         });
     }
+    /**
+     * 访问 /v1/publish, 提交压缩包
+     *
+     * @returns {Promise<void>}
+     * @private
+     */
     _publish() {
         return __awaiter(this, void 0, void 0, function* () {
-            debug('PublishCLI publish.');
-            let tmpFilePath = LibPath.join(this._tmpDir, this._tmpFileName);
-            yield new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
-                // build params
-                let params = {
-                    name: this._packageConfig.name,
-                    version: this._packageConfig.version,
-                    description: this._packageConfig.description || '',
-                    dependencies: JSON.stringify(this._packageConfig.dependencies),
-                    secret: lib_1.Spm.loadSecret(),
-                };
-                let filePath = [tmpFilePath];
-                yield request.postForm('/v1/publish', params, filePath, (chunk, reqResolve) => __awaiter(this, void 0, void 0, function* () {
-                    debug(`PublishCLI publish: [Response] - ${chunk}`);
-                    reqResolve();
-                })).then(() => __awaiter(this, void 0, void 0, function* () {
-                    if (filePath.length > 0) {
-                        yield LibFs.unlink(filePath[0]);
-                    }
-                    resolve();
-                })).catch((e) => __awaiter(this, void 0, void 0, function* () {
-                    if (filePath.length > 0) {
-                        yield LibFs.unlink(filePath[0]);
-                    }
-                    reject(e);
-                }));
-            }));
+            console.log('PublishCLI publish.');
+            // build params
+            let params = {
+                name: this._packageConfig.name,
+                version: this._packageConfig.version,
+                description: this._packageConfig.description || '',
+                dependencies: JSON.stringify(this._packageConfig.dependencies),
+                secret: lib_1.Spm.loadSecret(),
+            };
+            // upload file stream
+            let filePath = LibPath.join(this._tmpFilePath, this._tmpFileName);
+            let fileUploadStream = LibFs.createReadStream(filePath);
+            // create post
+            let req = request.post(`${lib_1.Spm.getConfig().remote_repo}/v1/publish`, (err, httpResponse) => {
+                if (err) {
+                    throw err;
+                }
+                console.log(`PublishCLI publish: [Response] - ${httpResponse.body}`);
+                LibFs.unlink(filePath).catch((err) => {
+                    throw err;
+                });
+            });
+            // append form data
+            let form = req.form();
+            for (let key in params) {
+                form.append(key, params[key]);
+            }
+            form.append('fileUpload', fileUploadStream, { filename: `${Math.random().toString(16)}.zip` });
         });
     }
     ;
 }
 exports.PublishCLI = PublishCLI;
 PublishCLI.instance().run().catch((err) => {
-    debug('err: %O', err.message);
-    console.log(err.message);
+    console.log('error:', err.message);
 });
 //# sourceMappingURL=sasdn-pm-publish.js.map

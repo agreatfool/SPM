@@ -9,7 +9,6 @@ program.version(pkg.version)
 
 export class ListCLI {
     private _projectDir: string;
-    private _spmPackageInstallDir: string;
 
     static instance() {
         return new ListCLI();
@@ -17,18 +16,32 @@ export class ListCLI {
 
     public async run() {
         console.log('ListCLI start.');
+
         await this._prepare();
-        await this._show();
+        await this._displayPackageList();
+
         console.log('ListCLI complete.');
     }
 
+    /**
+     * 准备命令中需要使用的参数，或创建文件夹。
+     *
+     * @returns {Promise<void>}
+     * @private
+     */
     private async _prepare() {
         console.log('ListCLI prepare.');
+
         this._projectDir = Spm.getProjectDir();
-        this._spmPackageInstallDir = LibPath.join(this._projectDir, Spm.INSTALL_DIR_NAME);
     }
 
-    private async _show() {
+    /**
+     * 显示所有已安装的 package
+     *
+     * @returns {Promise<void>}
+     * @private
+     */
+    private async _displayPackageList() {
         console.log('ListCLI show.');
 
         let spmPackageMap = await Spm.getInstalledSpmPackageMap();

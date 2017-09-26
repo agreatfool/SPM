@@ -2,8 +2,7 @@ import * as LibPath from 'path';
 import * as LibFs from 'mz/fs';
 import * as program from 'commander';
 import * as _ from 'underscore';
-import * as request from './lib/request';
-import {Spm, SpmPackageConfig, SpmPackageRequest} from './lib/lib';
+import {Spm, SpmPackageConfig, httpRequest} from './lib/lib';
 
 const pkg = require('../../package.json');
 
@@ -21,11 +20,19 @@ export class SecretCLI {
 
     public async run() {
         console.log('SecretCLI start.');
+
         await this._validate();
-        await this._save();
+        await this._saveSecret();
+
         console.log('SecretCLI complete.');
     }
 
+    /**
+     * 验证参数，数据，环境是否正确
+     *
+     * @returns {Promise<void>}
+     * @private
+     */
     private async _validate() {
         console.log('SecretCLI validate.');
 
@@ -40,30 +47,36 @@ export class SecretCLI {
         if (!this._packageConfig.name || _.isEmpty(this._packageConfig.name) || typeof this._packageConfig.name !== 'string') {
             throw new Error('Package param: `name` is required');
         }
-
     }
 
-    private async _save() {
-        console.log('SecretCLI save.');
+    /**
+     * 保存 secret 到本地文件
+     *
+     * @returns {Promise<void>}
+     * @private
+     */
+    private async _saveSecret() {
+        console.log('SecretCLI saveSecret');
 
-        await new Promise(async (resolve, reject) => {
-            let params = {
-                name: this._packageConfig.name
-            };
+        let response = await this._genSecret();
 
-            request.post('/v1/secret', params, async (chunk, reqResolve, reqReject) => {
-                try {
-                    reqResolve(SpmPackageRequest.parseResponse(chunk));
-                } catch (e) {
-                    reqReject(e);
-                }
-            }).then(async (response: { secret: string }) => {
-                await Spm.saveSecret(response.secret);
-                resolve();
-            }).catch((e) => {
-                reject(e);
-            });
-        });
+        Spm.saveSecret(response.secret);
+    }
+
+    /**
+     * 访问 /v1/secret，获取 secret
+     *
+     * @returns {Promise<void>}
+     * @private
+     */
+    private async _genSecret(): Promise<{ secret: string }> {
+        console.log('SecretCLI genSecret.');
+
+        let params = {
+            name: this._packageConfig.name
+        };
+
+        return await httpRequest.post('/v1/secret', params);
     }
 }
 

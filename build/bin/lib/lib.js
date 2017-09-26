@@ -12,6 +12,7 @@ const LibPath = require("path");
 const LibFs = require("mz/fs");
 const LibMkdirP = require("mkdirp");
 const bluebird = require("bluebird");
+const request = require("request");
 const recursive = require("recursive-readdir");
 var RequestMethod;
 (function (RequestMethod) {
@@ -105,16 +106,16 @@ var Spm;
      */
     function getInstalledSpmPackageMap(path) {
         return __awaiter(this, void 0, void 0, function* () {
-            let projectDir = path ? path : Spm.getProjectDir();
-            let installDir = LibPath.join(projectDir, Spm.INSTALL_DIR_NAME);
+            const projectDir = path ? path : Spm.getProjectDir();
+            const installDir = LibPath.join(projectDir, Spm.INSTALL_DIR_NAME);
             if (LibFs.existsSync(installDir) && LibFs.statSync(installDir).isDirectory()) {
-                let files = yield recursive(installDir, ['.DS_Store']);
+                const files = yield recursive(installDir, ['.DS_Store']);
                 let spmPackageMap = {};
                 for (let file of files) {
-                    let basename = LibPath.basename(file);
+                    const basename = LibPath.basename(file);
                     if (basename.match(/.+\.json/) !== null) {
-                        let dirname = LibPath.dirname(file).replace(installDir, '').replace('\\', '').replace('/', '');
-                        let packageConfig = Spm.getSpmPackageConfig(file);
+                        const dirname = LibPath.dirname(file).replace(installDir, '').replace('\\', '').replace('/', '');
+                        const packageConfig = Spm.getSpmPackageConfig(file);
                         spmPackageMap[dirname] = {
                             name: packageConfig.name,
                             version: packageConfig.version,
@@ -145,7 +146,7 @@ var Spm;
                 for (let [reg, word] of conditions) {
                     content = content.replace(reg, word);
                 }
-                LibFs.writeFileSync(filePath, Buffer.from(content));
+                yield LibFs.writeFile(filePath, Buffer.from(content));
             }
             catch (e) {
                 throw e;
@@ -156,21 +157,6 @@ var Spm;
 })(Spm = exports.Spm || (exports.Spm = {}));
 var SpmPackageRequest;
 (function (SpmPackageRequest) {
-    /**
-     * Get Spm Publish request config
-     *
-     * @returns {SpmConfig}
-     */
-    function getRequestOption(path, method = RequestMethod.get) {
-        let spmHttpConfig = Spm.getConfig();
-        return {
-            host: spmHttpConfig.host,
-            port: spmHttpConfig.port,
-            method: RequestMethod[method],
-            path: path,
-        };
-    }
-    SpmPackageRequest.getRequestOption = getRequestOption;
     /**
      * Parse request response
      *
@@ -186,4 +172,29 @@ var SpmPackageRequest;
     }
     SpmPackageRequest.parseResponse = parseResponse;
 })(SpmPackageRequest = exports.SpmPackageRequest || (exports.SpmPackageRequest = {}));
+var httpRequest;
+(function (httpRequest) {
+    function post(uri, params) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return new Promise((resolve, reject) => {
+                request.post(`${Spm.getConfig().remote_repo}${uri}`)
+                    .form(params)
+                    .on('response', (response) => {
+                    response.on('data', (chunk) => {
+                        try {
+                            resolve(SpmPackageRequest.parseResponse(chunk));
+                        }
+                        catch (e) {
+                            reject(e);
+                        }
+                    });
+                })
+                    .on('error', (e) => {
+                    reject(e);
+                });
+            });
+        });
+    }
+    httpRequest.post = post;
+})(httpRequest = exports.httpRequest || (exports.httpRequest = {}));
 //# sourceMappingURL=lib.js.map

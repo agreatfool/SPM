@@ -21,6 +21,7 @@
   },
   "homepage": "https://github.com/agreatfool/SPM#readme",
   "dependencies": {
+    "@types/request": "^2.0.3",
     "archiver": "^2.0.0",
     "bluebird": "^3.5.0",
     "commander": "^2.11.0",
@@ -39,6 +40,7 @@
     "querystring": "^0.2.0",
     "recursive-readdir": "^2.2.1",
     "reflect-metadata": "^0.1.10",
+    "request": "^2.82.0",
     "sqlite3": "^3.1.9",
     "typeorm": "0.1.0-alpha.29",
     "underscore": "^1.8.3",

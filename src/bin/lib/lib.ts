@@ -2,7 +2,7 @@ import * as LibPath from "path";
 import * as LibFs from "mz/fs";
 import * as LibMkdirP from "mkdirp";
 import * as bluebird from "bluebird";
-import * as http from "http";
+import * as request from 'request';
 import * as recursive from "recursive-readdir";
 import {ResponseSchema} from "../../lib/ApiBase";
 
@@ -12,6 +12,7 @@ export interface SpmConfig {
     host: string;
     port: number;
     secret: string;
+    remote_repo: string;
 }
 
 export interface SpmPackageConfig {
@@ -123,18 +124,17 @@ export namespace Spm {
      * @returns {Promise<SpmPackageMap>}
      */
     export async function getInstalledSpmPackageMap(path?: string): Promise<SpmPackageMap> {
-        let projectDir = path ? path : Spm.getProjectDir();
-        let installDir = LibPath.join(projectDir, Spm.INSTALL_DIR_NAME);
+        const projectDir = path ? path : Spm.getProjectDir();
+        const installDir = LibPath.join(projectDir, Spm.INSTALL_DIR_NAME);
 
         if (LibFs.existsSync(installDir) && LibFs.statSync(installDir).isDirectory()) {
-            let files = await recursive(installDir, ['.DS_Store']);
-
+            const files = await recursive(installDir, ['.DS_Store']);
             let spmPackageMap = {} as SpmPackageMap;
             for (let file of files) {
-                let basename = LibPath.basename(file);
+                const basename = LibPath.basename(file);
                 if (basename.match(/.+\.json/) !== null) {
-                    let dirname = LibPath.dirname(file).replace(installDir, '').replace('\\', '').replace('/', '');
-                    let packageConfig = Spm.getSpmPackageConfig(file);
+                    const dirname = LibPath.dirname(file).replace(installDir, '').replace('\\', '').replace('/', '');
+                    const packageConfig = Spm.getSpmPackageConfig(file);
                     spmPackageMap[dirname] = {
                         name: packageConfig.name,
                         version: packageConfig.version,
@@ -155,14 +155,14 @@ export namespace Spm {
      * @param {Array<[RegExp, any]>} conditions
      * @returns {Promise<void>}
      */
-    export async function replaceStringInFile(filePath: string, conditions: Array<[RegExp, any]>) {
+    export async function replaceStringInFile(filePath: string, conditions: Array<[RegExp, any]>): Promise<void> {
         try {
             let buffer = await LibFs.readFile(filePath);
             let content = buffer.toString();
             for (let [reg, word] of conditions) {
                 content = content.replace(reg, word);
             }
-            LibFs.writeFileSync(filePath, Buffer.from(content));
+            await LibFs.writeFile(filePath, Buffer.from(content));
         } catch (e) {
             throw e;
         }
@@ -170,21 +170,6 @@ export namespace Spm {
 }
 
 export namespace SpmPackageRequest {
-    /**
-     * Get Spm Publish request config
-     *
-     * @returns {SpmConfig}
-     */
-    export function getRequestOption(path: string, method: RequestMethod = RequestMethod.get): http.RequestOptions {
-        let spmHttpConfig = Spm.getConfig();
-        return {
-            host: spmHttpConfig.host,
-            port: spmHttpConfig.port,
-            method: RequestMethod[method],
-            path: path,
-        };
-    }
-
     /**
      * Parse request response
      *
@@ -197,5 +182,26 @@ export namespace SpmPackageRequest {
             throw new Error(response.msg.toString());
         }
         return response.msg;
+    }
+}
+
+export namespace httpRequest {
+    export async function post(uri: string, params: {[key: string]: any}): Promise<any> {
+        return new Promise((resolve, reject) => {
+            request.post(`${Spm.getConfig().remote_repo}${uri}`)
+                .form(params)
+                .on('response', (response) => {
+                    response.on('data', (chunk) => {
+                        try {
+                            resolve(SpmPackageRequest.parseResponse(chunk));
+                        } catch (e) {
+                            reject(e);
+                        }
+                    });
+                })
+                .on('error', (e) => {
+                    reject(e);
+                });
+        });
     }
 }

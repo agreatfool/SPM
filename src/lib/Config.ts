@@ -5,6 +5,7 @@ export interface ConfigOptions {
     host: string;
     port: number;
     secret: string;
+    remote_repo: string;
 }
 
 export default class Config {

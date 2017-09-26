@@ -1,7 +1,6 @@
 import * as program from 'commander';
 import * as _ from 'underscore';
-import * as request from './lib/request';
-import {SpmPackageRequest} from './lib/lib';
+import {httpRequest} from './lib/lib';
 import {SpmPackage} from '../lib/entity/SpmPackage';
 import {SpmPackageVersion} from '../lib/entity/SpmPackageVersion';
 
@@ -22,10 +21,17 @@ export class SearchCLI {
 
     public async run() {
         console.log('SearchCLI start.');
+
         await this._validate();
-        await this._search();
+        await this._displaySearchResult();
     }
 
+    /**
+     * 验证参数，数据，环境是否正确
+     *
+     * @returns {Promise<void>}
+     * @private
+     */
     private async _validate() {
         console.log('SearchCLI validate.');
 
@@ -34,41 +40,41 @@ export class SearchCLI {
         }
     }
 
-    private async _search() {
+    /**
+     * 访问 /v1/search，并显示搜索结果。
+     *
+     * @returns {Promise<void>}
+     * @private
+     */
+    private async _displaySearchResult() {
         console.log('SearchCLI search.');
 
-        await new Promise(async (resolve, reject) => {
-            let params = {
-                keyword: KEYWORD_VALUE,
-                info: !!(INFO_VALUE)
-            };
+        let params = {
+            keyword: KEYWORD_VALUE,
+            info: !!(INFO_VALUE)
+        };
 
-            request.post('/v1/search', params, (chunk, reqResolve, reqReject) => {
-                try {
-                    reqResolve(SpmPackageRequest.parseResponse(chunk));
-                } catch (e) {
-                    reqReject(e);
-                }
-            }).then((response: Array<SpmPackage | [SpmPackage, SpmPackageVersion]>) => {
-                console.log('--------------Search Response---------------');
-                if (response.length > 0) {
-                    for (let packageInfo of response) {
-                        if (_.isArray(packageInfo)) {
-                            let [spmPackage, spmPackageVersion] = packageInfo as [SpmPackage, SpmPackageVersion];
-                            console.log(`${spmPackage.name}@${spmPackageVersion.major}.${spmPackageVersion.minor}.${spmPackageVersion.patch}`);
-                        } else {
-                            console.log(`${packageInfo.name} | ${(packageInfo.description) ? packageInfo.description : 'no description'}`);
-                        }
+        try {
+            let response = await httpRequest.post('/v1/search', params) as Array<SpmPackage | [SpmPackage, SpmPackageVersion]>;
+
+            console.log('--------------Search Response---------------');
+            if (response.length > 0) {
+                for (let packageInfo of response) {
+                    if (_.isArray(packageInfo)) {
+                        let [spmPackage, spmPackageVersion] = packageInfo as [SpmPackage, SpmPackageVersion];
+                        console.log(`${spmPackage.name}@${spmPackageVersion.major}.${spmPackageVersion.minor}.${spmPackageVersion.patch}`);
+                    } else {
+                        console.log(`${packageInfo.name} | ${(packageInfo.description) ? packageInfo.description : 'no description'}`);
                     }
-                } else {
-                    console.log('package not found!');
                 }
-                console.log('--------------Search Response---------------');
-                resolve();
-            }).catch((e) => {
-                reject(e);
-            });
-        });
+            } else {
+                console.log('package not found!');
+            }
+            console.log('--------------Search Response---------------');
+
+        } catch (e) {
+            throw e;
+        }
 
     }
 }
