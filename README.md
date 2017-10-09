@@ -1,21 +1,19 @@
-# SPM: SASDN Package Management Tools
+# SPM 包管理工具
 
-> SPM is a tool for managing the proto package for SASDN micro services.
-> It consists of two parts: Center Node Server and Client Command Tools.
-> This document aims to introduce the contract and design of package management tools
+> SPM 包管理工具是一个用于管理 SASDN 微服务的 proto 包的工具，主要由两部分组成：中心节点服务，客户端命令行工具。本文档旨在介绍包管理工具的约定与设计。
 
 ---
 
-## Contract
-### The Version Number
-The version number of the proto package managed in SPM is governed by the Semantic Versioning 2.0.[reference](http://semver.org/)
+## 约定
+### 版本号约定
+SPM 包管理工具中管理的 proto 包的版本号使用 Semantic Versioning 2.0 进行规范。[参考](http://semver.org/lang/zh-CN/)
 
-* The version number format: MAJOR.MINOR.PATCH:
-* The version number increment rule:
-	* MAJOR: when you make `not backwards compatibility` API changes
-	* MINOR: when you add functionality in a backwards-compatible manner
-	* PATCH: when you make `backward compatibility ` problem fixed
-
+* 版本格式：主版本号.次版本号.修订号
+* 版本号递增规则如下：
+	* 主版本号：改动中做了`不向下兼容`的 API 修改
+	* 次版本号：改动中做了`向下兼容`的功能性新增
+	* 修订号：改动中做了`向下兼容`的问题修正
+	
 ### 文件结构
 每一个微服务项目的文件结构如下：
 
@@ -23,8 +21,6 @@ The version number of the proto package managed in SPM is governed by the Semant
 	├── proto
 	│   ├── book
 	│   │   ├── book.proto
-	│   │   ├── bookCategory.proto
-	│   ├── data.proto
 	├── spm_protos
 	│   ├── pay                   			
 	│   │   ├── pay.proto
@@ -37,7 +33,7 @@ The version number of the proto package managed in SPM is governed by the Semant
 	│   │   ├── spm.json
 
 每一个微服务项目的根目录下都会有两个文件夹：proto 和 spm_protos
-* proto文件夹：用于存放项目中自编写的proto文件
+* proto文件夹：用于存放项目中自编写的proto文件。
     > 约定：请根据 spm.json 的 name 字段创建文件夹，并将自编写的 proto 文件放在这个文件夹内。
 * spm_protos文件夹：用于存放通过包管理软件下载安装的protos文件   
 
@@ -74,13 +70,15 @@ The version number of the proto package managed in SPM is governed by the Semant
 使用数据库: sqlite3
 
     CREATE TABLE spm_package (
-      name          TEXT      NOT NULL      PRIMARY KEY,
+      id            INTEGER   NOT NULL      PRIMARY KEY,
+      sid           INTEGER   NOT NULL,
+      name          TEXT      NOT NULL,
       description   TEXT      NOT NULL
     );
     
     CREATE TABLE spm_package_version (
       id            INTEGER   NOT NULL      PRIMARY KEY,
-      name          TEXT      NOT NULL,
+      pid           INT       NOT NULL,
       major         INT       NOT NULL,
       minor         INT       NOT NULL,
       patch         INT       NOT NULL,
@@ -90,7 +88,8 @@ The version number of the proto package managed in SPM is governed by the Semant
     );
     
     CREATE TABLE spm_package_secret (
-      name          TEXT      NOT NULL      PRIMARY KEY,  
+      id            INTEGER   NOT NULL      PRIMARY KEY,
+      name          TEXT      NOT NULL,
       secret        TEXT      NOT NULL
     );
     
@@ -149,4 +148,3 @@ The version number of the proto package managed in SPM is governed by the Semant
 1. 包备份脚本( crontab )
 2. 用户模块
 3. 用户密钥生成
-
