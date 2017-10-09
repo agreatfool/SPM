@@ -69,7 +69,7 @@ export class SecretCLI {
      * @returns {Promise<void>}
      * @private
      */
-    private async _genSecret(): Promise<{ secret: string }> {
+    private async _genSecret(): Promise<{secret: string}> {
         console.log('SecretCLI genSecret.');
 
         let params = {

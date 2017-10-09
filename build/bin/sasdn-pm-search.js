@@ -56,7 +56,7 @@ class SearchCLI {
                 info: !!(INFO_VALUE)
             };
             try {
-                let response = yield lib_1.httpRequest.post('/v1/search', params);
+                let response = yield lib_1.HttpRequest.post('/v1/search', params);
                 console.log('--------------Search Response---------------');
                 if (response.length > 0) {
                     for (let packageInfo of response) {

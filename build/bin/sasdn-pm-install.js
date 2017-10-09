@@ -12,7 +12,6 @@ const LibFs = require("mz/fs");
 const LibPath = require("path");
 const program = require("commander");
 const unzip = require("unzip2");
-const request = require("request");
 const _ = require("underscore");
 const recursive = require("recursive-readdir");
 const lib_1 = require("./lib/lib");
@@ -93,7 +92,7 @@ class InstallCLI {
             let params = {
                 name: name,
             };
-            return yield lib_1.httpRequest.post('/v1/search_dependencies', params);
+            return yield lib_1.HttpRequest.post('/v1/search_dependencies', params);
         });
     }
     /**
@@ -214,29 +213,11 @@ class InstallCLI {
      * @private
      */
     _packageDownload(spmPackage, tmpZipPath) {
-        let params = {
-            path: spmPackage.downloadUrl,
-        };
-        return new Promise((resolve, reject) => {
-            request.post(`${lib_1.Spm.getConfig().remote_repo}/v1/install`)
-                .form(params)
-                .on('response', (response) => {
-                // 当返回结果的 header 类型不是 ‘application/octet-stream’，则返回报错信息
-                if (response.headers['content-type'] == 'application/octet-stream') {
-                    response.on('end', () => {
-                        resolve();
-                    });
-                }
-                else {
-                    response.on('data', (chunk) => {
-                        reject(new Error(chunk.toString()));
-                    });
-                }
-            })
-                .on('error', (e) => {
-                reject(e);
-            })
-                .pipe(LibFs.createWriteStream(tmpZipPath));
+        return __awaiter(this, void 0, void 0, function* () {
+            let params = {
+                path: spmPackage.downloadUrl,
+            };
+            yield lib_1.HttpRequest.download(`/v1/install`, params, tmpZipPath);
         });
     }
     /**
@@ -284,9 +265,9 @@ class InstallCLI {
                 return Promise.resolve();
             }
             else {
-                let files = yield recursive(tmpPkgPath, ['.DS_Store']);
+                const files = yield recursive(tmpPkgPath, ['.DS_Store']);
                 let count = 0;
-                files.map((file) => __awaiter(this, void 0, void 0, function* () {
+                for (let file of files) {
                     count++;
                     if (LibPath.basename(file).match(/.+\.proto/) !== null) {
                         if (spmPackage.name != dirname) {
@@ -306,7 +287,7 @@ class InstallCLI {
                     if (count == files.length) {
                         return Promise.resolve();
                     }
-                }));
+                }
             }
         });
     }

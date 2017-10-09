@@ -17,7 +17,7 @@ export class UninstallCLI {
     private _packageConfig: SpmPackageConfig;
     private _spmPackageInstalled: SpmPackageMap;
     private _spmPackageUninstall: SpmPackage;
-    private _spmPackageUninstallDirnames: { [name: string]: string };
+    private _spmPackageUninstallDirnames: {[name: string]: string};
 
     static instance() {
         return new UninstallCLI();
@@ -154,8 +154,8 @@ export class UninstallCLI {
     private _checkInstalledDependencies() {
 
         // 创建临时对象，用来存放需要删除的“包路径”和“包版本”
-        let removeDirs = {} as { [name: string]: string };
-        let removePkgVersion = {} as { [name: string]: Array<string> };
+        let removeDirs = {} as {[name: string]: string};
+        let removePkgVersion = {} as {[name: string]: Array<string>};
         for (let name in this._spmPackageUninstallDirnames) {
             let [pkName, version] = name.split('@');
             if (!removePkgVersion.hasOwnProperty(pkName)) {

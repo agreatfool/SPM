@@ -1,10 +1,10 @@
-import * as LibPath from "path";
-import * as LibFs from "mz/fs";
-import * as LibMkdirP from "mkdirp";
-import * as bluebird from "bluebird";
+import * as LibPath from 'path';
+import * as LibFs from 'mz/fs';
+import * as LibMkdirP from 'mkdirp';
+import * as bluebird from 'bluebird';
 import * as request from 'request';
-import * as recursive from "recursive-readdir";
-import {ResponseSchema} from "../../lib/ApiBase";
+import * as recursive from 'recursive-readdir';
+import {ResponseSchema} from '../../lib/ApiBase';
 
 export enum RequestMethod { post, get }
 
@@ -185,6 +185,7 @@ export namespace SpmPackageRequest {
     }
 }
 
+
 export namespace HttpRequest {
     export async function post(uri: string, params: {[key: string]: any}): Promise<any> {
         return new Promise((resolve, reject) => {
@@ -202,6 +203,48 @@ export namespace HttpRequest {
                 .on('error', (e) => {
                     reject(e);
                 });
+        });
+    }
+
+    export async function download(uri: string, params: {[key: string]: any}, filePath: string): Promise<any> {
+        return new Promise((resolve, reject) => {
+            request.post(`${Spm.getConfig().remote_repo}${uri}`)
+                .form(params)
+                .on('response', (response) => {
+                    // 当返回结果的 header 类型不是 ‘application/octet-stream’，则返回报错信息
+                    if (response.headers['content-type'] == 'application/octet-stream') {
+                        response.on('end', () => {
+                            resolve();
+                        });
+                    } else {
+                        response.on('data', (chunk) => {
+                            reject(new Error(chunk.toString()));
+                        });
+                    }
+                })
+                .on('error', (e) => {
+                    reject(e);
+                })
+                .pipe(LibFs.createWriteStream(filePath));
+        });
+    }
+
+    export async function upload(uri: string, params: {[key: string]: any}, fileUploadStream: LibFs.ReadStream): Promise<any> {
+        return new Promise((resolve, reject) => {
+            let req = request.post(`${Spm.getConfig().remote_repo}${uri}`, (e, response) => {
+                if (e) {
+                    reject(e);
+                }
+
+                console.log(`PublishCLI publish: [Response] - ${response.body}`);
+                resolve();
+            });
+
+            let form = req.form();
+            for (let key in params) {
+                form.append(key, params[key]);
+            }
+            form.append('fileUpload', fileUploadStream, {filename: `${Math.random().toString(16)}.zip`});
         });
     }
 }

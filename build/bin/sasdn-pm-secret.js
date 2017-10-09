@@ -73,7 +73,7 @@ class SecretCLI {
             let params = {
                 name: this._packageConfig.name
             };
-            return yield lib_1.httpRequest.post('/v1/secret', params);
+            return yield lib_1.HttpRequest.post('/v1/secret', params);
         });
     }
 }

@@ -2,7 +2,6 @@ import * as LibFs from 'mz/fs';
 import * as LibPath from 'path';
 import * as program from 'commander';
 import * as unzip from 'unzip2';
-import * as request from 'request';
 import * as _ from 'underscore';
 import * as recursive from 'recursive-readdir';
 import {
@@ -231,31 +230,12 @@ export class InstallCLI {
      * @returns {Promise<void>}
      * @private
      */
-    private _packageDownload(spmPackage: SpmPackage, tmpZipPath: string): Promise<void> {
+    private async _packageDownload(spmPackage: SpmPackage, tmpZipPath: string): Promise<void> {
         let params = {
             path: spmPackage.downloadUrl,
         };
 
-        return new Promise((resolve, reject) => {
-            request.post(`${Spm.getConfig().remote_repo}/v1/install`)
-                .form(params)
-                .on('response', (response) => {
-                    // 当返回结果的 header 类型不是 ‘application/octet-stream’，则返回报错信息
-                    if (response.headers['content-type'] == 'application/octet-stream') {
-                        response.on('end', () => {
-                            resolve();
-                        });
-                    } else {
-                        response.on('data', (chunk) => {
-                            reject(new Error(chunk.toString()));
-                        });
-                    }
-                })
-                .on('error', (e) => {
-                    reject(e);
-                })
-                .pipe(LibFs.createWriteStream(tmpZipPath));
-        });
+        await HttpRequest.download(`/v1/install`, params, tmpZipPath);
     }
 
     /**
@@ -271,15 +251,15 @@ export class InstallCLI {
             if (LibFs.statSync(tmpZipPath).isFile()) {
                 LibFs.createReadStream(tmpZipPath)
                     .pipe(unzip.Extract({path: tmpPkgPath})
-                    .on('close', () => {
-                        LibFs.unlinkSync(tmpZipPath);
-                        resolve();
-                    }));
+                        .on('close', () => {
+                            LibFs.unlinkSync(tmpZipPath);
+                            resolve();
+                        }));
             } else {
                 LibFs.unlinkSync(tmpZipPath);
                 reject(new Error('Download file corruption.'));
             }
-        })
+        });
     }
 
     /**
@@ -302,9 +282,9 @@ export class InstallCLI {
         if (_.isEmpty(spmPackage.dependenciesChanged) && spmPackage.name == dirname) {
             return Promise.resolve();
         } else {
-            let files = await recursive(tmpPkgPath, ['.DS_Store']);
+            const files = await recursive(tmpPkgPath, ['.DS_Store']);
             let count = 0;
-            files.map(async (file: string) => {
+            for (let file of files) {
                 count++;
                 if (LibPath.basename(file).match(/.+\.proto/) !== null) {
                     if (spmPackage.name != dirname) {
@@ -326,7 +306,7 @@ export class InstallCLI {
                 if (count == files.length) {
                     return Promise.resolve();
                 }
-            });
+            }
         }
     }
 

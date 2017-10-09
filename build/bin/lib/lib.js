@@ -172,8 +172,8 @@ var SpmPackageRequest;
     }
     SpmPackageRequest.parseResponse = parseResponse;
 })(SpmPackageRequest = exports.SpmPackageRequest || (exports.SpmPackageRequest = {}));
-var httpRequest;
-(function (httpRequest) {
+var HttpRequest;
+(function (HttpRequest) {
     function post(uri, params) {
         return __awaiter(this, void 0, void 0, function* () {
             return new Promise((resolve, reject) => {
@@ -195,6 +195,51 @@ var httpRequest;
             });
         });
     }
-    httpRequest.post = post;
-})(httpRequest = exports.httpRequest || (exports.httpRequest = {}));
+    HttpRequest.post = post;
+    function download(uri, params, filePath) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return new Promise((resolve, reject) => {
+                request.post(`${Spm.getConfig().remote_repo}${uri}`)
+                    .form(params)
+                    .on('response', (response) => {
+                    // 当返回结果的 header 类型不是 ‘application/octet-stream’，则返回报错信息
+                    if (response.headers['content-type'] == 'application/octet-stream') {
+                        response.on('end', () => {
+                            resolve();
+                        });
+                    }
+                    else {
+                        response.on('data', (chunk) => {
+                            reject(new Error(chunk.toString()));
+                        });
+                    }
+                })
+                    .on('error', (e) => {
+                    reject(e);
+                })
+                    .pipe(LibFs.createWriteStream(filePath));
+            });
+        });
+    }
+    HttpRequest.download = download;
+    function upload(uri, params, fileUploadStream) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return new Promise((resolve, reject) => {
+                let req = request.post(`${Spm.getConfig().remote_repo}${uri}`, (e, response) => {
+                    if (e) {
+                        reject(e);
+                    }
+                    console.log(`PublishCLI publish: [Response] - ${response.body}`);
+                    resolve();
+                });
+                let form = req.form();
+                for (let key in params) {
+                    form.append(key, params[key]);
+                }
+                form.append('fileUpload', fileUploadStream, { filename: `${Math.random().toString(16)}.zip` });
+            });
+        });
+    }
+    HttpRequest.upload = upload;
+})(HttpRequest = exports.HttpRequest || (exports.HttpRequest = {}));
 //# sourceMappingURL=lib.js.map

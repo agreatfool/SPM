@@ -2,9 +2,8 @@ import * as LibFs from 'mz/fs';
 import * as LibPath from 'path';
 import * as program from 'commander';
 import * as archiver from 'archiver';
-import * as request from 'request';
 import * as _ from 'underscore';
-import {Spm, SpmPackageConfig, mkdir} from './lib/lib';
+import {Spm, SpmPackageConfig, mkdir, HttpRequest} from './lib/lib';
 
 const pkg = require('../../package.json');
 
@@ -142,24 +141,11 @@ export class PublishCLI {
         let filePath = LibPath.join(this._tmpFilePath, this._tmpFileName);
         let fileUploadStream = LibFs.createReadStream(filePath);
 
-        // create post
-        let req = request.post(`${Spm.getConfig().remote_repo}/v1/publish`, (err, httpResponse) => {
-            if (err) {
-                throw err;
-            }
-
-            console.log(`PublishCLI publish: [Response] - ${httpResponse.body}`);
-            LibFs.unlink(filePath).catch((err) => {
-                throw err;
+        await HttpRequest.upload(`/v1/publish`, params, fileUploadStream).then(() => {
+            LibFs.unlink(filePath).catch((e) => {
+                throw e;
             });
         });
-
-        // append form data
-        let form = req.form();
-        for (let key in params) {
-            form.append(key, params[key]);
-        }
-        form.append('fileUpload', fileUploadStream, {filename: `${Math.random().toString(16)}.zip`});
     };
 }
 
