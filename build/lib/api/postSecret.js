@@ -58,4 +58,3 @@ class PostSecret extends ApiBase_1.ApiBase {
     ;
 }
 exports.api = new PostSecret();
-//# sourceMappingURL=postSecret.js.map

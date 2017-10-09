@@ -48,4 +48,3 @@ SpmPackageVersion = __decorate([
     typeorm_1.Entity()
 ], SpmPackageVersion);
 exports.SpmPackageVersion = SpmPackageVersion;
-//# sourceMappingURL=SpmPackageVersion.js.map

@@ -123,4 +123,3 @@ class PostPublish extends ApiBase_1.ApiBase {
     ;
 }
 exports.api = new PostPublish();
-//# sourceMappingURL=postPublish.js.map

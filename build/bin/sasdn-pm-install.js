@@ -313,4 +313,3 @@ exports.InstallCLI = InstallCLI;
 InstallCLI.instance().run().catch((err) => {
     console.log('error:', err.message);
 });
-//# sourceMappingURL=sasdn-pm-install.js.map

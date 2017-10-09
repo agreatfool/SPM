@@ -84,4 +84,3 @@ exports.SearchCLI = SearchCLI;
 SearchCLI.instance().run().catch((err) => {
     console.log('error:', err.message);
 });
-//# sourceMappingURL=sasdn-pm-search.js.map

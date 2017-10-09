@@ -12,4 +12,3 @@ program.version(pkg.version)
     .command('uninstall [options]', 'install proto from spm server')
     .command('backup [options]', 'backup store dir and sqlite db file')
     .parse(process.argv);
-//# sourceMappingURL=sasdn-pm.js.map
