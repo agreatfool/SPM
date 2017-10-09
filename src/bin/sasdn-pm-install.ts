@@ -324,7 +324,7 @@ export class InstallCLI {
                 }
 
                 if (count == files.length) {
-                    return Promise.resolve()
+                    return Promise.resolve();
                 }
             });
         }
