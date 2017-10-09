@@ -2,7 +2,7 @@ import * as LibPath from 'path';
 import * as LibFs from 'mz/fs';
 import * as program from 'commander';
 import * as _ from 'underscore';
-import {Spm, SpmPackageConfig, httpRequest} from './lib/lib';
+import {Spm, SpmPackageConfig, HttpRequest} from './lib/lib';
 
 const pkg = require('../../package.json');
 
@@ -76,7 +76,7 @@ export class SecretCLI {
             name: this._packageConfig.name
         };
 
-        return await httpRequest.post('/v1/secret', params);
+        return await HttpRequest.post('/v1/secret', params);
     }
 }
 

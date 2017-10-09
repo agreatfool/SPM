@@ -10,7 +10,7 @@ import {
     SpmPackage,
     SpmPackageConfig,
     SpmPackageMap,
-    httpRequest,
+    HttpRequest,
     mkdir,
     rmdir
 } from './lib/lib';
@@ -106,7 +106,7 @@ export class InstallCLI {
         let params = {
             name: name,
         };
-        return await httpRequest.post('/v1/search_dependencies', params);
+        return await HttpRequest.post('/v1/search_dependencies', params);
     }
 
     /**

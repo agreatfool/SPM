@@ -1,6 +1,6 @@
 import * as program from 'commander';
 import * as _ from 'underscore';
-import {httpRequest} from './lib/lib';
+import {HttpRequest} from './lib/lib';
 import {SpmPackage} from '../lib/entity/SpmPackage';
 import {SpmPackageVersion} from '../lib/entity/SpmPackageVersion';
 
@@ -55,7 +55,7 @@ export class SearchCLI {
         };
 
         try {
-            let response = await httpRequest.post('/v1/search', params) as Array<SpmPackage | [SpmPackage, SpmPackageVersion]>;
+            let response = await HttpRequest.post('/v1/search', params) as Array<SpmPackage | [SpmPackage, SpmPackageVersion]>;
 
             console.log('--------------Search Response---------------');
             if (response.length > 0) {

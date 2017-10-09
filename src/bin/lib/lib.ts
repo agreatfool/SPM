@@ -185,7 +185,7 @@ export namespace SpmPackageRequest {
     }
 }
 
-export namespace httpRequest {
+export namespace HttpRequest {
     export async function post(uri: string, params: {[key: string]: any}): Promise<any> {
         return new Promise((resolve, reject) => {
             request.post(`${Spm.getConfig().remote_repo}${uri}`)
