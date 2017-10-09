@@ -11,6 +11,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const LibPath = require("path");
 const LibFs = require("mz/fs");
 const typeorm_1 = require("typeorm");
+const lib_1 = require("../bin/lib/lib");
 class Database {
     static instance() {
         if (Database._instance === undefined) {
@@ -41,7 +42,7 @@ class Database {
                 }
                 this._conn = yield typeorm_1.createConnection({
                     type: 'sqlite',
-                    database: LibPath.join(__dirname, '..', '..', 'Spm.db'),
+                    database: LibPath.join(lib_1.Spm.SPM_ROOT_PATH, 'Spm.db'),
                     entities: entities,
                     autoSchemaSync: true,
                 });

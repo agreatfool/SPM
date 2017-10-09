@@ -1,10 +1,11 @@
-import * as LibPath from "path";
-import * as LibFs from "mz/fs";
+import * as LibPath from 'path';
+import * as LibFs from 'mz/fs';
 
 export interface ConfigOptions {
     host: string;
     port: number;
     secret: string;
+    remote_repo: string;
 }
 
 export default class Config {

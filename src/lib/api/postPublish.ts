@@ -1,14 +1,14 @@
-import "reflect-metadata";
-import * as LibPath from "path";
-import * as LibFs from "mz/fs";
-import * as _ from "underscore";
-import Database from "../Database";
-import {Context as KoaContext} from "koa";
-import {SpmPackage} from "../entity/SpmPackage";
-import {SpmPackageVersion} from "../entity/SpmPackageVersion";
-import {SpmPackageSecret} from "../entity/SpmPackageSecret";
-import {ApiBase, MiddlewareNext, ResponseSchema} from "../ApiBase";
-import {mkdir} from "../../bin/lib/lib";
+import 'reflect-metadata';
+import * as LibPath from 'path';
+import * as LibFs from 'mz/fs';
+import * as _ from 'underscore';
+import Database from '../Database';
+import {Context as KoaContext} from 'koa';
+import {SpmPackage} from '../entity/SpmPackage';
+import {SpmPackageVersion} from '../entity/SpmPackageVersion';
+import {SpmPackageSecret} from '../entity/SpmPackageSecret';
+import {ApiBase, MiddlewareNext, ResponseSchema} from '../ApiBase';
+import {mkdir, Spm} from '../../bin/lib/lib';
 
 interface PublishParams {
     fields: {
@@ -77,7 +77,7 @@ class PostPublish extends ApiBase {
         }
 
         // read upload stream
-        const storePath = LibPath.join(__dirname, '..', '..', '..', 'store');
+        const storePath = LibPath.join(Spm.SPM_ROOT_PATH, 'store');
         await mkdir(storePath);
 
         const fileUpload = body.files['fileUpload'];
@@ -115,7 +115,7 @@ class PostPublish extends ApiBase {
             let spmPackageVersion = await dbConn
                 .getRepository(SpmPackageVersion)
                 .createQueryBuilder('version')
-                .where('version.name=:name', {pid: spmPackage.name})
+                .where('version.name=:name', {name: spmPackage.name})
                 .andWhere('version.major=:major', {major: major})
                 .andWhere('version.minor=:minor', {minor: minor})
                 .andWhere('version.patch=:patch', {patch: patch})

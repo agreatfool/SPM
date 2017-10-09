@@ -1,14 +1,20 @@
-import * as LibFs from "mz/fs";
-import * as LibPath from "path";
-import * as program from "commander";
-import * as unzip from "unzip";
-import * as _ from "underscore";
-import * as recursive from "recursive-readdir";
-import {Spm, SpmPackageRequest, mkdir, rmdir, SpmPackageMap, SpmPackage, SpmPackageConfig} from "./lib/lib";
-import * as request from "./lib/request";
+import * as LibFs from 'mz/fs';
+import * as LibPath from 'path';
+import * as program from 'commander';
+import * as unzip from 'unzip2';
+import * as _ from 'underscore';
+import * as recursive from 'recursive-readdir';
+import {
+    Spm,
+    SpmPackage,
+    SpmPackageConfig,
+    SpmPackageMap,
+    HttpRequest,
+    mkdir,
+    rmdir
+} from './lib/lib';
 
 const pkg = require('../../package.json');
-const debug = require('debug')('SPM:CLI:install');
 
 program.version(pkg.version)
     .parse(process.argv);
@@ -16,49 +22,64 @@ program.version(pkg.version)
 const PKG_NAME_VALUE = program.args[0] === undefined ? undefined : program.args[0];
 
 export class InstallCLI {
-    private _tmpDir: string;
+    private _tmpFilePath: string;
     private _tmpFileName: string;
 
     private _projectDir: string;
-    private _spmPackageInstallDir: string;
-    private _spmPackageInstalledMap: SpmPackageMap;
+    private _packageConfig: SpmPackageConfig;
+    private _packageDeployed: Map<string, boolean>;
+    private _spmPackageInstalled: SpmPackageMap; // 已经安装的包
+    private _spmPackageWillInstall: SpmPackageMap; // 即将安装的包
 
     static instance() {
         return new InstallCLI();
     }
 
     public async run() {
-        debug('InstallCLI start.');
+        console.log('InstallCLI start.');
+
         await this._prepare();
         await this._install();
+
+        console.log('InstallCLI complete.');
     }
 
+    /**
+     * 准备命令中需要使用的参数，或创建文件夹。
+     *
+     * @returns {Promise<void>}
+     * @private
+     */
     private async _prepare() {
-        debug('InstallCLI prepare.');
-
-        this._tmpDir = LibPath.join(Spm.SPM_ROOT_PATH, 'tmp');
-        this._tmpFileName = Math.random().toString(16) + '.zip';
-        await mkdir(this._tmpDir);
+        console.log('InstallCLI prepare.');
 
         this._projectDir = Spm.getProjectDir();
-        this._spmPackageInstallDir = LibPath.join(this._projectDir, Spm.INSTALL_DIR_NAME);
-        await mkdir(this._spmPackageInstallDir);
+        this._packageConfig = Spm.getSpmPackageConfig(LibPath.join(this._projectDir, 'spm.json'));
+        this._packageDeployed = new Map();
+        this._spmPackageInstalled = await Spm.getInstalledSpmPackageMap();
+        this._spmPackageWillInstall = {};
 
-        this._spmPackageInstalledMap = await Spm.getInstalledSpmPackageMap();
+        // 创建临时文件夹，生成临时文件名
+        this._tmpFilePath = LibPath.join(Spm.SPM_ROOT_PATH, 'tmp');
+        this._tmpFileName = Math.random().toString(16) + '.zip';
+        await mkdir(this._tmpFilePath);
+
+        // 创建依赖包文件夹
+        await mkdir(LibPath.join(this._projectDir, Spm.INSTALL_DIR_NAME));
     }
 
+    /**
+     * 执行安装
+     *
+     * @returns {Promise<void>}
+     * @private
+     */
     private async _install() {
         let packageList = [] as Array<string>;
         if (!PKG_NAME_VALUE) {
             // MODE ONE: npm install
-            let importConfigPath = LibPath.join(this._projectDir, 'spm.json');
-            try {
-                let packageConfig = Spm.getSpmPackageConfig(importConfigPath);
-                for (let name in packageConfig.dependencies) {
-                    packageList.push(`${name}@${packageConfig.dependencies[name]}`);
-                }
-            } catch (e) {
-                console.log(`Error: ${importConfigPath} not found.`);
+            for (let name in this._packageConfig.dependencies) {
+                packageList.push(`${name}@${this._packageConfig.dependencies[name]}`);
             }
         } else {
             // MODE TWO: npm install ${pkgName}
@@ -66,182 +87,174 @@ export class InstallCLI {
         }
 
         for (let pkgName of packageList) {
-            await new Promise(async (resolve, reject) => {
-                const debug = require('debug')(`SPM:CLI:install:` + pkgName);
-                debug('-----------------------------------');
-                try {
-                    let spmPackageDependMap = await this._searchDependencies(debug, pkgName);
-                    let [mainSpmPackage, spmPackageInstallMap] = await this._comparison(debug, spmPackageDependMap, {});
-                    await this._update(debug, mainSpmPackage);
-                    await this._deploy(spmPackageInstallMap);
-                } catch (e) {
-                    reject(e);
-                }
-                debug('-----------------------------------');
-                resolve();
-            });
+            let spmPackageDependMap = await this._getPkgDependcies(pkgName);
+            await this._loopDependenciesAndCompare(spmPackageDependMap);
+            await this._handleDependenciesConflict();
+            await this._packageDeploy();
         }
     }
 
-    private async _searchDependencies(debug, name: string): Promise<SpmPackageMap | {}> {
-        debug('search dependencies');
-
-        return new Promise(async (resolve, reject) => {
-            let params = {
-                name: name,
-            };
-
-            request.post('/v1/search_dependencies', params, (chunk, reqResolve, reqReject) => {
-                try {
-                    reqResolve(SpmPackageRequest.parseResponse(chunk));
-                } catch (e) {
-                    reqReject(e);
-                }
-            }).then((response) => {
-                resolve(response);
-            }).catch((e) => {
-                reject(e);
-            });
-        });
+    /**
+     * 访问 /v1/search_dependencies 获取需要安装的包的依赖
+     *
+     * @param {string} name
+     * @returns {Promise<SpmPackageMap | {}>}
+     * @private
+     */
+    private async _getPkgDependcies(name: string): Promise<SpmPackageMap | {}> {
+        let params = {
+            name: name,
+        };
+        return await HttpRequest.post('/v1/search_dependencies', params);
     }
 
-    private async _comparison(debug: any, spmPackageDependMap: SpmPackageMap, spmPackageInstallMap: SpmPackageMap): Promise<any> {
-        return new Promise((resolve) => {
-            debug('comparison.');
+    /**
+     * 遍历需要安装的包依赖，并对比版本号，确定是否需要重新安装。
+     *
+     * @param {SpmPackageMap} spmPackageDependMap
+     * @returns {Promise<void>}
+     * @private
+     */
+    private async _loopDependenciesAndCompare(spmPackageDependMap: SpmPackageMap) {
+        for (let fullName in spmPackageDependMap) {
+            let spmPackageDepend = spmPackageDependMap[fullName];
 
-            let mainSpmPackage: SpmPackage;
-            for (let fullName in spmPackageDependMap) {
-                let spmPackageDepend = spmPackageDependMap[fullName];
+            // 对比“依赖版本”与“当前版本”的 package 的版本。
+            this._comparisonWillInstall(spmPackageDepend);
 
-                if (spmPackageDepend.isDependencies == false) {
-                    mainSpmPackage = spmPackageDepend;
+            // 修改 spm.json 的依赖关系。
+            if (spmPackageDepend.isDependencies == false) {
+                // 如果当前版本已经存在，则跳过。
+                if (this._packageConfig.dependencies.hasOwnProperty(spmPackageDepend.name)
+                    && this._packageConfig.dependencies[spmPackageDepend.name] == spmPackageDepend.version) {
+                    continue;
                 }
 
-                spmPackageInstallMap = this._comparisonWillInstall(spmPackageDepend, spmPackageInstallMap);
+                // 写入依赖关系
+                this._packageConfig.dependencies[spmPackageDepend.name] = spmPackageDepend.version;
+                await LibFs.writeFile(LibPath.join(this._projectDir, 'spm.json'), Buffer.from(JSON.stringify(this._packageConfig, null, 2)));
             }
+        }
+    }
 
-            for (let dirname in spmPackageInstallMap) {
-                let spmPackage = spmPackageInstallMap[dirname];
-                spmPackage.dependenciesChanged = {};
-                for (let pkgName in spmPackage.dependencies) {
-                    let [dependMajor] = spmPackage.dependencies[pkgName].split('.');
-                    if (this._spmPackageInstalledMap.hasOwnProperty(pkgName)) {
-                        let [installMajor] = this._spmPackageInstalledMap[pkgName].version.split('.');
-                        if (installMajor != dependMajor) {
-                            spmPackage.dependenciesChanged[pkgName] = `${pkgName}${Spm.SPM_VERSION_CONNECTOR}${dependMajor}`;
-                        }
+    /**
+     * 对比“依赖版本”与“当前版本”的 package 的版本。
+     * 1. 依赖版本低于当前版本，则不处理
+     * 2. 依赖版本高于当前版本，则下载
+     *
+     * @param {SpmPackage} spmPackage
+     * @param {number} deepLevel
+     * @param {string} changeName
+     * @returns {SpmPackageMap}
+     * @private
+     */
+    private _comparisonWillInstall(spmPackage: SpmPackage, deepLevel: number = 0, changeName?: string) {
+        let dirname = (changeName) ? changeName : spmPackage.name;
+
+        if (this._spmPackageInstalled.hasOwnProperty(dirname)) {
+            let [nextMajor, nextMinor, nextPatch] = spmPackage.version.split('.');
+            let [curMajor, curMinor, curPath] = this._spmPackageInstalled[dirname].version.split('.');
+
+            if (nextMajor == curMajor) {
+                if (nextMinor < curMinor || nextMinor == curMinor && nextPatch < curPath) {
+                    // 依赖版本低于当前版本，不处理，其他情况都要重新下载
+                } else {
+                    this._spmPackageInstalled[dirname] = spmPackage;
+                    this._spmPackageWillInstall[dirname] = spmPackage;
+                }
+            } else {
+                if (deepLevel == 0) {
+                    this._comparisonWillInstall(spmPackage, 1, `${spmPackage.name}${Spm.SPM_VERSION_CONNECTOR}${nextMajor}`);
+                }
+            }
+        } else {
+            this._spmPackageInstalled[dirname] = spmPackage;
+            this._spmPackageWillInstall[dirname] = spmPackage;
+        }
+    }
+
+    /**
+     * 解决“安装的包”的依赖冲突问题
+     *
+     * @private
+     */
+    private _handleDependenciesConflict() {
+        for (let dirname in this._spmPackageWillInstall) {
+            this._spmPackageWillInstall[dirname].dependenciesChanged = {};
+            for (let pkgName in  this._spmPackageWillInstall[dirname].dependencies) {
+                let [dependMajor] = this._spmPackageWillInstall[dirname].dependencies[pkgName].split('.');
+                let [installMajor] = this._spmPackageInstalled[pkgName].version.split('.');
+
+                // 当需要安装的包依赖已经安装，并且其版本号的主版本号与已安装的依赖不相同，则更改需要安装的包依赖的pkgName
+                if (this._spmPackageInstalled.hasOwnProperty(pkgName)) {
+                    if (installMajor != dependMajor) {
+                        this._spmPackageWillInstall[dirname].dependenciesChanged[pkgName] = `${pkgName}${Spm.SPM_VERSION_CONNECTOR}${dependMajor}`;
                     }
                 }
-                spmPackageInstallMap[dirname] = spmPackage;
             }
-
-            resolve([mainSpmPackage, spmPackageInstallMap]);
-        });
-
-    }
-
-    private async _update(debug: any, mainSpmPackage: SpmPackage) {
-        return new Promise(async (resolve) => {
-            debug('update.');
-
-            let importConfigPath = LibPath.join(this._projectDir, 'spm.json');
-
-            // change import package spm.json
-            let packageConfig = {} as SpmPackageConfig;
-
-            try {
-                packageConfig = Spm.getSpmPackageConfig(importConfigPath);
-            } catch (e) {
-                debug(e.message);
-                debug('Create File:' + importConfigPath);
-                packageConfig = {
-                    name: LibPath.basename(this._projectDir),
-                    version: '0.0.0',
-                    description: '',
-                    dependencies: {}
-                };
-            }
-
-            if (packageConfig.dependencies.hasOwnProperty(mainSpmPackage.name) && packageConfig.dependencies[mainSpmPackage.name] == mainSpmPackage.version) {
-                resolve();
-                return;
-            }
-
-            if (!_.isEmpty(mainSpmPackage)) {
-                packageConfig.dependencies[mainSpmPackage.name] = mainSpmPackage.version;
-            }
-
-            await LibFs.writeFile(importConfigPath, Buffer.from(JSON.stringify(packageConfig, null, 2)), (err) => {
-                if (err) {
-                    throw err;
-                }
-
-                resolve();
-            });
-        });
-    }
-
-    private async _deploy(spmPackageInstallMap: SpmPackageMap) {
-
-        for (let dirname in spmPackageInstallMap) {
-            const debug = require('debug')(`SPM:CLI:deploy:` + dirname);
-            debug('start');
-
-            let tmpName = dirname + this._tmpFileName;
-            let tmpZipPath = LibPath.join(this._tmpDir, tmpName);
-            let tmpPkgPath = LibPath.join(this._tmpDir, dirname);
-
-            // download file
-            await this._packageDownload(debug, spmPackageInstallMap[dirname], tmpZipPath);
-            await this._packageUncompress(debug, tmpZipPath, tmpPkgPath);
-            await this._packageReplaceName(debug, dirname, spmPackageInstallMap[dirname], tmpPkgPath);
-            await this._packageCopy(debug, dirname, tmpPkgPath);
-
-            debug('end');
         }
     }
 
-    private _packageDownload(debug: any, spmPackage: SpmPackage, tmpZipPath: string): Promise<SpmPackageMap | {}> {
+    /**
+     * 部署 package
+     *
+     * @returns {Promise<void>}
+     * @private
+     */
+    private async _packageDeploy() {
+        for (let dirname in this._spmPackageWillInstall) {
+            let tmpName = dirname + this._tmpFileName;
+            let tmpZipPath = LibPath.join(this._tmpFilePath, tmpName);
+            let tmpPkgPath = LibPath.join(this._tmpFilePath, dirname);
 
-        return new Promise(async (resolve, reject) => {
-            debug('download.');
+            // download file
+            let spmPackage = this._spmPackageWillInstall[dirname];
+            let spmPackageName = `${spmPackage.name}@${spmPackage.version}`;
 
-            let params = {
-                path: spmPackage.downloadUrl,
-            };
-
-            let fileStream = LibFs.createWriteStream(tmpZipPath);
-            request.post('/v1/install', params, null, (res, reqResolve, reqReject) => {
-                if (res.headers['content-type'] == 'application/octet-stream') {
-                    res.pipe(fileStream);
-                    res.on('end', () => {
-                        reqResolve();
-                    });
-                } else {
-                    res.on('data', (chunk) => {
-                        reqReject(new Error(chunk.toString()));
-                    });
-                }
-            }).then(() => {
-                debug('download finish. ' + tmpZipPath);
-                resolve();
-            }).catch((e) => {
-                reject(e);
-            });
-        });
+            if (this._packageDeployed.get(spmPackageName) !== true) {
+                await this._packageDownload(spmPackage, tmpZipPath);
+                await this._packageUncompress(tmpZipPath, tmpPkgPath);
+                await this._packageReplaceName(dirname, spmPackage, tmpPkgPath);
+                await this._packageCopy(dirname, tmpPkgPath);
+                this._packageDeployed.set(spmPackageName, true);
+                console.log(`Package：${spmPackageName} complete!`);
+            }
+        }
     }
 
-    private _packageUncompress(debug: any, tmpZipPath: string, tmpPkgPath: string): Promise<SpmPackageMap | {}> {
+    /**
+     * 访问 /v1/install 下载 package 压缩文件
+     *
+     * @param {SpmPackage} spmPackage
+     * @param {string} tmpZipPath
+     * @returns {Promise<void>}
+     * @private
+     */
+    private async _packageDownload(spmPackage: SpmPackage, tmpZipPath: string): Promise<void> {
+        let params = {
+            path: spmPackage.downloadUrl,
+        };
 
+        await HttpRequest.download(`/v1/install`, params, tmpZipPath);
+    }
+
+    /**
+     * 将下载的 package 压缩文件进行解压缩，完成后删除压缩文件
+     *
+     * @param {string} tmpZipPath
+     * @param {string} tmpPkgPath
+     * @returns {Promise<void>}
+     * @private
+     */
+    private _packageUncompress(tmpZipPath: string, tmpPkgPath: string): Promise<void> {
         return new Promise((resolve, reject) => {
-            debug('uncompress.');
             if (LibFs.statSync(tmpZipPath).isFile()) {
-                LibFs.createReadStream(tmpZipPath).pipe(unzip.Extract({path: tmpPkgPath})
-                    .on('close', () => {
-                        debug('uncompress finish.');
-                        LibFs.unlinkSync(tmpZipPath);
-                        resolve();
-                    }));
+                LibFs.createReadStream(tmpZipPath)
+                    .pipe(unzip.Extract({path: tmpPkgPath})
+                        .on('close', () => {
+                            LibFs.unlinkSync(tmpZipPath);
+                            resolve();
+                        }));
             } else {
                 LibFs.unlinkSync(tmpZipPath);
                 reject(new Error('Download file corruption.'));
@@ -249,94 +262,72 @@ export class InstallCLI {
         });
     }
 
-    private _packageReplaceName(debug: any, dirname: string, spmPackage: SpmPackage, tmpPkgPath: string): Promise<SpmPackageMap | {}> {
+    /**
+     * 根据 dependenciesChanged 内容，根据 key 值，替换已下载的包中的 proto 文件。
+     * 1. proto 文件的包名与 key 值相同，则进行替换，eg:
+     *      package order；=> package order__v1;
+     * 2. proto 文件中 import 了 key 值相同的包名，则进行替换，eg：
+     *      import order/ => import order__v1/
+     *      (order.***) => (order__v1.***)
+     *      order.*** => order__v1.***
+     *
+     * @param {string} dirname
+     * @param {SpmPackage} spmPackage
+     * @param {string} tmpPkgPath
+     * @returns {Promise<void>}
+     * @private
+     */
+    private async _packageReplaceName(dirname: string, spmPackage: SpmPackage, tmpPkgPath: string): Promise<void> {
 
-        return new Promise(async (resolve, reject) => {
-            debug('replace name.');
-
-            if (_.isEmpty(spmPackage.dependenciesChanged) && spmPackage.name == dirname) {
-                resolve();
-            } else {
-
-                try {
-                    let files = await recursive(tmpPkgPath, ['.DS_Store']);
-                    let count = 0;
-                    files.map((file: string) => {
-                        count++;
-                        if (LibPath.basename(file).match(/.+\.proto/) !== null) {
-                            if (spmPackage.name != dirname) {
-                                Spm.replaceStringInFile(file, [
-                                    [new RegExp(`package ${spmPackage.name};`, 'g'), `package ${dirname};`]
-                                ]);
-                            }
-
-                            for (let oldString in spmPackage.dependenciesChanged) {
-                                let newString = spmPackage.dependenciesChanged[oldString];
-                                Spm.replaceStringInFile(file, [
-                                    [new RegExp(`import "${oldString}/`, 'g'), `import "${newString}/`],
-                                    [new RegExp(`\\((${oldString}.*?)\\)`, 'g'), (word) => word.replace(oldString, newString)],
-                                    [new RegExp(` (${oldString}.*?) `, 'g'), (word) => word.replace(oldString, newString)]
-                                ]);
-                            }
-                        }
-
-                        if (count == files.length) {
-                            debug('replace name finish.');
-                            resolve();
-                        }
-                    });
-                } catch (e) {
-                    reject(e);
-                }
-
-            }
-        });
-    }
-
-    private _packageCopy(debug: any, dirname: string, tmpPkgPath: string): Promise<SpmPackageMap | {}> {
-
-        return new Promise(async (resolve) => {
-            debug('copy.');
-            let packageDir = LibPath.join(this._spmPackageInstallDir, dirname);
-
-            if (LibFs.existsSync(packageDir) && LibFs.statSync(packageDir).isDirectory()) {
-                await rmdir(packageDir);
-            }
-
-            await LibFs.rename(tmpPkgPath, packageDir);
-            debug('copy finish.');
-            resolve();
-        });
-
-    }
-
-    private _comparisonWillInstall(spmPackage: SpmPackage, spmPackageInstallMap: SpmPackageMap, deepLevel: number = 0, changeName?: string) {
-        let dirname = (changeName) ? changeName : spmPackage.name;
-        if (this._spmPackageInstalledMap.hasOwnProperty(dirname)) {
-            let [nextMajor, nextMinor, nextPatch] = spmPackage.version.split('.');
-            let [curMajor, curMinor, curPath] = this._spmPackageInstalledMap[dirname].version.split('.');
-
-            if (nextMajor == curMajor) {
-                if (nextMinor < curMinor || nextMinor == curMinor && nextPatch < curPath) {
-                    // 依赖版本低于当前版本，不处理，其他情况都要重新下载
-                } else {
-                    this._spmPackageInstalledMap[dirname] = spmPackage;
-                    spmPackageInstallMap[dirname] = spmPackage;
-                }
-            } else {
-                if (deepLevel == 0) {
-                    this._comparisonWillInstall(spmPackage, spmPackageInstallMap, 1, `${spmPackage.name}${Spm.SPM_VERSION_CONNECTOR}${nextMajor}`);
-                }
-            }
+        if (_.isEmpty(spmPackage.dependenciesChanged) && spmPackage.name == dirname) {
+            return Promise.resolve();
         } else {
-            this._spmPackageInstalledMap[dirname] = spmPackage;
-            spmPackageInstallMap[dirname] = spmPackage;
+            const files = await recursive(tmpPkgPath, ['.DS_Store']);
+            let count = 0;
+            for (let file of files) {
+                count++;
+                if (LibPath.basename(file).match(/.+\.proto/) !== null) {
+                    if (spmPackage.name != dirname) {
+                        await Spm.replaceStringInFile(file, [
+                            [new RegExp(`package ${spmPackage.name};`, 'g'), `package ${dirname};`]
+                        ]);
+                    }
+
+                    for (let oldString in spmPackage.dependenciesChanged) {
+                        let newString = spmPackage.dependenciesChanged[oldString];
+                        await Spm.replaceStringInFile(file, [
+                            [new RegExp(`import "${oldString}/`, 'g'), `import "${newString}/`],
+                            [new RegExp(`\\((${oldString}.*?)\\)`, 'g'), (word) => word.replace(oldString, newString)],
+                            [new RegExp(` (${oldString}.*?) `, 'g'), (word) => word.replace(oldString, newString)]
+                        ]);
+                    }
+                }
+
+                if (count == files.length) {
+                    return Promise.resolve();
+                }
+            }
+        }
+    }
+
+    /**
+     * 将已经下载并完成修改的文件内容，拷贝到项目的 spm_protos 中
+     *
+     * @param {string} dirname
+     * @param {string} tmpPkgPath
+     * @returns {Promise<void>}
+     * @private
+     */
+    private async _packageCopy(dirname: string, tmpPkgPath: string): Promise<void> {
+        let packageDir = LibPath.join(LibPath.join(this._projectDir, Spm.INSTALL_DIR_NAME), dirname);
+        if (LibFs.existsSync(packageDir) && LibFs.statSync(packageDir).isDirectory()) {
+            await rmdir(packageDir);
         }
 
-        return spmPackageInstallMap;
+        await LibFs.rename(tmpPkgPath, packageDir);
     }
 }
 
 InstallCLI.instance().run().catch((err: Error) => {
-    debug('err: %O', err.message);
+    console.log('error:', err.message);
 });

@@ -1,9 +1,9 @@
-import * as Koa from "koa";
-import * as koaBody from "koa-body";
-import * as koaBodyParser from "koa-bodyparser";
-import Config from "./Config";
-import Database from "./Database";
-import Router from "./Router";
+import * as Koa from 'koa';
+import * as koaBody from 'koa-body';
+import * as koaBodyParser from 'koa-bodyparser';
+import Config from './Config';
+import Database from './Database';
+import Router from './Router';
 
 export default class App {
     private _initialized: boolean;

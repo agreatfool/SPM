@@ -62,7 +62,7 @@ class PostPublish extends ApiBase_1.ApiBase {
                 params[key] = decodeURIComponent(params[key]);
             }
             // read upload stream
-            const storePath = LibPath.join(__dirname, '..', '..', '..', 'store');
+            const storePath = LibPath.join(lib_1.Spm.SPM_ROOT_PATH, 'store');
             yield lib_1.mkdir(storePath);
             const fileUpload = body.files['fileUpload'];
             const fileStream = LibFs.createReadStream(fileUpload.path).on('end', () => __awaiter(this, void 0, void 0, function* () {
@@ -95,7 +95,7 @@ class PostPublish extends ApiBase_1.ApiBase {
                 let spmPackageVersion = yield dbConn
                     .getRepository(SpmPackageVersion_1.SpmPackageVersion)
                     .createQueryBuilder('version')
-                    .where('version.name=:name', { pid: spmPackage.name })
+                    .where('version.name=:name', { name: spmPackage.name })
                     .andWhere('version.major=:major', { major: major })
                     .andWhere('version.minor=:minor', { minor: minor })
                     .andWhere('version.patch=:patch', { patch: patch })

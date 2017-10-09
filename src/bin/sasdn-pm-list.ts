@@ -1,35 +1,48 @@
-import * as program from "commander";
-import * as LibPath from "path";
-import {Spm} from "./lib/lib";
+import * as program from 'commander';
+import * as LibPath from 'path';
+import {Spm} from './lib/lib';
 
 const pkg = require('../../package.json');
-const debug = require('debug')('SPM:CLI:list');
 
 program.version(pkg.version)
     .parse(process.argv);
 
 export class ListCLI {
     private _projectDir: string;
-    private _spmPackageInstallDir: string;
 
     static instance() {
         return new ListCLI();
     }
 
     public async run() {
-        debug('ListCLI start.');
+        console.log('ListCLI start.');
+
         await this._prepare();
-        await this._show();
+        await this._displayPackageList();
+
+        console.log('ListCLI complete.');
     }
 
+    /**
+     * 准备命令中需要使用的参数，或创建文件夹。
+     *
+     * @returns {Promise<void>}
+     * @private
+     */
     private async _prepare() {
-        debug('ListCLI prepare.');
+        console.log('ListCLI prepare.');
+
         this._projectDir = Spm.getProjectDir();
-        this._spmPackageInstallDir = LibPath.join(this._projectDir, Spm.INSTALL_DIR_NAME);
     }
 
-    private async _show() {
-        debug('ListCLI show.');
+    /**
+     * 显示所有已安装的 package
+     *
+     * @returns {Promise<void>}
+     * @private
+     */
+    private async _displayPackageList() {
+        console.log('ListCLI show.');
 
         let spmPackageMap = await Spm.getInstalledSpmPackageMap();
 
@@ -47,5 +60,5 @@ export class ListCLI {
 }
 
 ListCLI.instance().run().catch((err: Error) => {
-    debug('err: %O', err.message);
+    console.log('error:', err.message);
 });

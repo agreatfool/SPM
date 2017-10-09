@@ -1,32 +1,28 @@
-# SPM: SASDN Package Management Tools
+# SPM 包管理工具
 
-> SPM is a tool for managing the proto package for SASDN micro services.
-> It consists of two parts: Center Node Server and Client Command Tools.
-> This document aims to introduce the contract and design of package management tools
+> SPM 包管理工具是一个用于管理 SASDN 微服务的 proto 包的工具，主要由两部分组成：中心节点服务，客户端命令行工具。本文档旨在介绍包管理工具的约定与设计。
 
 ---
 
-## Contract
-### The Version Number
-The version number of the proto package managed in SPM is governed by the Semantic Versioning 2.0.[reference](http://semver.org/)
+## 1. 约定
+### 1.1 版本号约定
+SPM 包管理工具中管理的 proto 包的版本号使用 Semantic Versioning 2.0 进行规范。[参考](http://semver.org/lang/zh-CN/)
 
-* The version number format: MAJOR.MINOR.PATCH:
-* The version number increment rule:
-	* MAJOR: when you make `not backwards compatibility` API changes
-	* MINOR: when you add functionality in a backwards-compatible manner
-	* PATCH: when you make `backward compatibility ` problem fixed
+* 版本格式：主版本号.次版本号.修订号
+* 版本号递增规则如下：
+	* 主版本号：改动中做了`不向下兼容`的 API 修改
+	* 次版本号：改动中做了`向下兼容`的功能性新增
+	* 修订号：改动中做了`向下兼容`的问题修正
 
-### 文件结构
+### 1.2 文件结构
 每一个微服务项目的文件结构如下：
 
 	├── spm.json
 	├── proto
 	│   ├── book
 	│   │   ├── book.proto
-	│   │   ├── bookCategory.proto
-	│   ├── data.proto
 	├── spm_protos
-	│   ├── pay                   			
+	│   ├── pay
 	│   │   ├── pay.proto
 	│   │   ├── spm.json
 	│   ├── user
@@ -37,7 +33,8 @@ The version number of the proto package managed in SPM is governed by the Semant
 	│   │   ├── spm.json
 
 每一个微服务项目的根目录下都会有两个文件夹：proto 和 spm_protos
-* proto文件夹：用于存放项目中自编写的proto文件
+* proto文件夹：用于存放项目中自编写的proto文件。
+    > 约定：请根据 spm.json 的 name 字段创建文件夹，并将自编写的 proto 文件放在这个文件夹内。即如果在proto文件中有定义包结构的话，包的根节点名必须和项目名一致。
 * spm_protos文件夹：用于存放通过包管理软件下载安装的protos文件   
 
 每一个微服务项目的根目录下都会有一个包管理配置文件：spm.json
@@ -52,34 +49,32 @@ The version number of the proto package managed in SPM is governed by the Semant
 		}
 	}
 
-> 其中pay依赖user版本1.0.0，参考./spm_protos/pay/spm.json
+### 1.3 依赖关系
 
-### 依赖关系
+* 顶级依赖：直接被当前微服务项目依赖的 proto 包，通过根目录下 spm.json 进行管理
+* 次级依赖：未被当前微服务项目依赖的 proto 包，但一定被 spm_protos 文件夹内其他 proto 包依赖
 
-* 顶级依赖：直接被微服务项目依赖的 proto 包，通过根目录下 spm.json 进行管理
-* 次级依赖：未被微服务项目依赖的 proto 包，但一定被 spm_protos 文件夹内其他 proto 包依赖
-
-## 使用 SPM 包管理工具
-
-### 中心节点服务
-
-#### 运行环境
+## 2. 使用 SPM 包管理工具
+### 2.1 中心节点服务
+#### 2.1.1 运行环境
 
 * Node 8.x+
 * NPM 5.x+
 * Sqlite3
 
-#### 数据库
+#### 2.1.2 数据库
 使用数据库: sqlite3
 
     CREATE TABLE spm_package (
-      name          TEXT      NOT NULL      PRIMARY KEY,
+      id            INTEGER   NOT NULL      PRIMARY KEY,
+      sid           INTEGER   NOT NULL,
+      name          TEXT      NOT NULL,
       description   TEXT      NOT NULL
     );
     
     CREATE TABLE spm_package_version (
       id            INTEGER   NOT NULL      PRIMARY KEY,
-      name          TEXT      NOT NULL,
+      pid           INT       NOT NULL,
       major         INT       NOT NULL,
       minor         INT       NOT NULL,
       patch         INT       NOT NULL,
@@ -89,25 +84,26 @@ The version number of the proto package managed in SPM is governed by the Semant
     );
     
     CREATE TABLE spm_package_secret (
-      name          TEXT      NOT NULL      PRIMARY KEY,  
+      id            INTEGER   NOT NULL      PRIMARY KEY,
+      name          TEXT      NOT NULL,
       secret        TEXT      NOT NULL
     );
     
 > 数据库 Spm.db 存放在 sasdn-pm 中心节点服务的根目录下
 
-#### 启动服务
+#### 2.1.3 启动服务
 进入到sasdn-pm项目根目录，运行命令
 
     npm start
     
-### 客户端命令行工具
+### 2.2 客户端命令行工具
 
-#### 命令行
+#### 2.2.1 命令行
 
 包管理工具下所有已安装的 proto 包名与版本号。
 
     sasdn-pm list
-    				  
+    
 通过关键字在中心节点搜索匹配的 proto 包。
     
     sasdn-pm search 关键字 [-i --info]     // 启用 -i 参数，则是通过精确查找包名，并返回该包所有的版本
@@ -128,7 +124,7 @@ The version number of the proto package managed in SPM is governed by the Semant
 
     sasdn-pm secret
 
-#### Proto 包的安装流程设计
+#### 2.2.2 Proto 包的安装流程设计
 
 * 安装的 proto 包在 spm_proto 下不存在：
   * 直接安装
@@ -138,14 +134,13 @@ The version number of the proto package managed in SPM is governed by the Semant
   * 次版本号和修订号，低于后者，由于版本向下兼容的特性，不安装该版本。
   * 次版本号和修订号，高于或等于后者，则将新安装的 proto 包进行`覆盖安装`。
 
-### 版本冲突
+### 2.3 版本冲突
 通过 SPM 包管理工具下载安装 proto 包的过程中可能存在版本冲突，即两个 proto 包会同时依赖同一个 proto 包的多个不同版本，所以在 spm_protos 文件夹下会使用两种安装方案处理冲突。
 
 * 默认安装方案：不携带版本号的文件夹
 * 版本冲突安装方案：新安装的 proto 包使用携带版本号的文件夹，格式：proto 包名__v主版本号
 
-### 备注（未开发）
+### 2.4 备注（未开发）
 1. 包备份脚本( crontab )
 2. 用户模块
 3. 用户密钥生成
-

@@ -13,11 +13,11 @@ const typeorm_1 = require("typeorm");
 let SpmPackage = class SpmPackage {
 };
 __decorate([
-    typeorm_1.PrimaryColumn("text"),
+    typeorm_1.PrimaryColumn('text'),
     __metadata("design:type", String)
 ], SpmPackage.prototype, "name", void 0);
 __decorate([
-    typeorm_1.Column("text", { default: "no description" }),
+    typeorm_1.Column('text', { default: 'no description' }),
     __metadata("design:type", String)
 ], SpmPackage.prototype, "description", void 0);
 SpmPackage = __decorate([

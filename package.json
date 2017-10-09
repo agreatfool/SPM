@@ -7,8 +7,7 @@
     "sasdn-pm": "./build/bin/sasdn-pm.js"
   },
   "scripts": {
-    "start": "node index.js",
-    "test": "jest"
+    "start": "node index.js"
   },
   "repository": {
     "type": "git",
@@ -21,6 +20,7 @@
   },
   "homepage": "https://github.com/agreatfool/SPM#readme",
   "dependencies": {
+    "@types/request": "^2.0.3",
     "archiver": "^2.0.0",
     "bluebird": "^3.5.0",
     "commander": "^2.11.0",
@@ -39,15 +39,15 @@
     "querystring": "^0.2.0",
     "recursive-readdir": "^2.2.1",
     "reflect-metadata": "^0.1.10",
+    "request": "^2.82.0",
     "sqlite3": "^3.1.9",
     "typeorm": "0.1.0-alpha.29",
     "underscore": "^1.8.3",
-    "unzip": "^0.1.11"
+    "unzip2": "^0.2.5"
   },
   "devDependencies": {
     "@types/bluebird": "^3.5.8",
     "@types/commander": "^2.9.1",
-    "@types/jest": "^20.0.4",
     "@types/koa": "^2.0.39",
     "@types/koa-bodyparser": "^3.0.23",
     "@types/koa-router": "^7.0.22",
@@ -55,20 +55,6 @@
     "@types/mz": "0.0.31",
     "@types/node": "^8.0.20",
     "@types/underscore": "^1.8.1",
-    "jest": "^20.0.4",
-    "ts-jest": "^20.0.7",
     "typescript": "^2.4.1"
-  },
-  "jest": {
-    "collectCoverage": false,
-    "transform": {
-      "^.+\\.(ts|tsx)?$": "<rootDir>/node_modules/ts-jest/preprocessor.js"
-    },
-    "testRegex": "(/__tests__/.*|\\.(test|spec))\\.(ts|tsx|js?)$",
-    "moduleFileExtensions": [
-      "ts",
-      "tsx",
-      "js"
-    ]
   }
 }

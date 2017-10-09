@@ -1,9 +1,9 @@
-import "reflect-metadata";
-import * as LibFs from "mz/fs";
-import * as _ from "underscore";
-import {ReadStream} from "fs";
-import {Context as KoaContext} from "koa";
-import {ApiBase, MiddlewareNext, ResponseSchema} from "../ApiBase";
+import 'reflect-metadata';
+import * as LibFs from 'mz/fs';
+import * as _ from 'underscore';
+import {ReadStream} from 'fs';
+import {Context as KoaContext} from 'koa';
+import {ApiBase, MiddlewareNext, ResponseSchema} from '../ApiBase';
 
 interface InstallParams {
     path: string;

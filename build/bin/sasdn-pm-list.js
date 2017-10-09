@@ -9,10 +9,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const program = require("commander");
-const LibPath = require("path");
 const lib_1 = require("./lib/lib");
 const pkg = require('../../package.json');
-const debug = require('debug')('SPM:CLI:list');
 program.version(pkg.version)
     .parse(process.argv);
 class ListCLI {
@@ -21,21 +19,33 @@ class ListCLI {
     }
     run() {
         return __awaiter(this, void 0, void 0, function* () {
-            debug('ListCLI start.');
+            console.log('ListCLI start.');
             yield this._prepare();
-            yield this._show();
+            yield this._displayPackageList();
+            console.log('ListCLI complete.');
         });
     }
+    /**
+     * 准备命令中需要使用的参数，或创建文件夹。
+     *
+     * @returns {Promise<void>}
+     * @private
+     */
     _prepare() {
         return __awaiter(this, void 0, void 0, function* () {
-            debug('ListCLI prepare.');
+            console.log('ListCLI prepare.');
             this._projectDir = lib_1.Spm.getProjectDir();
-            this._spmPackageInstallDir = LibPath.join(this._projectDir, lib_1.Spm.INSTALL_DIR_NAME);
         });
     }
-    _show() {
+    /**
+     * 显示所有已安装的 package
+     *
+     * @returns {Promise<void>}
+     * @private
+     */
+    _displayPackageList() {
         return __awaiter(this, void 0, void 0, function* () {
-            debug('ListCLI show.');
+            console.log('ListCLI show.');
             let spmPackageMap = yield lib_1.Spm.getInstalledSpmPackageMap();
             console.log('--------------Installed SpmPackage---------------');
             for (let dirname in spmPackageMap) {
@@ -51,6 +61,6 @@ class ListCLI {
 }
 exports.ListCLI = ListCLI;
 ListCLI.instance().run().catch((err) => {
-    debug('err: %O', err.message);
+    console.log('error:', err.message);
 });
 //# sourceMappingURL=sasdn-pm-list.js.map

@@ -1,10 +1,10 @@
-import {Entity, Column, PrimaryColumn} from "typeorm";
+import {Entity, Column, PrimaryColumn} from 'typeorm';
 
 @Entity()
 export class SpmPackage {
-    @PrimaryColumn("text")
+    @PrimaryColumn('text')
     name: string;
 
-    @Column("text", {default: "no description"})
+    @Column('text', {default: 'no description'})
     description: string;
 }

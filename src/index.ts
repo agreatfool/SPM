@@ -1,4 +1,4 @@
-import App from "./lib/App";
+import App from './lib/App';
 
 let app = new App();
 app.init().then(() => {

@@ -1,14 +1,11 @@
-import * as LibFs from "mz/fs";
-import * as LibPath from "path";
-import * as program from "commander";
-import * as archiver from "archiver";
-import * as _ from "underscore";
-import * as request from "./lib/request";
-import {Spm, SpmPackageConfig, mkdir} from "./lib/lib";
-import {Archiver} from "../../typings/archiver/index";
+import * as LibFs from 'mz/fs';
+import * as LibPath from 'path';
+import * as program from 'commander';
+import * as archiver from 'archiver';
+import * as _ from 'underscore';
+import {Spm, SpmPackageConfig, mkdir, HttpRequest} from './lib/lib';
 
 const pkg = require('../../package.json');
-const debug = require('debug')('SPM:CLI:publish');
 
 program.version(pkg.version)
     .parse(process.argv);
@@ -16,7 +13,7 @@ program.version(pkg.version)
 export class PublishCLI {
     private _projectDir: string;
     private _packageConfig: SpmPackageConfig;
-    private _tmpDir: string;
+    private _tmpFilePath: string;
     private _tmpFileName: string;
 
     static instance() {
@@ -24,16 +21,24 @@ export class PublishCLI {
     }
 
     public async run() {
-        debug('PublishCLI start.');
+        console.log('PublishCLI start.');
 
         await this._validate();
         await this._prepare();
         await this._compress();
         await this._publish();
+
+        console.log('PublishCLI complete.');
     }
 
+    /**
+     * 验证参数，数据，环境是否正确
+     *
+     * @returns {Promise<void>}
+     * @private
+     */
     private async _validate() {
-        debug('PublishCLI validate.');
+        console.log('PublishCLI validate.');
 
         this._projectDir = Spm.getProjectDir();
 
@@ -48,8 +53,14 @@ export class PublishCLI {
         }
     }
 
+    /**
+     * 准备命令中需要使用的参数，或创建文件夹。
+     *
+     * @returns {Promise<void>}
+     * @private
+     */
     private async _prepare() {
-        debug('PublishCLI prepare.');
+        console.log('PublishCLI prepare.');
 
         this._packageConfig = Spm.getSpmPackageConfig(LibPath.join(this._projectDir, 'spm.json'));
 
@@ -61,72 +72,83 @@ export class PublishCLI {
             throw new Error('Package param: `version` is required');
         }
 
-        this._tmpDir = LibPath.join(Spm.SPM_ROOT_PATH, 'tmp');
+        let packageStat = await LibFs.stat(LibPath.join(this._projectDir, 'proto', this._packageConfig.name));
+        if (!packageStat.isDirectory()) {
+            throw new Error(`Dir: ${this._packageConfig.name} not found in project:' + this._projectDir`);
+        }
+
+        // 创建临时文件夹，生成临时文件名
+        this._tmpFilePath = LibPath.join(Spm.SPM_ROOT_PATH, 'tmp');
         this._tmpFileName = Math.random().toString(16) + '.zip';
-        await mkdir(this._tmpDir);
+        await mkdir(this._tmpFilePath);
     }
 
+    /**
+     * 创建发布使用的压缩包。
+     *
+     * @returns {Promise<void>}
+     * @private
+     */
     private async _compress() {
-        debug('PublishCLI compress.');
+        console.log('PublishCLI compress.');
 
-        let tmpFilePath = LibPath.join(this._tmpDir, this._tmpFileName);
-
-        // create a file to stream archive data to.
-        await new Promise(async (resolve, reject) => {
-            // create write stream
-            let writeStream = LibFs.createWriteStream(tmpFilePath)
-                .on('close', () => {
-                    resolve();
-                });
-            // archive init
-            let archive = archiver('zip', {zlib: {level: 9}})
-                .on('error', (err) => reject(err)) as Archiver;
-
-            archive.pipe(writeStream);
-            archive.directory(LibPath.join(this._projectDir, 'proto'), false);
-            archive.append(LibFs.createReadStream(LibPath.join(this._projectDir, 'spm.json')), {name: 'spm.json'});
-            await archive.finalize();
+        // 创建 archive 对象
+        let archive = archiver('zip', {zlib: {level: 9}}) as archiver.Archiver;
+        archive.on('error', (err) => {
+            console.log(err.message);
         });
 
-        debug('PublishCLI compress finish.');
+        // 添加 ${pwd}/proto/${pkgName} 到 archive 对象
+        archive.directory(LibPath.join(this._projectDir, 'proto', this._packageConfig.name), false);
+
+        // 添加 ${pwd}/spm.json 到 archive 对象
+        archive.append(LibFs.createReadStream(LibPath.join(this._projectDir, 'spm.json')), {name: 'spm.json'});
+
+        // 由于执行 archive finalize 时，实际压缩包并未完成，所以需要用 promise 将下述代码包起来。
+        // 通过判断 writeSteam 的 close 事件，来判断压缩包是否完成创建。
+        await new Promise((resolve, reject) => {
+            let writeStream = LibFs.createWriteStream(LibPath.join(this._tmpFilePath, this._tmpFileName));
+            writeStream.on('close', () => {
+                console.log('PublishCLI compress completed!');
+                resolve();
+            });
+
+            archive.pipe(writeStream);
+            archive.finalize().catch((e) => {
+                reject(e);
+            });
+        });
     }
 
+    /**
+     * 访问 /v1/publish, 提交压缩包
+     *
+     * @returns {Promise<void>}
+     * @private
+     */
     private async _publish() {
-        debug('PublishCLI publish.');
+        console.log('PublishCLI publish.');
 
-        let tmpFilePath = LibPath.join(this._tmpDir, this._tmpFileName);
+        // build params
+        let params = {
+            name: this._packageConfig.name,
+            version: this._packageConfig.version,
+            description: this._packageConfig.description || '',
+            dependencies: JSON.stringify(this._packageConfig.dependencies),
+            secret: Spm.loadSecret(),
+        };
+        // upload file stream
+        let filePath = LibPath.join(this._tmpFilePath, this._tmpFileName);
+        let fileUploadStream = LibFs.createReadStream(filePath);
 
-        await new Promise(async (resolve, reject) => {
-            // build params
-            let params = {
-                name: this._packageConfig.name,
-                version: this._packageConfig.version,
-                description: this._packageConfig.description || '',
-                dependencies: JSON.stringify(this._packageConfig.dependencies),
-                secret: Spm.loadSecret(),
-            };
-
-            let filePath = [tmpFilePath];
-            await request.postForm('/v1/publish', params, filePath, async (chunk, reqResolve) => {
-                debug(`PublishCLI publish: [Response] - ${chunk}`);
-                reqResolve();
-            }).then(async () => {
-                if (filePath.length > 0) {
-                    await LibFs.unlink(filePath[0]);
-                }
-
-                resolve();
-            }).catch(async (e) => {
-                if (filePath.length > 0) {
-                    await LibFs.unlink(filePath[0]);
-                }
-
-                reject(e);
+        await HttpRequest.upload(`/v1/publish`, params, fileUploadStream).then(() => {
+            LibFs.unlink(filePath).catch((e) => {
+                throw e;
             });
         });
     };
 }
 
 PublishCLI.instance().run().catch((err: Error) => {
-    debug('err: %O', err.message);
+    console.log('error:', err.message);
 });

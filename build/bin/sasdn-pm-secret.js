@@ -12,10 +12,8 @@ const LibPath = require("path");
 const LibFs = require("mz/fs");
 const program = require("commander");
 const _ = require("underscore");
-const request = require("./lib/request");
 const lib_1 = require("./lib/lib");
 const pkg = require('../../package.json');
-const debug = require('debug')('SPM:CLI:secret');
 program.version(pkg.version)
     .parse(process.argv);
 class SecretCLI {
@@ -24,14 +22,21 @@ class SecretCLI {
     }
     run() {
         return __awaiter(this, void 0, void 0, function* () {
-            debug('SecretCLI start.');
+            console.log('SecretCLI start.');
             yield this._validate();
-            yield this._save();
+            yield this._saveSecret();
+            console.log('SecretCLI complete.');
         });
     }
+    /**
+     * 验证参数，数据，环境是否正确
+     *
+     * @returns {Promise<void>}
+     * @private
+     */
     _validate() {
         return __awaiter(this, void 0, void 0, function* () {
-            debug('SecretCLI validate.');
+            console.log('SecretCLI validate.');
             this._projectDir = lib_1.Spm.getProjectDir();
             let configStat = yield LibFs.stat(LibPath.join(this._projectDir, 'spm.json'));
             if (!configStat.isFile()) {
@@ -43,32 +48,37 @@ class SecretCLI {
             }
         });
     }
-    _save() {
+    /**
+     * 保存 secret 到本地文件
+     *
+     * @returns {Promise<void>}
+     * @private
+     */
+    _saveSecret() {
         return __awaiter(this, void 0, void 0, function* () {
-            debug('SecretCLI save.');
-            yield new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
-                let params = {
-                    name: this._packageConfig.name
-                };
-                request.post('/v1/secret', params, (chunk, reqResolve, reqReject) => __awaiter(this, void 0, void 0, function* () {
-                    try {
-                        reqResolve(lib_1.SpmPackageRequest.parseResponse(chunk));
-                    }
-                    catch (e) {
-                        reqReject(e);
-                    }
-                })).then((response) => __awaiter(this, void 0, void 0, function* () {
-                    yield lib_1.Spm.saveSecret(response.secret);
-                    resolve();
-                })).catch((e) => {
-                    reject(e);
-                });
-            }));
+            console.log('SecretCLI saveSecret');
+            let response = yield this._genSecret();
+            lib_1.Spm.saveSecret(response.secret);
+        });
+    }
+    /**
+     * 访问 /v1/secret，获取 secret
+     *
+     * @returns {Promise<void>}
+     * @private
+     */
+    _genSecret() {
+        return __awaiter(this, void 0, void 0, function* () {
+            console.log('SecretCLI genSecret.');
+            let params = {
+                name: this._packageConfig.name
+            };
+            return yield lib_1.HttpRequest.post('/v1/secret', params);
         });
     }
 }
 exports.SecretCLI = SecretCLI;
 SecretCLI.instance().run().catch((err) => {
-    debug('err: %O', err.message);
+    console.log('error:', err.message);
 });
 //# sourceMappingURL=sasdn-pm-secret.js.map

@@ -1,6 +1,7 @@
-import * as LibPath from "path";
-import * as LibFs from "mz/fs";
-import {Connection, createConnection} from "typeorm";
+import * as LibPath from 'path';
+import * as LibFs from 'mz/fs';
+import {Connection, createConnection} from 'typeorm';
+import {Spm} from '../bin/lib/lib';
 
 export default class Database {
 
@@ -42,7 +43,7 @@ export default class Database {
 
             this._conn = await createConnection({
                 type: 'sqlite',
-                database: LibPath.join(__dirname, '..', '..', 'Spm.db'),
+                database: LibPath.join(Spm.SPM_ROOT_PATH, 'Spm.db'),
                 entities: entities,
                 autoSchemaSync: true, // only works when creating db file, no effect when changing schema
             });
