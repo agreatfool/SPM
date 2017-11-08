@@ -113,11 +113,10 @@ class BackupCLI {
     _backup() {
         return __awaiter(this, void 0, void 0, function* () {
             console.log('BackupCLI backup.');
-            let sourceFile = LibPath.join(this._tmpFilePath, this._tmpFileName);
-            let outputFile = LibPath.join(OUTPUT_PATH, this._tmpFileName);
+            const sourceFile = LibPath.join(this._tmpFilePath, this._tmpFileName);
+            const outputFile = LibPath.join(OUTPUT_PATH, this._tmpFileName);
             yield LibFs.rename(sourceFile, outputFile);
-            let outputStat = yield LibFs.stat(outputFile);
-            if (outputStat.isFile()) {
+            if (!LibFs.existsSync(outputFile) || !LibFs.statSync(outputFile).isFile()) {
                 throw new Error(`${outputFile} not exists.`);
             }
         });
@@ -127,3 +126,4 @@ exports.BackupCLI = BackupCLI;
 BackupCLI.instance().run().catch((err) => {
     console.log('error:', err.message);
 });
+//# sourceMappingURL=sasdn-pm-backup.js.map

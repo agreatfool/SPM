@@ -120,13 +120,12 @@ export class BackupCLI {
     private async _backup() {
         console.log('BackupCLI backup.');
 
-        let sourceFile = LibPath.join(this._tmpFilePath, this._tmpFileName);
-        let outputFile = LibPath.join(OUTPUT_PATH, this._tmpFileName);
+        const sourceFile = LibPath.join(this._tmpFilePath, this._tmpFileName);
+        const outputFile = LibPath.join(OUTPUT_PATH, this._tmpFileName);
 
         await LibFs.rename(sourceFile, outputFile);
-        let outputStat = await LibFs.stat(outputFile);
 
-        if (outputStat.isFile()) {
+        if (!LibFs.existsSync(outputFile) || !LibFs.statSync(outputFile).isFile()) {
             throw new Error(`${outputFile} not exists.`);
         }
     }
