@@ -242,3 +242,4 @@ var HttpRequest;
     }
     HttpRequest.upload = upload;
 })(HttpRequest = exports.HttpRequest || (exports.HttpRequest = {}));
+//# sourceMappingURL=lib.js.map

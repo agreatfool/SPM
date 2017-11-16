@@ -63,3 +63,4 @@ exports.ListCLI = ListCLI;
 ListCLI.instance().run().catch((err) => {
     console.log('error:', err.message);
 });
+//# sourceMappingURL=sasdn-pm-list.js.map

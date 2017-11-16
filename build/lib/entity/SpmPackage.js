@@ -24,3 +24,4 @@ SpmPackage = __decorate([
     typeorm_1.Entity()
 ], SpmPackage);
 exports.SpmPackage = SpmPackage;
+//# sourceMappingURL=SpmPackage.js.map
