@@ -126,4 +126,3 @@ exports.BackupCLI = BackupCLI;
 BackupCLI.instance().run().catch((err) => {
     console.log('error:', err.message);
 });
-//# sourceMappingURL=sasdn-pm-backup.js.map

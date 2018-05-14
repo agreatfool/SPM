@@ -177,4 +177,3 @@ exports.UninstallCLI = UninstallCLI;
 UninstallCLI.instance().run().catch((err) => {
     console.log('error:', err.message);
 });
-//# sourceMappingURL=sasdn-pm-uninstall.js.map

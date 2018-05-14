@@ -18,6 +18,7 @@ const SpmPackageVersion_1 = require("../entity/SpmPackageVersion");
 const SpmPackageSecret_1 = require("../entity/SpmPackageSecret");
 const ApiBase_1 = require("../ApiBase");
 const lib_1 = require("../../bin/lib/lib");
+const Const_tx_1 = require("../Const.tx");
 class PostPublish extends ApiBase_1.ApiBase {
     constructor() {
         super();
@@ -53,6 +54,7 @@ class PostPublish extends ApiBase_1.ApiBase {
                 .getRepository(SpmPackageSecret_1.SpmPackageSecret)
                 .createQueryBuilder('user')
                 .where('user.name=:name', { name: params.name })
+                .andWhere(`state=${Const_tx_1.PackageState.ENABLED}`)
                 .getOne();
             if (_.isEmpty(spmPackageSecret) || spmPackageSecret.secret !== params.secret) {
                 return this.buildResponse('Wrong secret', -1);
@@ -79,6 +81,7 @@ class PostPublish extends ApiBase_1.ApiBase {
                     .getRepository(SpmPackage_1.SpmPackage)
                     .createQueryBuilder('package')
                     .where('package.name=:name', { name: params.name })
+                    .andWhere(`state=${Const_tx_1.PackageState.ENABLED}`)
                     .getOne();
                 // if package is not found, create package
                 if (_.isEmpty(spmPackage)) {
@@ -99,6 +102,7 @@ class PostPublish extends ApiBase_1.ApiBase {
                     .andWhere('version.major=:major', { major: major })
                     .andWhere('version.minor=:minor', { minor: minor })
                     .andWhere('version.patch=:patch', { patch: patch })
+                    .andWhere(`state=${Const_tx_1.PackageState.ENABLED}`)
                     .getOne();
                 if (!_.isEmpty(spmPackageVersion)) {
                     return this.buildResponse(`Proto already exists! name:${params.name}, version:${params.version}`, -1);
@@ -123,4 +127,3 @@ class PostPublish extends ApiBase_1.ApiBase {
     ;
 }
 exports.api = new PostPublish();
-//# sourceMappingURL=postPublish.js.map

@@ -9,6 +9,7 @@ import {SpmPackageVersion} from '../entity/SpmPackageVersion';
 import {SpmPackageSecret} from '../entity/SpmPackageSecret';
 import {ApiBase, MiddlewareNext, ResponseSchema} from '../ApiBase';
 import {mkdir, Spm} from '../../bin/lib/lib';
+import {PackageState} from "../Const.tx";
 
 interface PublishParams {
     fields: {
@@ -65,6 +66,7 @@ class PostPublish extends ApiBase {
             .getRepository(SpmPackageSecret)
             .createQueryBuilder('user')
             .where('user.name=:name', {name: params.name})
+            .andWhere(`state=${PackageState.ENABLED}`)
             .getOne();
 
         if (_.isEmpty(spmPackageSecret) || spmPackageSecret.secret !== params.secret) {
@@ -98,6 +100,7 @@ class PostPublish extends ApiBase {
                 .getRepository(SpmPackage)
                 .createQueryBuilder('package')
                 .where('package.name=:name', {name: params.name})
+                .andWhere(`state=${PackageState.ENABLED}`)
                 .getOne();
 
             // if package is not found, create package
@@ -119,6 +122,7 @@ class PostPublish extends ApiBase {
                 .andWhere('version.major=:major', {major: major})
                 .andWhere('version.minor=:minor', {minor: minor})
                 .andWhere('version.patch=:patch', {patch: patch})
+                .andWhere(`state=${PackageState.ENABLED}`)
                 .getOne();
 
             if (!_.isEmpty(spmPackageVersion)) {

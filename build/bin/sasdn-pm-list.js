@@ -13,6 +13,7 @@ const lib_1 = require("./lib/lib");
 const pkg = require('../../package.json');
 program.version(pkg.version)
     .parse(process.argv);
+const KEYWORK_VALUE = program.args[0];
 class ListCLI {
     static instance() {
         return new ListCLI();
@@ -48,19 +49,48 @@ class ListCLI {
             console.log('ListCLI show.');
             let spmPackageMap = yield lib_1.Spm.getInstalledSpmPackageMap();
             console.log('--------------Installed SpmPackage---------------');
-            for (let dirname in spmPackageMap) {
-                let spmPackage = spmPackageMap[dirname];
-                console.log(`+-- ${spmPackage.name}@${spmPackage.version}`);
-                for (let dependName in spmPackage.dependencies) {
-                    console.log(`|  | -- ${dependName}@${spmPackage.dependencies[dependName]}`);
+            if (KEYWORK_VALUE !== undefined) {
+                this._displayPackage(KEYWORK_VALUE, spmPackageMap);
+            }
+            else {
+                for (let dirname in spmPackageMap) {
+                    this._displayPackage(dirname, spmPackageMap);
                 }
             }
             console.log('--------------Installed SpmPackage---------------');
         });
+    }
+    /**
+     * 显示名字为 packageName 的已安装的 package
+     * @param {string} packageName
+     * @param {SpmPackageMap} spmPackageMap
+     * @private
+     */
+    _displayPackage(packageName, spmPackageMap) {
+        let spmPackage = spmPackageMap[packageName];
+        if (!spmPackage) {
+            throw new Error(`${packageName} not exist in SpmPackageList.`);
+        }
+        let depLength = Object.keys(spmPackage.dependencies).length;
+        if (depLength !== 0) {
+            console.log(`├─┬ ${spmPackage.name}@${spmPackage.version}`);
+        }
+        else {
+            console.log(`├── ${spmPackage.name}@${spmPackage.version}`);
+        }
+        let count = 0;
+        for (let dependName in spmPackage.dependencies) {
+            count += 1;
+            if (count !== depLength) {
+                console.log(`│ ├── ${dependName}@${spmPackage.dependencies[dependName]}`);
+            }
+            else {
+                console.log(`│ └── ${dependName}@${spmPackage.dependencies[dependName]}`);
+            }
+        }
     }
 }
 exports.ListCLI = ListCLI;
 ListCLI.instance().run().catch((err) => {
     console.log('error:', err.message);
 });
-//# sourceMappingURL=sasdn-pm-list.js.map

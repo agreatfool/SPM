@@ -14,6 +14,7 @@ const Database_1 = require("../Database");
 const SpmPackage_1 = require("../entity/SpmPackage");
 const SpmPackageVersion_1 = require("../entity/SpmPackageVersion");
 const ApiBase_1 = require("../ApiBase");
+const Const_tx_1 = require("../Const.tx");
 class PostSearch extends ApiBase_1.ApiBase {
     constructor() {
         super();
@@ -50,12 +51,23 @@ class PostSearch extends ApiBase_1.ApiBase {
     fuzzyQuery(keyword, dbConn) {
         return __awaiter(this, void 0, void 0, function* () {
             let packageInfos = [];
-            let spmPackageList = yield dbConn
-                .getRepository(SpmPackage_1.SpmPackage)
-                .createQueryBuilder('package')
-                .where('package.name LIKE :keyword', { keyword: `%${keyword}%` })
-                .orWhere('package.description LIKE :keyword', { keyword: `%${keyword}%` })
-                .getMany();
+            let spmPackageList;
+            if (keyword === 'all') {
+                spmPackageList = yield dbConn
+                    .getRepository(SpmPackage_1.SpmPackage)
+                    .createQueryBuilder('package')
+                    .where(`state=${Const_tx_1.PackageState.ENABLED}`)
+                    .getMany();
+            }
+            else {
+                spmPackageList = yield dbConn
+                    .getRepository(SpmPackage_1.SpmPackage)
+                    .createQueryBuilder('package')
+                    .where('package.name LIKE :keyword', { keyword: `%${keyword}%` })
+                    .orWhere('package.description LIKE :keyword', { keyword: `%${keyword}%` })
+                    .andWhere(`state=${Const_tx_1.PackageState.ENABLED}`)
+                    .getMany();
+            }
             for (let spmPackage of spmPackageList) {
                 packageInfos.push(spmPackage);
             }
@@ -69,6 +81,7 @@ class PostSearch extends ApiBase_1.ApiBase {
                 .getRepository(SpmPackage_1.SpmPackage)
                 .createQueryBuilder('package')
                 .where('package.name=:keyword', { keyword: `${keyword}` })
+                .andWhere(`state=${Const_tx_1.PackageState.ENABLED}`)
                 .getOne();
             if (_.isEmpty(spmPackage)) {
                 return packageInfos;
@@ -77,6 +90,7 @@ class PostSearch extends ApiBase_1.ApiBase {
                 .getRepository(SpmPackageVersion_1.SpmPackageVersion)
                 .createQueryBuilder('version')
                 .where('version.name=:name', { name: spmPackage.name })
+                .andWhere(`state=${Const_tx_1.PackageState.ENABLED}`)
                 .getMany();
             for (let spmPackageVersion of spmPackageVersionList) {
                 packageInfos.push([spmPackage, spmPackageVersion]);
@@ -86,4 +100,3 @@ class PostSearch extends ApiBase_1.ApiBase {
     }
 }
 exports.api = new PostSearch();
-//# sourceMappingURL=postSearch.js.map

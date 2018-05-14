@@ -44,7 +44,7 @@ class Database {
                     type: 'sqlite',
                     database: LibPath.join(lib_1.Spm.SPM_ROOT_PATH, 'Spm.db'),
                     entities: entities,
-                    autoSchemaSync: true,
+                    autoSchemaSync: false,
                 });
                 this._initialized = true;
             }
@@ -55,4 +55,3 @@ class Database {
     }
 }
 exports.default = Database;
-//# sourceMappingURL=Database.js.map

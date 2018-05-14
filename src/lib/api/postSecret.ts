@@ -5,6 +5,7 @@ import Database from '../Database';
 import {Context as KoaContext} from 'koa';
 import {SpmPackageSecret} from '../entity/SpmPackageSecret';
 import {ApiBase, MiddlewareNext, ResponseSchema} from '../ApiBase';
+import {PackageState} from "../Const.tx";
 
 interface SecretParams {
     name: string;
@@ -36,6 +37,7 @@ class PostSecret extends ApiBase {
                 .getRepository(SpmPackageSecret)
                 .createQueryBuilder('user')
                 .where('user.name=:name', {name: params.name})
+                .andWhere(`state=${PackageState.ENABLED}`)
                 .getOne();
 
             // if package is not found, create package

@@ -13,9 +13,9 @@ const pkg = require('../../package.json');
 program.version(pkg.version)
     .parse(process.argv);
 
-const PKG_NAME_VALUE = program.args[0] === undefined ? undefined : program.args[0];
+const PKG_NAME = program.args[0];
 
-export class InstallCLI {
+export class UpdateCLI {
     private _tmpFilePath: string;
     private _tmpFileName: string;
 
@@ -26,16 +26,16 @@ export class InstallCLI {
     private _spmPackageWillInstall: SpmPackageMap; // 即将安装的包
 
     static instance() {
-        return new InstallCLI();
+        return new UpdateCLI();
     }
 
     public async run() {
-        console.log('InstallCLI start.');
+        console.log('UpdateCLI start.');
 
         await this._prepare();
-        await this._install();
+        await this._update();
 
-        console.log('InstallCLI complete.');
+        console.log('UpdateCLI complete.');
         await Spm.checkVersion();
     }
 
@@ -46,7 +46,7 @@ export class InstallCLI {
      * @private
      */
     private async _prepare() {
-        console.log('InstallCLI prepare.');
+        console.log('UpdateCLI prepare.');
 
         this._projectDir = Spm.getProjectDir();
         this._packageConfig = Spm.getSpmPackageConfig(LibPath.join(this._projectDir, 'spm.json'));
@@ -69,16 +69,33 @@ export class InstallCLI {
      * @returns {Promise<void>}
      * @private
      */
-    private async _install() {
-        let packageList = [] as Array<string>;
-        if (!PKG_NAME_VALUE) {
-            // MODE ONE: npm install
-            for (let name in this._packageConfig.dependencies) {
-                packageList.push(`${name}@${this._packageConfig.dependencies[name]}`);
+    private async _update() {
+        if (!PKG_NAME) {
+            // MODE ONE: npm update
+            // 将依赖包的版本更新为最新（minor 号和 patch 号最高）
+            for (let packageName of Object.keys(this._packageConfig.dependencies)) {
+                let major = this._packageConfig.dependencies[packageName].split('.')[0];
+                let remoteLatestVersion: string = await HttpRequest.post('/v1/search_latest', {packageName, major});
+                this._packageConfig.dependencies[packageName] = remoteLatestVersion;
             }
         } else {
-            // MODE TWO: npm install ${pkgName}
-            packageList.push(PKG_NAME_VALUE);
+            // MODE TWO: npm update ${pkgName}
+            if (!this._packageConfig.dependencies[PKG_NAME]) {
+                throw new Error(`${PKG_NAME} does not exist in spm.json.`);
+            }
+            let major = this._packageConfig.dependencies[PKG_NAME].split('.')[0];
+            let remoteLatestVersion: string = await HttpRequest.post('/v1/search_latest', {
+                packageName: PKG_NAME,
+                major: major,
+            });
+            this._packageConfig.dependencies[PKG_NAME] = remoteLatestVersion;
+        }
+        // 写入依赖关系
+        await LibFs.writeFile(LibPath.join(this._projectDir, 'spm.json'), Buffer.from(JSON.stringify(this._packageConfig, null, 2)));
+
+        let packageList = [] as Array<string>;
+        for (let name in this._packageConfig.dependencies) {
+            packageList.push(`${name}@${this._packageConfig.dependencies[name]}`);
         }
 
         for (let pkgName of packageList) {
@@ -348,6 +365,6 @@ export class InstallCLI {
     }
 }
 
-InstallCLI.instance().run().catch((err: Error) => {
+UpdateCLI.instance().run().catch((err: Error) => {
     console.log('error:', err.message);
 });

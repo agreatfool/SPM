@@ -14,6 +14,7 @@ const Config_1 = require("../Config");
 const Database_1 = require("../Database");
 const SpmPackageSecret_1 = require("../entity/SpmPackageSecret");
 const ApiBase_1 = require("../ApiBase");
+const Const_tx_1 = require("../Const.tx");
 class PostSecret extends ApiBase_1.ApiBase {
     constructor() {
         super();
@@ -39,6 +40,7 @@ class PostSecret extends ApiBase_1.ApiBase {
                     .getRepository(SpmPackageSecret_1.SpmPackageSecret)
                     .createQueryBuilder('user')
                     .where('user.name=:name', { name: params.name })
+                    .andWhere(`state=${Const_tx_1.PackageState.ENABLED}`)
                     .getOne();
                 // if package is not found, create package
                 if (!_.isEmpty(spmPackageSecret)) {
@@ -58,4 +60,3 @@ class PostSecret extends ApiBase_1.ApiBase {
     ;
 }
 exports.api = new PostSecret();
-//# sourceMappingURL=postSecret.js.map

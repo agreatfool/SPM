@@ -6,6 +6,7 @@ import {SpmPackage} from "../entity/SpmPackage";
 import {SpmPackageVersion} from "../entity/SpmPackageVersion";
 import {ApiBase, MiddlewareNext, ResponseSchema} from "../ApiBase";
 import {Connection} from "typeorm";
+import {PackageState} from "../Const.tx";
 
 interface SearchParams {
     keyword: string;
@@ -44,12 +45,22 @@ class PostSearch extends ApiBase {
 
     public async fuzzyQuery(keyword: string, dbConn: Connection): Promise<Array<SpmPackage>> {
         let packageInfos = [] as Array<SpmPackage>;
-        let spmPackageList = await dbConn
-            .getRepository(SpmPackage)
-            .createQueryBuilder('package')
-            .where('package.name LIKE :keyword', {keyword: `%${keyword}%`})
-            .orWhere('package.description LIKE :keyword', {keyword: `%${keyword}%`})
-            .getMany();
+        let spmPackageList: Array<SpmPackage>;
+        if (keyword === 'all') {
+            spmPackageList = await dbConn
+                .getRepository(SpmPackage)
+                .createQueryBuilder('package')
+                .where(`state=${PackageState.ENABLED}`)
+                .getMany();
+        } else {
+            spmPackageList = await dbConn
+                .getRepository(SpmPackage)
+                .createQueryBuilder('package')
+                .where('package.name LIKE :keyword', {keyword: `%${keyword}%`})
+                .orWhere('package.description LIKE :keyword', {keyword: `%${keyword}%`})
+                .andWhere(`state=${PackageState.ENABLED}`)
+                .getMany();
+        }
         for (let spmPackage of spmPackageList) {
             packageInfos.push(spmPackage);
         }
@@ -63,6 +74,7 @@ class PostSearch extends ApiBase {
             .getRepository(SpmPackage)
             .createQueryBuilder('package')
             .where('package.name=:keyword', {keyword: `${keyword}`})
+            .andWhere(`state=${PackageState.ENABLED}`)
             .getOne();
 
         if (_.isEmpty(spmPackage)) {
@@ -73,6 +85,7 @@ class PostSearch extends ApiBase {
             .getRepository(SpmPackageVersion)
             .createQueryBuilder('version')
             .where('version.name=:name', {name: spmPackage.name})
+            .andWhere(`state=${PackageState.ENABLED}`)
             .getMany();
 
         for (let spmPackageVersion of spmPackageVersionList) {

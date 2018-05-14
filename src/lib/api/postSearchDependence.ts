@@ -7,6 +7,7 @@ import {SpmPackageVersion} from "../entity/SpmPackageVersion";
 import {SpmPackageMap} from "../../bin/lib/lib";
 import {ApiBase, MiddlewareNext, ResponseSchema} from "../ApiBase";
 import {Connection} from "typeorm";
+import {PackageState} from "../Const.tx";
 
 type SheetColumnWhereSchema = [string, any];
 
@@ -54,6 +55,7 @@ class PostSearchDependence extends ApiBase {
             .getRepository(SpmPackage)
             .createQueryBuilder('package')
             .where('package.name=:name', {name: name})
+            .andWhere(`state=${PackageState.ENABLED}`)
             .getOne();
 
         if (_.isEmpty(spmPackage)) {
@@ -74,12 +76,14 @@ class PostSearchDependence extends ApiBase {
                 .andWhere(`${sheetName}.major=:major`, {major: major})
                 .andWhere(`${sheetName}.minor=:minor`, {minor: minor})
                 .andWhere(`${sheetName}.patch=:patch`, {patch: patch})
+                .andWhere(`state=${PackageState.ENABLED}`)
                 .getOne();
         } else {
             spmPackageVersion = await dbConn
                 .getRepository(SpmPackageVersion)
                 .createQueryBuilder(sheetName)
                 .where(columnNameWhereQuery[0], columnNameWhereQuery[1])
+                .andWhere(`state=${PackageState.ENABLED}`)
                 .orderBy(`${sheetName}.major`, 'DESC')
                 .addOrderBy(`${sheetName}.minor`, 'DESC')
                 .addOrderBy(`${sheetName}.patch`, 'DESC')
