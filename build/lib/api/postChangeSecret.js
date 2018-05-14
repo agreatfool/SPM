@@ -14,7 +14,6 @@ const Database_1 = require("../Database");
 const ApiBase_1 = require("../ApiBase");
 const SpmGlobalSecret_1 = require("../entity/SpmGlobalSecret");
 const SpmPackageSecret_1 = require("../entity/SpmPackageSecret");
-const Const_tx_1 = require("../Const.tx");
 class PostChangeSecret extends ApiBase_1.ApiBase {
     constructor() {
         super();
@@ -59,7 +58,7 @@ class PostChangeSecret extends ApiBase_1.ApiBase {
     _changeSecret(params) {
         return __awaiter(this, void 0, void 0, function* () {
             let pkgSecretRepo = Database_1.default.instance().conn.getRepository(SpmPackageSecret_1.SpmPackageSecret);
-            let pkgSecret = yield pkgSecretRepo.findOne({ name: params.packageName, state: Const_tx_1.PackageState.ENABLED });
+            let pkgSecret = yield pkgSecretRepo.findOne({ name: params.packageName });
             pkgSecret.secret = params.pkgSecret;
             yield pkgSecretRepo.save(pkgSecret);
         });

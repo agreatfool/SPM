@@ -19,13 +19,13 @@ program.version(pkg.version)
 const INFO_VALUE = program.info === undefined ? undefined : program.info;
 const KEYWORD_VALUE = program.args[0] === undefined ? undefined : program.args[0];
 const SHOW_DEPENDENCE_FLAG = program.dependence;
-class SearchCLI {
+class ListCLI {
     static instance() {
-        return new SearchCLI();
+        return new ListCLI();
     }
     run() {
         return __awaiter(this, void 0, void 0, function* () {
-            console.log('SearchCLI start.');
+            console.log('ListCLI start.');
             yield this._displaySearchResult();
         });
     }
@@ -160,7 +160,7 @@ class SearchCLI {
         }
     }
 }
-exports.SearchCLI = SearchCLI;
-SearchCLI.instance().run().catch((err) => {
+exports.ListCLI = ListCLI;
+ListCLI.instance().run().catch((err) => {
     console.log('error:', err.message);
 });

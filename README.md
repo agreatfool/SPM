@@ -73,26 +73,24 @@ SPM 包管理工具中管理的 proto 包的版本号使用 Semantic Versioning 
 CREATE TABLE spm_package (
   id            INTEGER   NOT NULL      PRIMARY KEY AUTOINCREMENT,
   name          TEXT      NOT NULL,
-  description   TEXT      NOT NULL,
-  state         INTEGER   NOT NULL,     DEFAULT 1
+  description   TEXT      NOT NULL
 );
 
 CREATE TABLE spm_package_version (
   id            INTEGER   NOT NULL      PRIMARY KEY AUTOINCREMENT,
+  pid           INTEGER   NOT NULL,
   major         INTEGER   NOT NULL,
   minor         INTEGER   NOT NULL,
   patch         INTEGER   NOT NULL,
   filePath      TEXT      NOT NULL,
   time          INTEGER   NOT NULL,
-  dependencies  TEXT      NOT NULL,
-  state         INTEGER   NOT NULL,     DEFAULT 1
+  dependencies  TEXT      NOT NULL
 );
 
 CREATE TABLE spm_package_secret (
   id            INTEGER   NOT NULL      PRIMARY KEY AUTOINCREMENT,
-  name          TEXT      NOT NULL,
-  secret        TEXT      NOT NULL,
-  state         INTEGER   NOT NULL,     DEFAULT 1
+  pid           INTEGER   NOT NULL,
+  secret        TEXT      NOT NULL
 );
 
 CREATE TABLE spm_global_secret (
@@ -117,9 +115,15 @@ npm start
 包管理工具下所有已安装的 proto 包名与版本号，以及依赖的包。
 
 ```
-sasdn-pm list [包名]                   // 如果输入包名，则查询特定包名的已安装的包，否则查询所有已安装的包
+sasdn-pm installed [包名]                   // 如果输入包名，则查询特定包名的已安装的包，否则查询所有已安装的包
 ```
-    
+
+列出中心节点所有的 proto 包名与描述
+
+```
+sasdn-pm list
+```
+
 通过关键字在中心节点搜索匹配的 proto 包。
 
 ```
@@ -165,37 +169,41 @@ sasdn-pm check
 sasdn-pm update [包名]
 ```
 
-逻辑删除中心节点的包
+删除中心节点的包
 
 ```
 sasdn-pm delete [包名] [用户密码]
 ```
-
-修改中心节点包的密码
-
-```
-sasdn-pm changeSecret [包名] [用户密码] [包的新密码]
-```
-
 
 #### 2.2.2 Proto 包的安装流程设计
 
 * 安装的 proto 包在 spm_proto 下不存在：
   * 直接安装
 * 安装的 proto 包的主版本号和已安装的 proto 包的主版本号不同
-  * 主版本号低于后者，采用`版本冲突安装方案`安装。
-  * 主版本号高于后者，警告并询问使用者采用`覆盖安装`还是采用`版本冲突安装方案`安装。
+  * 主版本号低于后者，采用`重命名新包方案`安装。
+  * 主版本号高于后者，警告并询问使用者采用`覆盖安装方案`还是采用`重命名新包方案`安装。
 * 安装的 proto 包的主版本号与已经安装 proto 包的主版本号相同
   * 次版本号和修订号，低于后者，由于版本向下兼容的特性，不安装该版本。
-  * 次版本号和修订号，高于或等于后者，则将新安装的 proto 包进行`覆盖安装`。
+  * 次版本号和修订号，高于或等于后者，则将新安装的 proto 包进行覆盖安装。
 
 ### 2.3 版本冲突
-通过 SPM 包管理工具下载安装 proto 包的过程中可能存在版本冲突，即两个 proto 包会同时依赖同一个 proto 包的多个不同版本，所以在 spm_protos 文件夹下会使用两种安装方案处理冲突。
+通过 SPM 包管理工具下载安装 proto 包的过程中可能存在版本冲突，即本地 proto 包和将要安装的 proto 包的 major 版本不一致，有以下几种情况：
+1. 覆盖安装方案：开发过程中，a 包依赖 m 包的 1.x.x 版本。中心节点的 m 包已经升级到了 2.x.x 版本。若此时实际运行的 m 包对应的微服务是 2.x.x 版本的，
+要想 a 包对应微服务成功调用 m 包对应微服务的接口而不出错，a 包需要覆盖安装 m 包依赖，并且根据 m 包 `spm.json` 中的 `changeLog` 修改引起冲突的代码。
+2. 重命名新包方案：存在这种情况，线上正在运行的一个微服务 m 的版本是 1.x.x，并且正在运行的另一个微服务 a 依赖 1.x.x 版本的 m 微服务。
+开发过程中，微服务 m 升级到了 2.x.x 版本，并且微服务 b 依赖 2.x.x 版本的微服务 m，以及依赖 1.x.x 版本的微服务 m 的微服务 a。此时微服务 b
+直接依赖 1.x.x 版本的微服务 m，（通过微服务 a）间接依赖 2.x.x 版本的微服务 m。这种情况下，需要将 b 直接依赖的 m 包重命名为 m__v2。
 
-* 覆盖安装方案：新版本会把旧版本覆盖，新安装的 proto 包使用不携带版本号的文件夹
-* 版本冲突安装方案：新安装的 proto 包使用携带版本号的文件夹，格式：proto 包名__v主版本号
+### 2.4 secret 说明
 
-### 2.4 备注（未开发）
+secret 共分为两类，每个 proto 包带有的 secret 和全局 secret
+* proto 包带有的 secret 通过执行 `sasdn-pm secret` 命令在中心节点生成并更新到本地 proto 包的文件中，之后每次执行 `sasdn-pm publish`
+操作，都会校验该 secret
+* 全局 secret 在初始化数据库表 `spm_global_secret` 时手动填入，之后每次执行 `sasdn-pm delete [包名] [用户密码]`
+操作，都会校验该 secret
+* 通常只有一个 admin 用户拥有全局 secret，若其它人想要删除中心节点的 proto 包，需要通知 admin 用户，让其帮助删除
+
+### 2.5 备注（未开发）
 1. 包备份脚本( crontab )
 2. 用户模块
 3. 用户密钥生成

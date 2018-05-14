@@ -177,11 +177,13 @@ class InstallCLI {
                 // 依赖版本 major 高于当前版本
                 console.log(`\nWarning: The version of package [${spmPackage.name}] you are going to install is [${spmPackage.version}] ` +
                     `while your local version is [${this._spmPackageInstalled[dirname].version}], which causes confict.` +
+                    `There are two ways to resolve the confict: 1. Overwrite current package 2. Rename new version.` +
                     `If you overwrite the current package, you should change logic of some interface. If you choose [n],` +
                     `the two version will coexist and the new installed one will be renamed. ChangeLog in spm.json may be helpful.\n`);
                 let flag = '';
                 while (['y', 'yes', 'n', 'no'].indexOf(flag) === -1) {
-                    flag = readlineSync.question(`Are you sure to overwrite the current package [${spmPackage.name}]? (y/n)`);
+                    flag = readlineSync.question(`Are you sure to overwrite the current package [${spmPackage.name}] or rename new version? (y/n)`);
+                    flag = flag.toLowerCase();
                 }
                 if (flag === 'y' || flag === 'yes') {
                     this._spmPackageInstalled[dirname] = spmPackage;

@@ -1,5 +1,5 @@
 import * as program from 'commander';
-import {HttpRequest} from "./lib/lib";
+import {HttpRequest} from './lib/lib';
 
 const pkg = require('../../package.json');
 
@@ -26,7 +26,7 @@ export class DeleteCLI {
             throw new Error('Please input package name!');
         }
         if (!SECRET) {
-            throw new Error('Please input password!');
+            throw new Error('Please input secret!');
         }
     }
 

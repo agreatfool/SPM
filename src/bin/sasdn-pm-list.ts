@@ -1,15 +1,13 @@
 import * as program from 'commander';
-import {Spm, SpmPackageMap} from './lib/lib';
+import {HttpRequest} from './lib/lib';
+import {SpmPackage} from '../lib/entity/SpmPackage';
 
 const pkg = require('../../package.json');
 
 program.version(pkg.version)
     .parse(process.argv);
 
-const KEYWORK_VALUE = program.args[0]
-
 export class ListCLI {
-    private _projectDir: string;
 
     static instance() {
         return new ListCLI();
@@ -17,75 +15,48 @@ export class ListCLI {
 
     public async run() {
         console.log('ListCLI start.');
-
-        await this._prepare();
-        await this._displayPackageList();
-
-        console.log('ListCLI complete.');
+        await this._displaySearchResult();
     }
 
     /**
-     * 准备命令中需要使用的参数，或创建文件夹。
+     * 访问 /v1/search，并显示搜索结果。
      *
      * @returns {Promise<void>}
      * @private
      */
-    private async _prepare() {
-        console.log('ListCLI prepare.');
+    private async _displaySearchResult() {
+        console.log('ListCLI search.');
 
-        this._projectDir = Spm.getProjectDir();
-    }
+        let params = {
+            keyword: 'all',
+        };
 
-    /**
-     * 显示所有已安装的 package
-     *
-     * @returns {Promise<void>}
-     * @private
-     */
-    private async _displayPackageList() {
-        console.log('ListCLI show.');
+        try {
+            let response = await HttpRequest.post('/v1/search', params) as Array<SpmPackage>;
 
-        let spmPackageMap = await Spm.getInstalledSpmPackageMap();
-
-        console.log('--------------Installed SpmPackage---------------');
-        if (KEYWORK_VALUE !== undefined) {
-            this._displayPackage(KEYWORK_VALUE, spmPackageMap);
-        } else {
-            for (let dirname in spmPackageMap) {
-                this._displayPackage(dirname, spmPackageMap);
-            }
-        }
-        console.log('--------------Installed SpmPackage---------------');
-    }
-
-    /**
-     * 显示名字为 packageName 的已安装的 package
-     * @param {string} packageName
-     * @param {SpmPackageMap} spmPackageMap
-     * @private
-     */
-    private _displayPackage(packageName: string, spmPackageMap: SpmPackageMap): void {
-        let spmPackage = spmPackageMap[packageName];
-        if (!spmPackage) {
-          throw new Error(`${packageName} not exist in SpmPackageList.`);
-        }
-        let depLength = Object.keys(spmPackage.dependencies).length;
-        if (depLength !== 0) {
-            console.log(`├─┬ ${spmPackage.name}@${spmPackage.version}`);
-        } else {
-            console.log(`├── ${spmPackage.name}@${spmPackage.version}`);
-        }
-        let count = 0;
-        for (let dependName in spmPackage.dependencies) {
-            count += 1;
-            if (count !== depLength) {
-                console.log(`│ ├── ${dependName}@${spmPackage.dependencies[dependName]}`);
+            console.log('--------------Remote Packages---------------');
+            if (response.length > 0) {
+                this._showPackageInfo(response);
             } else {
-                console.log(`│ └── ${dependName}@${spmPackage.dependencies[dependName]}`);
+                console.log('package not found!');
             }
+            console.log('--------------Remote Packages---------------');
+
+        } catch (e) {
+            throw e;
         }
     }
 
+    /**
+     * 在终端显示 proto 包
+     * @param {Array<SpmPackage>} packageInfoList
+     * @private
+     */
+    private _showPackageInfo(packageInfoList: Array<SpmPackage>): void {
+        for (let packageInfo of packageInfoList) {
+            console.log(`├── ${packageInfo.name} | ${(packageInfo.description) ? packageInfo.description : 'no description'}`);
+        }
+    }
 }
 
 ListCLI.instance().run().catch((err: Error) => {

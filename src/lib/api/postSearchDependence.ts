@@ -1,13 +1,12 @@
-import "reflect-metadata";
-import * as _ from "underscore";
-import Database from "../Database";
-import {Context as KoaContext} from "koa";
-import {SpmPackage} from "../entity/SpmPackage";
-import {SpmPackageVersion} from "../entity/SpmPackageVersion";
-import {SpmPackageMap} from "../../bin/lib/lib";
-import {ApiBase, MiddlewareNext, ResponseSchema} from "../ApiBase";
-import {Connection} from "typeorm";
-import {PackageState} from "../Const.tx";
+import 'reflect-metadata';
+import * as _ from 'underscore';
+import Database from '../Database';
+import {Context as KoaContext} from 'koa';
+import {SpmPackage} from '../entity/SpmPackage';
+import {SpmPackageVersion} from '../entity/SpmPackageVersion';
+import {SpmPackageMap} from '../../bin/lib/lib';
+import {ApiBase, MiddlewareNext, ResponseSchema} from '../ApiBase';
+import {Connection} from 'typeorm';
 
 type SheetColumnWhereSchema = [string, any];
 
@@ -45,7 +44,7 @@ class PostSearchDependence extends ApiBase {
 
     public async findDependencies(dbConn: Connection, name: string, version: string, dependencies: SpmPackageMap, isDependencies: boolean = false): Promise<SpmPackageMap> {
 
-        // if dependencies is exist, return ..
+        // if dependencies exist, return ..
         if (dependencies.hasOwnProperty(`${name}@${version}`)) {
             return dependencies;
         }
@@ -55,7 +54,6 @@ class PostSearchDependence extends ApiBase {
             .getRepository(SpmPackage)
             .createQueryBuilder('package')
             .where('package.name=:name', {name: name})
-            .andWhere(`state=${PackageState.ENABLED}`)
             .getOne();
 
         if (_.isEmpty(spmPackage)) {
@@ -65,7 +63,7 @@ class PostSearchDependence extends ApiBase {
         // build spm package version query
         let sheetName = 'version';
         let spmPackageVersion: SpmPackageVersion;
-        let columnNameWhereQuery = [`${sheetName}.name=:name`, {name: spmPackage.name}] as SheetColumnWhereSchema;
+        let columnNameWhereQuery = [`${sheetName}.pid=:pid`, {pid: spmPackage.id}] as SheetColumnWhereSchema;
 
         if (!_.isEmpty(version)) {
             const [major, minor, patch] = version.split('.');
@@ -76,14 +74,12 @@ class PostSearchDependence extends ApiBase {
                 .andWhere(`${sheetName}.major=:major`, {major: major})
                 .andWhere(`${sheetName}.minor=:minor`, {minor: minor})
                 .andWhere(`${sheetName}.patch=:patch`, {patch: patch})
-                .andWhere(`state=${PackageState.ENABLED}`)
                 .getOne();
         } else {
             spmPackageVersion = await dbConn
                 .getRepository(SpmPackageVersion)
                 .createQueryBuilder(sheetName)
                 .where(columnNameWhereQuery[0], columnNameWhereQuery[1])
-                .andWhere(`state=${PackageState.ENABLED}`)
                 .orderBy(`${sheetName}.major`, 'DESC')
                 .addOrderBy(`${sheetName}.minor`, 'DESC')
                 .addOrderBy(`${sheetName}.patch`, 'DESC')
@@ -105,7 +101,7 @@ class PostSearchDependence extends ApiBase {
             version: `${spmPackageVersion.major}.${spmPackageVersion.minor}.${spmPackageVersion.patch}`,
             dependencies: pkgDependencies,
             downloadUrl: spmPackageVersion.filePath,
-            isDependencies: isDependencies
+            isDependencies: isDependencies,
         };
 
         // deep loop

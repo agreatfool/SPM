@@ -10,7 +10,6 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const typeorm_1 = require("typeorm");
-const Const_tx_1 = require("../Const.tx");
 let SpmPackageSecret = class SpmPackageSecret {
 };
 __decorate([
@@ -18,17 +17,13 @@ __decorate([
     __metadata("design:type", Number)
 ], SpmPackageSecret.prototype, "id", void 0);
 __decorate([
-    typeorm_1.Column('text'),
-    __metadata("design:type", String)
-], SpmPackageSecret.prototype, "name", void 0);
+    typeorm_1.Column('int'),
+    __metadata("design:type", Number)
+], SpmPackageSecret.prototype, "pid", void 0);
 __decorate([
     typeorm_1.Column('text'),
     __metadata("design:type", String)
 ], SpmPackageSecret.prototype, "secret", void 0);
-__decorate([
-    typeorm_1.Column('int', { default: Const_tx_1.PackageState.ENABLED }),
-    __metadata("design:type", Number)
-], SpmPackageSecret.prototype, "state", void 0);
 SpmPackageSecret = __decorate([
     typeorm_1.Entity()
 ], SpmPackageSecret);

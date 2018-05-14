@@ -65,7 +65,7 @@ class UpdateCLI {
         return __awaiter(this, void 0, void 0, function* () {
             if (!PKG_NAME) {
                 // MODE ONE: npm update
-                // 将依赖包的版本更新为最新（minor 号和 patch 号最高）
+                // 将依赖包的版本更新为相同 major 下的最新版本（minor 号和 patch 号最高）
                 for (let packageName of Object.keys(this._packageConfig.dependencies)) {
                     let major = this._packageConfig.dependencies[packageName].split('.')[0];
                     let remoteLatestVersion = yield lib_1.HttpRequest.post('/v1/search_latest', { packageName, major });

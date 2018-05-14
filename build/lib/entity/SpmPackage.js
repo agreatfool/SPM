@@ -10,7 +10,6 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const typeorm_1 = require("typeorm");
-const Const_tx_1 = require("../Const.tx");
 let SpmPackage = class SpmPackage {
 };
 __decorate([
@@ -25,10 +24,6 @@ __decorate([
     typeorm_1.Column('text', { default: 'no description' }),
     __metadata("design:type", String)
 ], SpmPackage.prototype, "description", void 0);
-__decorate([
-    typeorm_1.Column('int', { default: Const_tx_1.PackageState.ENABLED }),
-    __metadata("design:type", Number)
-], SpmPackage.prototype, "state", void 0);
 SpmPackage = __decorate([
     typeorm_1.Entity()
 ], SpmPackage);

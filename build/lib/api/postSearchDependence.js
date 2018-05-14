@@ -14,7 +14,6 @@ const Database_1 = require("../Database");
 const SpmPackage_1 = require("../entity/SpmPackage");
 const SpmPackageVersion_1 = require("../entity/SpmPackageVersion");
 const ApiBase_1 = require("../ApiBase");
-const Const_tx_1 = require("../Const.tx");
 class PostSearchDependence extends ApiBase_1.ApiBase {
     constructor() {
         super();
@@ -46,7 +45,7 @@ class PostSearchDependence extends ApiBase_1.ApiBase {
     ;
     findDependencies(dbConn, name, version, dependencies, isDependencies = false) {
         return __awaiter(this, void 0, void 0, function* () {
-            // if dependencies is exist, return ..
+            // if dependencies exist, return ..
             if (dependencies.hasOwnProperty(`${name}@${version}`)) {
                 return dependencies;
             }
@@ -55,7 +54,6 @@ class PostSearchDependence extends ApiBase_1.ApiBase {
                 .getRepository(SpmPackage_1.SpmPackage)
                 .createQueryBuilder('package')
                 .where('package.name=:name', { name: name })
-                .andWhere(`state=${Const_tx_1.PackageState.ENABLED}`)
                 .getOne();
             if (_.isEmpty(spmPackage)) {
                 throw new Error('Package not found, name: ' + name);
@@ -63,7 +61,7 @@ class PostSearchDependence extends ApiBase_1.ApiBase {
             // build spm package version query
             let sheetName = 'version';
             let spmPackageVersion;
-            let columnNameWhereQuery = [`${sheetName}.name=:name`, { name: spmPackage.name }];
+            let columnNameWhereQuery = [`${sheetName}.pid=:pid`, { pid: spmPackage.id }];
             if (!_.isEmpty(version)) {
                 const [major, minor, patch] = version.split('.');
                 spmPackageVersion = yield dbConn
@@ -73,7 +71,6 @@ class PostSearchDependence extends ApiBase_1.ApiBase {
                     .andWhere(`${sheetName}.major=:major`, { major: major })
                     .andWhere(`${sheetName}.minor=:minor`, { minor: minor })
                     .andWhere(`${sheetName}.patch=:patch`, { patch: patch })
-                    .andWhere(`state=${Const_tx_1.PackageState.ENABLED}`)
                     .getOne();
             }
             else {
@@ -81,7 +78,6 @@ class PostSearchDependence extends ApiBase_1.ApiBase {
                     .getRepository(SpmPackageVersion_1.SpmPackageVersion)
                     .createQueryBuilder(sheetName)
                     .where(columnNameWhereQuery[0], columnNameWhereQuery[1])
-                    .andWhere(`state=${Const_tx_1.PackageState.ENABLED}`)
                     .orderBy(`${sheetName}.major`, 'DESC')
                     .addOrderBy(`${sheetName}.minor`, 'DESC')
                     .addOrderBy(`${sheetName}.patch`, 'DESC')
@@ -102,7 +98,7 @@ class PostSearchDependence extends ApiBase_1.ApiBase {
                 version: `${spmPackageVersion.major}.${spmPackageVersion.minor}.${spmPackageVersion.patch}`,
                 dependencies: pkgDependencies,
                 downloadUrl: spmPackageVersion.filePath,
-                isDependencies: isDependencies
+                isDependencies: isDependencies,
             };
             // deep loop
             for (let dependPackageName in pkgDependencies) {

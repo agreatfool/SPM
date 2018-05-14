@@ -31,7 +31,7 @@ class DeleteCLI {
             throw new Error('Please input package name!');
         }
         if (!SECRET) {
-            throw new Error('Please input password!');
+            throw new Error('Please input secret!');
         }
     }
     /**

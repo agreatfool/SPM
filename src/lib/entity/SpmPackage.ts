@@ -1,5 +1,4 @@
 import {Entity, Column, PrimaryColumn} from 'typeorm';
-import {PackageState} from "../Const.tx";
 
 @Entity()
 export class SpmPackage {
@@ -11,7 +10,4 @@ export class SpmPackage {
 
     @Column('text', {default: 'no description'})
     description: string;
-
-    @Column('int', {default: PackageState.ENABLED})
-    state: number;
 }

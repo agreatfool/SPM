@@ -1,13 +1,13 @@
-import "reflect-metadata";
-import * as _ from "underscore";
-import Database from "../Database";
-import {Context as KoaContext} from "koa";
-import {ApiBase, MiddlewareNext, ResponseSchema} from "../ApiBase";
-import {SpmGlobalSecret} from "../entity/SpmGlobalSecret";
-import {SpmPackage} from "../entity/SpmPackage";
-import {SpmPackageSecret} from "../entity/SpmPackageSecret";
-import {PackageState} from "../Const.tx";
-import {SpmPackageVersion} from "../entity/SpmPackageVersion";
+import 'reflect-metadata';
+import * as _ from 'underscore';
+import * as LibFs from 'fs';
+import Database from '../Database';
+import {Context as KoaContext} from 'koa';
+import {ApiBase, MiddlewareNext, ResponseSchema} from '../ApiBase';
+import {SpmGlobalSecret} from '../entity/SpmGlobalSecret';
+import {SpmPackage} from '../entity/SpmPackage';
+import {SpmPackageSecret} from '../entity/SpmPackageSecret';
+import {SpmPackageVersion} from '../entity/SpmPackageVersion';
 
 interface DeleteSecretParams {
     packageName: string;
@@ -29,7 +29,7 @@ class PostDeletePackage extends ApiBase {
             throw new Error('PackageName is required!');
         }
         if (!params.secret || _.isEmpty(params.secret)) {
-            throw new Error('Password is required!');
+            throw new Error('Secret is required!');
         }
     }
 
@@ -41,11 +41,11 @@ class PostDeletePackage extends ApiBase {
                 .createQueryBuilder('g')
                 .getOne();
             if (globalSecretEntity.secret !== params.secret) {
-                return this.buildResponse(`Password error`, -1);
+                return this.buildResponse(`Secret error`, -1);
             }
 
             await this._deletePackage(params);
-            return this.buildResponse(`Delete package successfully!`, 0);
+            return this.buildResponse(`The package was successfully deleted!`, 0);
         } catch (err) {
             return this.buildResponse(err.message, -1);
         }
@@ -53,21 +53,20 @@ class PostDeletePackage extends ApiBase {
 
     private async _deletePackage(params: DeleteSecretParams): Promise<void> {
         let pkgRepo = Database.instance().conn.getRepository(SpmPackage);
-        let pkg = await pkgRepo.findOne({name: params.packageName, state: PackageState.ENABLED});
-        pkg.state = PackageState.DISABLED;
-        await pkgRepo.save(pkg);
+        let pkg = await pkgRepo.findOne({name: params.packageName});
+        let pkgId = pkg.id;
+        await pkgRepo.remove(pkg);
 
         let pkgSecretRepo = Database.instance().conn.getRepository(SpmPackageSecret);
-        let pkgSecret = await pkgSecretRepo.findOne({name: params.packageName, state: PackageState.ENABLED});
-        pkgSecret.state = PackageState.DISABLED;
-        await pkgSecretRepo.save(pkgSecret);
+        let pkgSecret = await pkgSecretRepo.findOne({pid: pkgId});
+        await pkgSecretRepo.remove(pkgSecret);
 
         let pkgVersionRepo = Database.instance().conn.getRepository(SpmPackageVersion);
-        let pkgVersionList = await pkgVersionRepo.find({name: params.packageName, state: PackageState.ENABLED});
+        let pkgVersionList = await pkgVersionRepo.find({pid: pkgId});
         for (let pkgVersion of pkgVersionList) {
-            pkgVersion.state = PackageState.DISABLED;
+            LibFs.unlinkSync(pkgVersion.filePath);
+            await pkgVersionRepo.remove(pkgVersion);
         }
-        await pkgVersionRepo.save(pkgVersionList);
     }
 }
 

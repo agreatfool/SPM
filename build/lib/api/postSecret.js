@@ -14,7 +14,7 @@ const Config_1 = require("../Config");
 const Database_1 = require("../Database");
 const SpmPackageSecret_1 = require("../entity/SpmPackageSecret");
 const ApiBase_1 = require("../ApiBase");
-const Const_tx_1 = require("../Const.tx");
+const SpmPackage_1 = require("../entity/SpmPackage");
 class PostSecret extends ApiBase_1.ApiBase {
     constructor() {
         super();
@@ -35,19 +35,25 @@ class PostSecret extends ApiBase_1.ApiBase {
             try {
                 const params = ctx.request.body;
                 const dbConn = Database_1.default.instance().conn;
-                // find package
+                // 查询 spmPackage
+                const spmPackage = yield dbConn
+                    .getRepository(SpmPackage_1.SpmPackage)
+                    .findOne({ name: params.name });
+                if (!spmPackage) {
+                    return this.buildResponse(`package ${params.name} does not exist.`, -1);
+                }
+                // find package secret
                 let spmPackageSecret = yield dbConn
                     .getRepository(SpmPackageSecret_1.SpmPackageSecret)
-                    .createQueryBuilder('user')
-                    .where('user.name=:name', { name: params.name })
-                    .andWhere(`state=${Const_tx_1.PackageState.ENABLED}`)
+                    .createQueryBuilder('pkgSecret')
+                    .where('pkgSecret.pid=:pid', { pid: spmPackage.id })
                     .getOne();
                 // if package is not found, create package
                 if (!_.isEmpty(spmPackageSecret)) {
                     return this.buildResponse('secret already exists', -1);
                 }
                 let entity = new SpmPackageSecret_1.SpmPackageSecret();
-                entity.name = params.name;
+                entity.pid = spmPackage.id;
                 entity.secret = ApiBase_1.ApiBase.genSecretToken(params.name, Config_1.default.instance().options.secret, Math.round(new Date().getTime() / 1000));
                 spmPackageSecret = yield dbConn.manager.save(entity);
                 return this.buildResponse({ secret: spmPackageSecret.secret });

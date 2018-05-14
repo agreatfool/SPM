@@ -1,13 +1,12 @@
 import {Column, Entity, PrimaryColumn} from 'typeorm';
-import {PackageState} from "../Const.tx";
 
 @Entity()
 export class SpmPackageVersion {
     @PrimaryColumn('int', {generated: true})
     id: number;
 
-    @Column('text')
-    name: string;
+    @Column('int')
+    pid: number;
 
     @Column('int')
     major: number;
@@ -26,7 +25,4 @@ export class SpmPackageVersion {
 
     @Column('text')
     dependencies: string;
-
-    @Column('int', {default: PackageState.ENABLED})
-    state: number;
 }

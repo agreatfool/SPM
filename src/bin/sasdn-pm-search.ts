@@ -15,14 +15,14 @@ const INFO_VALUE = (program as any).info === undefined ? undefined : (program as
 const KEYWORD_VALUE = program.args[0] === undefined ? undefined : program.args[0];
 const SHOW_DEPENDENCE_FLAG = program.dependence;
 
-export class SearchCLI {
+export class ListCLI {
 
     static instance() {
-        return new SearchCLI();
+        return new ListCLI();
     }
 
     public async run() {
-        console.log('SearchCLI start.');
+        console.log('ListCLI start.');
         await this._displaySearchResult();
     }
 
@@ -155,6 +155,6 @@ export class SearchCLI {
     }
 }
 
-SearchCLI.instance().run().catch((err: Error) => {
+ListCLI.instance().run().catch((err: Error) => {
     console.log('error:', err.message);
 });

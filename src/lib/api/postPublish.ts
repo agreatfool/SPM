@@ -9,7 +9,6 @@ import {SpmPackageVersion} from '../entity/SpmPackageVersion';
 import {SpmPackageSecret} from '../entity/SpmPackageSecret';
 import {ApiBase, MiddlewareNext, ResponseSchema} from '../ApiBase';
 import {mkdir, Spm} from '../../bin/lib/lib';
-import {PackageState} from "../Const.tx";
 
 interface PublishParams {
     fields: {
@@ -62,12 +61,16 @@ class PostPublish extends ApiBase {
         const params = body.fields;
 
         // find package
+        const spmPackageRepo = dbConn.getRepository(SpmPackage);
+        const spmPackage = await spmPackageRepo.findOne({name: params.name});
+        if (!spmPackage) {
+          return this.buildResponse(`Package ${params.name} does not exist.`, -1);
+        }
+
+        // find package secret
         let spmPackageSecret = await dbConn
             .getRepository(SpmPackageSecret)
-            .createQueryBuilder('user')
-            .where('user.name=:name', {name: params.name})
-            .andWhere(`state=${PackageState.ENABLED}`)
-            .getOne();
+            .findOne({pid: spmPackage.id});
 
         if (_.isEmpty(spmPackageSecret) || spmPackageSecret.secret !== params.secret) {
             return this.buildResponse('Wrong secret', -1);
@@ -100,13 +103,12 @@ class PostPublish extends ApiBase {
                 .getRepository(SpmPackage)
                 .createQueryBuilder('package')
                 .where('package.name=:name', {name: params.name})
-                .andWhere(`state=${PackageState.ENABLED}`)
                 .getOne();
 
             // if package is not found, create package
             if (_.isEmpty(spmPackage)) {
                 let entity = new SpmPackage();
-                entity.name = spmPackageSecret.name;
+                entity.name = params.name;
                 entity.description = params.description;
                 spmPackage = await dbConn.manager.save(entity);
             } else {
@@ -118,11 +120,10 @@ class PostPublish extends ApiBase {
             let spmPackageVersion = await dbConn
                 .getRepository(SpmPackageVersion)
                 .createQueryBuilder('version')
-                .where('version.name=:name', {name: spmPackage.name})
+                .where('version.pid=:pid', {pid: spmPackage.id})
                 .andWhere('version.major=:major', {major: major})
                 .andWhere('version.minor=:minor', {minor: minor})
                 .andWhere('version.patch=:patch', {patch: patch})
-                .andWhere(`state=${PackageState.ENABLED}`)
                 .getOne();
 
             if (!_.isEmpty(spmPackageVersion)) {
@@ -131,7 +132,7 @@ class PostPublish extends ApiBase {
 
             // if version is not found, create version
             let entity = new SpmPackageVersion();
-            entity.name = spmPackage.name;
+            entity.pid = spmPackage.id;
             entity.major = parseInt(major) | 0;
             entity.minor = parseInt(minor) | 0;
             entity.patch = parseInt(patch) | 0;
