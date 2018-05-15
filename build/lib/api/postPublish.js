@@ -49,11 +49,15 @@ class PostPublish extends ApiBase_1.ApiBase {
             const body = ctx.request.body;
             const params = body.fields;
             // find package
+            const spmPackageRepo = dbConn.getRepository(SpmPackage_1.SpmPackage);
+            const spmPackage = yield spmPackageRepo.findOne({ name: params.name });
+            if (!spmPackage) {
+                return this.buildResponse(`Package ${params.name} does not exist.`, -1);
+            }
+            // find package secret
             let spmPackageSecret = yield dbConn
                 .getRepository(SpmPackageSecret_1.SpmPackageSecret)
-                .createQueryBuilder('user')
-                .where('user.name=:name', { name: params.name })
-                .getOne();
+                .findOne({ pid: spmPackage.id });
             if (_.isEmpty(spmPackageSecret) || spmPackageSecret.secret !== params.secret) {
                 return this.buildResponse('Wrong secret', -1);
             }
@@ -83,7 +87,7 @@ class PostPublish extends ApiBase_1.ApiBase {
                 // if package is not found, create package
                 if (_.isEmpty(spmPackage)) {
                     let entity = new SpmPackage_1.SpmPackage();
-                    entity.name = spmPackageSecret.name;
+                    entity.name = params.name;
                     entity.description = params.description;
                     spmPackage = yield dbConn.manager.save(entity);
                 }
@@ -95,7 +99,7 @@ class PostPublish extends ApiBase_1.ApiBase {
                 let spmPackageVersion = yield dbConn
                     .getRepository(SpmPackageVersion_1.SpmPackageVersion)
                     .createQueryBuilder('version')
-                    .where('version.name=:name', { name: spmPackage.name })
+                    .where('version.pid=:pid', { pid: spmPackage.id })
                     .andWhere('version.major=:major', { major: major })
                     .andWhere('version.minor=:minor', { minor: minor })
                     .andWhere('version.patch=:patch', { patch: patch })
@@ -105,7 +109,7 @@ class PostPublish extends ApiBase_1.ApiBase {
                 }
                 // if version is not found, create version
                 let entity = new SpmPackageVersion_1.SpmPackageVersion();
-                entity.name = spmPackage.name;
+                entity.pid = spmPackage.id;
                 entity.major = parseInt(major) | 0;
                 entity.minor = parseInt(minor) | 0;
                 entity.patch = parseInt(patch) | 0;
@@ -123,4 +127,3 @@ class PostPublish extends ApiBase_1.ApiBase {
     ;
 }
 exports.api = new PostPublish();
-//# sourceMappingURL=postPublish.js.map

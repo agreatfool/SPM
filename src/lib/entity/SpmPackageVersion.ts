@@ -1,12 +1,12 @@
-import {Entity, Column, PrimaryColumn} from 'typeorm';
+import {Column, Entity, PrimaryColumn} from 'typeorm';
 
 @Entity()
 export class SpmPackageVersion {
     @PrimaryColumn('int', {generated: true})
     id: number;
 
-    @Column('text')
-    name: string;
+    @Column('int')
+    pid: number;
 
     @Column('int')
     major: number;

@@ -45,7 +45,7 @@ export default class Database {
                 type: 'sqlite',
                 database: LibPath.join(Spm.SPM_ROOT_PATH, 'Spm.db'),
                 entities: entities,
-                autoSchemaSync: true, // only works when creating db file, no effect when changing schema
+                autoSchemaSync: false, // only works when creating db file, no effect when changing schema
             });
 
             this._initialized = true;

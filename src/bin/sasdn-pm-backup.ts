@@ -7,6 +7,8 @@ import {mkdir, Spm} from './lib/lib';
 const pkg = require('../../package.json');
 
 program.version(pkg.version)
+    .description('backup store dir and sqlite db file')
+    .usage('<path>')
     .parse(process.argv);
 
 const OUTPUT_PATH = program.args[0] === undefined ? undefined : program.args[0];

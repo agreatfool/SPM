@@ -13,7 +13,11 @@ const typeorm_1 = require("typeorm");
 let SpmPackage = class SpmPackage {
 };
 __decorate([
-    typeorm_1.PrimaryColumn('text'),
+    typeorm_1.PrimaryColumn('int', { generated: true }),
+    __metadata("design:type", Number)
+], SpmPackage.prototype, "id", void 0);
+__decorate([
+    typeorm_1.Column('text'),
     __metadata("design:type", String)
 ], SpmPackage.prototype, "name", void 0);
 __decorate([
@@ -24,4 +28,3 @@ SpmPackage = __decorate([
     typeorm_1.Entity()
 ], SpmPackage);
 exports.SpmPackage = SpmPackage;
-//# sourceMappingURL=SpmPackage.js.map

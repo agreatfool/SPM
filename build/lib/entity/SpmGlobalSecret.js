@@ -10,21 +10,17 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const typeorm_1 = require("typeorm");
-let SpmPackageSecret = class SpmPackageSecret {
+let SpmGlobalSecret = class SpmGlobalSecret {
 };
 __decorate([
     typeorm_1.PrimaryColumn('int', { generated: true }),
     __metadata("design:type", Number)
-], SpmPackageSecret.prototype, "id", void 0);
-__decorate([
-    typeorm_1.Column('int'),
-    __metadata("design:type", Number)
-], SpmPackageSecret.prototype, "pid", void 0);
+], SpmGlobalSecret.prototype, "id", void 0);
 __decorate([
     typeorm_1.Column('text'),
     __metadata("design:type", String)
-], SpmPackageSecret.prototype, "secret", void 0);
-SpmPackageSecret = __decorate([
+], SpmGlobalSecret.prototype, "secret", void 0);
+SpmGlobalSecret = __decorate([
     typeorm_1.Entity()
-], SpmPackageSecret);
-exports.SpmPackageSecret = SpmPackageSecret;
+], SpmGlobalSecret);
+exports.SpmGlobalSecret = SpmGlobalSecret;

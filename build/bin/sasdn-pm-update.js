@@ -18,20 +18,20 @@ const readlineSync = require("readline-sync");
 const lib_1 = require("./lib/lib");
 const pkg = require('../../package.json');
 program.version(pkg.version)
-    .usage('[<package>[@version]]')
-    .description('install proto from spm server')
+    .description('update proto to latest version')
+    .usage('[package]')
     .parse(process.argv);
-const PKG_NAME_VALUE = program.args[0] === undefined ? undefined : program.args[0];
-class InstallCLI {
+const PKG_NAME = program.args[0];
+class UpdateCLI {
     static instance() {
-        return new InstallCLI();
+        return new UpdateCLI();
     }
     run() {
         return __awaiter(this, void 0, void 0, function* () {
-            console.log('InstallCLI start.');
+            console.log('UpdateCLI start.');
             yield this._prepare();
-            yield this._install();
-            console.log('InstallCLI complete.');
+            yield this._update();
+            console.log('UpdateCLI complete.');
             yield lib_1.Spm.checkVersion();
         });
     }
@@ -43,7 +43,7 @@ class InstallCLI {
      */
     _prepare() {
         return __awaiter(this, void 0, void 0, function* () {
-            console.log('InstallCLI prepare.');
+            console.log('UpdateCLI prepare.');
             this._projectDir = lib_1.Spm.getProjectDir();
             this._packageConfig = lib_1.Spm.getSpmPackageConfig(LibPath.join(this._projectDir, 'spm.json'));
             this._packageDeployed = new Map();
@@ -63,18 +63,34 @@ class InstallCLI {
      * @returns {Promise<void>}
      * @private
      */
-    _install() {
+    _update() {
         return __awaiter(this, void 0, void 0, function* () {
-            let packageList = [];
-            if (!PKG_NAME_VALUE) {
-                // MODE ONE: npm install
-                for (let name in this._packageConfig.dependencies) {
-                    packageList.push(`${name}@${this._packageConfig.dependencies[name]}`);
+            if (!PKG_NAME) {
+                // MODE ONE: npm update
+                // 将依赖包的版本更新为相同 major 下的最新版本（minor 号和 patch 号最高）
+                for (let packageName of Object.keys(this._packageConfig.dependencies)) {
+                    let major = this._packageConfig.dependencies[packageName].split('.')[0];
+                    let remoteLatestVersion = yield lib_1.HttpRequest.post('/v1/search_latest', { packageName, major });
+                    this._packageConfig.dependencies[packageName] = remoteLatestVersion;
                 }
             }
             else {
-                // MODE TWO: npm install ${pkgName}
-                packageList.push(PKG_NAME_VALUE);
+                // MODE TWO: npm update ${pkgName}
+                if (!this._packageConfig.dependencies[PKG_NAME]) {
+                    throw new Error(`${PKG_NAME} does not exist in spm.json.`);
+                }
+                let major = this._packageConfig.dependencies[PKG_NAME].split('.')[0];
+                let remoteLatestVersion = yield lib_1.HttpRequest.post('/v1/search_latest', {
+                    packageName: PKG_NAME,
+                    major: major,
+                });
+                this._packageConfig.dependencies[PKG_NAME] = remoteLatestVersion;
+            }
+            // 写入依赖关系
+            yield LibFs.writeFile(LibPath.join(this._projectDir, 'spm.json'), Buffer.from(JSON.stringify(this._packageConfig, null, 2)));
+            let packageList = [];
+            for (let name in this._packageConfig.dependencies) {
+                packageList.push(`${name}@${this._packageConfig.dependencies[name]}`);
             }
             for (let pkgName of packageList) {
                 let spmPackageDependMap = yield this._getPkgDependcies(pkgName);
@@ -179,13 +195,11 @@ class InstallCLI {
                 // 依赖版本 major 高于当前版本
                 console.log(`\nWarning: The version of package [${spmPackage.name}] you are going to install is [${spmPackage.version}] ` +
                     `while your local version is [${this._spmPackageInstalled[dirname].version}], which causes confict.` +
-                    `There are two ways to resolve the confict: 1. Overwrite current package 2. Rename new version.` +
                     `If you overwrite the current package, you should change logic of some interface. If you choose [n],` +
                     `the two version will coexist and the new installed one will be renamed. ChangeLog in spm.json may be helpful.\n`);
                 let flag = '';
                 while (['y', 'yes', 'n', 'no'].indexOf(flag) === -1) {
-                    flag = readlineSync.question(`Are you sure to overwrite the current package [${spmPackage.name}] or rename new version? (y/n)`);
-                    flag = flag.toLowerCase();
+                    flag = readlineSync.question(`Are you sure to overwrite the current package [${spmPackage.name}]? (y/n)`);
                 }
                 if (flag === 'y' || flag === 'yes') {
                     this._spmPackageInstalled[dirname] = spmPackage;
@@ -320,7 +334,7 @@ class InstallCLI {
                     if (LibPath.basename(file).match(/.+\.proto/) !== null) {
                         if (spmPackage.name != dirname) {
                             yield lib_1.Spm.replaceStringInFile(file, [
-                                [new RegExp(`package ${spmPackage.name};`, 'g'), `package ${dirname};`],
+                                [new RegExp(`package ${spmPackage.name};`, 'g'), `package ${dirname};`]
                             ]);
                         }
                         for (let oldString in spmPackage.dependenciesChanged) {
@@ -328,7 +342,7 @@ class InstallCLI {
                             yield lib_1.Spm.replaceStringInFile(file, [
                                 [new RegExp(`import "${oldString}/`, 'g'), `import "${newString}/`],
                                 [new RegExp(`\\((${oldString}.*?)\\)`, 'g'), (word) => word.replace(oldString, newString)],
-                                [new RegExp(` (${oldString}.*?) `, 'g'), (word) => word.replace(oldString, newString)],
+                                [new RegExp(` (${oldString}.*?) `, 'g'), (word) => word.replace(oldString, newString)]
                             ]);
                         }
                     }
@@ -340,7 +354,7 @@ class InstallCLI {
         });
     }
 }
-exports.InstallCLI = InstallCLI;
-InstallCLI.instance().run().catch((err) => {
+exports.UpdateCLI = UpdateCLI;
+UpdateCLI.instance().run().catch((err) => {
     console.log('error:', err.message);
 });

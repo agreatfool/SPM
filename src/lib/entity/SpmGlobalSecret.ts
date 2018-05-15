@@ -1,13 +1,10 @@
 import {Entity, Column, PrimaryColumn} from 'typeorm';
 
 @Entity()
-export class SpmPackage {
+export class SpmGlobalSecret {
     @PrimaryColumn('int', {generated: true})
     id: number;
 
     @Column('text')
-    name: string;
-
-    @Column('text', {default: 'no description'})
-    description: string;
+    secret: string;
 }

@@ -75,6 +75,29 @@ var Spm;
     }
     Spm.loadSecret = loadSecret;
     /**
+     * Replace string in file
+     *
+     * @param {string} filePath
+     * @param {Array<[RegExp, any]>} conditions
+     * @returns {Promise<void>}
+     */
+    function replaceStringInFile(filePath, conditions) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                let buffer = yield LibFs.readFile(filePath);
+                let content = buffer.toString();
+                for (let [reg, word] of conditions) {
+                    content = content.replace(reg, word);
+                }
+                yield LibFs.writeFile(filePath, Buffer.from(content));
+            }
+            catch (e) {
+                throw e;
+            }
+        });
+    }
+    Spm.replaceStringInFile = replaceStringInFile;
+    /**
      * Get Spm config
      *
      * @returns {SpmConfig}
@@ -132,28 +155,33 @@ var Spm;
     }
     Spm.getInstalledSpmPackageMap = getInstalledSpmPackageMap;
     /**
-     * Replace string in file
-     *
-     * @param {string} filePath
-     * @param {Array<[RegExp, any]>} conditions
+     * Check if local version of package is the latest version
      * @returns {Promise<void>}
      */
-    function replaceStringInFile(filePath, conditions) {
+    function checkVersion() {
         return __awaiter(this, void 0, void 0, function* () {
-            try {
-                let buffer = yield LibFs.readFile(filePath);
-                let content = buffer.toString();
-                for (let [reg, word] of conditions) {
-                    content = content.replace(reg, word);
+            let spmPackageInstalled = yield Spm.getInstalledSpmPackageMap();
+            let flag = 0;
+            for (let packageName of Object.keys(spmPackageInstalled)) {
+                if (/.*?__v\d+/.test(packageName)) {
+                    continue;
                 }
-                yield LibFs.writeFile(filePath, Buffer.from(content));
+                let remoteLatestVersion = yield HttpRequest.post('/v1/search_latest', { packageName });
+                let localVersion = spmPackageInstalled[packageName].version;
+                if (localVersion !== remoteLatestVersion) {
+                    flag = 1;
+                    console.log(`Warning: Your local version of package [${packageName}] is [${localVersion}], but remote latest version is [${remoteLatestVersion}].`);
+                }
             }
-            catch (e) {
-                throw e;
+            if (flag === 0) {
+                console.log('Congratulations, every package is uptodate!');
+            }
+            else {
+                console.log('Use [sasdn-pm update] to update package.');
             }
         });
     }
-    Spm.replaceStringInFile = replaceStringInFile;
+    Spm.checkVersion = checkVersion;
 })(Spm = exports.Spm || (exports.Spm = {}));
 var SpmPackageRequest;
 (function (SpmPackageRequest) {
@@ -180,9 +208,12 @@ var HttpRequest;
                 request.post(`${Spm.getConfig().remote_repo}${uri}`)
                     .form(params)
                     .on('response', (response) => {
+                    let resStrList = [];
                     response.on('data', (chunk) => {
+                        resStrList.push(chunk.toString());
+                    }).on('end', () => {
                         try {
-                            resolve(SpmPackageRequest.parseResponse(chunk));
+                            resolve(SpmPackageRequest.parseResponse(resStrList.join('')));
                         }
                         catch (e) {
                             reject(e);
@@ -242,4 +273,3 @@ var HttpRequest;
     }
     HttpRequest.upload = upload;
 })(HttpRequest = exports.HttpRequest || (exports.HttpRequest = {}));
-//# sourceMappingURL=lib.js.map

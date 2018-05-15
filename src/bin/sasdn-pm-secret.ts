@@ -7,6 +7,8 @@ import {Spm, SpmPackageConfig, HttpRequest} from './lib/lib';
 const pkg = require('../../package.json');
 
 program.version(pkg.version)
+    .description('set secret key in spm commander')
+    .usage(' ')
     .parse(process.argv);
 
 export class SecretCLI {

@@ -12,8 +12,6 @@ const program = require("commander");
 const lib_1 = require("./lib/lib");
 const pkg = require('../../package.json');
 program.version(pkg.version)
-    .usage(' ')
-    .description('show all remote protos registered in SPM')
     .parse(process.argv);
 class ListCLI {
     static instance() {
@@ -21,7 +19,7 @@ class ListCLI {
     }
     run() {
         return __awaiter(this, void 0, void 0, function* () {
-            console.log('ListCLI start.');
+            console.log('SearchCLI start.');
             yield this._displaySearchResult();
         });
     }
@@ -33,20 +31,20 @@ class ListCLI {
      */
     _displaySearchResult() {
         return __awaiter(this, void 0, void 0, function* () {
-            console.log('ListCLI search.');
+            console.log('SearchCLI search.');
             let params = {
-                keyword: '',
+                keyword: 'all',
             };
             try {
                 let response = yield lib_1.HttpRequest.post('/v1/search', params);
-                console.log('--------------Remote Packages---------------');
+                console.log('--------------Search Response---------------');
                 if (response.length > 0) {
                     this._showPackageInfo(response);
                 }
                 else {
                     console.log('package not found!');
                 }
-                console.log('--------------Remote Packages---------------');
+                console.log('--------------Search Response---------------');
             }
             catch (e) {
                 throw e;
@@ -55,7 +53,7 @@ class ListCLI {
     }
     /**
      * 在终端显示 proto 包
-     * @param {Array<SpmPackage>} packageInfoList
+     * @param {Array<SpmPackage | [SpmPackage , SpmPackageVersion]>} packageInfoList
      * @private
      */
     _showPackageInfo(packageInfoList) {

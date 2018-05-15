@@ -16,6 +16,8 @@ const _ = require("underscore");
 const lib_1 = require("./lib/lib");
 const pkg = require('../../package.json');
 program.version(pkg.version)
+    .description('publish proto dir to spm server')
+    .usage(' ')
     .parse(process.argv);
 class PublishCLI {
     static instance() {
@@ -143,4 +145,3 @@ exports.PublishCLI = PublishCLI;
 PublishCLI.instance().run().catch((err) => {
     console.log('error:', err.message);
 });
-//# sourceMappingURL=sasdn-pm-publish.js.map

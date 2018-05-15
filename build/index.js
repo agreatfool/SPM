@@ -7,4 +7,3 @@ app.init().then(() => {
 }).catch((err) => {
     console.log(err.message);
 });
-//# sourceMappingURL=index.js.map

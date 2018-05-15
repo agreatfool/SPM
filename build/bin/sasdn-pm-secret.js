@@ -15,6 +15,8 @@ const _ = require("underscore");
 const lib_1 = require("./lib/lib");
 const pkg = require('../../package.json');
 program.version(pkg.version)
+    .description('set secret key in spm commander')
+    .usage(' ')
     .parse(process.argv);
 class SecretCLI {
     static instance() {
@@ -81,4 +83,3 @@ exports.SecretCLI = SecretCLI;
 SecretCLI.instance().run().catch((err) => {
     console.log('error:', err.message);
 });
-//# sourceMappingURL=sasdn-pm-secret.js.map

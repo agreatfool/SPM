@@ -1,11 +1,11 @@
-import "reflect-metadata";
-import * as _ from "underscore";
-import Database from "../Database";
-import {Context as KoaContext} from "koa";
-import {SpmPackage} from "../entity/SpmPackage";
-import {SpmPackageVersion} from "../entity/SpmPackageVersion";
-import {ApiBase, MiddlewareNext, ResponseSchema} from "../ApiBase";
-import {Connection} from "typeorm";
+import 'reflect-metadata';
+import * as _ from 'underscore';
+import Database from '../Database';
+import {Context as KoaContext} from 'koa';
+import {SpmPackage} from '../entity/SpmPackage';
+import {SpmPackageVersion} from '../entity/SpmPackageVersion';
+import {ApiBase, MiddlewareNext, ResponseSchema} from '../ApiBase';
+import {Connection} from 'typeorm';
 
 interface SearchParams {
     keyword: string;
@@ -21,12 +21,7 @@ class PostSearch extends ApiBase {
         this.type = 'application/json; charset=utf-8';
     }
 
-    public async paramsValidate(ctx: KoaContext) {
-        const params = (ctx.request as any).body as SearchParams;
-        if (!params.keyword || _.isEmpty(params.keyword)) {
-            throw new Error('keyword is required!');
-        }
-    }
+    public async paramsValidate(ctx: KoaContext) {}
 
     public async handle(ctx: KoaContext, next: MiddlewareNext): Promise<ResponseSchema> {
         try {
@@ -44,7 +39,8 @@ class PostSearch extends ApiBase {
 
     public async fuzzyQuery(keyword: string, dbConn: Connection): Promise<Array<SpmPackage>> {
         let packageInfos = [] as Array<SpmPackage>;
-        let spmPackageList = await dbConn
+        let spmPackageList: Array<SpmPackage>;
+        spmPackageList = await dbConn
             .getRepository(SpmPackage)
             .createQueryBuilder('package')
             .where('package.name LIKE :keyword', {keyword: `%${keyword}%`})
@@ -72,7 +68,7 @@ class PostSearch extends ApiBase {
         let spmPackageVersionList = await dbConn
             .getRepository(SpmPackageVersion)
             .createQueryBuilder('version')
-            .where('version.name=:name', {name: spmPackage.name})
+            .where('version.pid=:pid', {pid: spmPackage.id})
             .getMany();
 
         for (let spmPackageVersion of spmPackageVersionList) {

@@ -17,9 +17,9 @@ __decorate([
     __metadata("design:type", Number)
 ], SpmPackageVersion.prototype, "id", void 0);
 __decorate([
-    typeorm_1.Column('text'),
-    __metadata("design:type", String)
-], SpmPackageVersion.prototype, "name", void 0);
+    typeorm_1.Column('int'),
+    __metadata("design:type", Number)
+], SpmPackageVersion.prototype, "pid", void 0);
 __decorate([
     typeorm_1.Column('int'),
     __metadata("design:type", Number)
@@ -48,4 +48,3 @@ SpmPackageVersion = __decorate([
     typeorm_1.Entity()
 ], SpmPackageVersion);
 exports.SpmPackageVersion = SpmPackageVersion;
-//# sourceMappingURL=SpmPackageVersion.js.map

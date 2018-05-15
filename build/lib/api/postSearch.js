@@ -22,12 +22,7 @@ class PostSearch extends ApiBase_1.ApiBase {
         this.type = 'application/json; charset=utf-8';
     }
     paramsValidate(ctx) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const params = ctx.request.body;
-            if (!params.keyword || _.isEmpty(params.keyword)) {
-                throw new Error('keyword is required!');
-            }
-        });
+        return __awaiter(this, void 0, void 0, function* () { });
     }
     handle(ctx, next) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -50,7 +45,8 @@ class PostSearch extends ApiBase_1.ApiBase {
     fuzzyQuery(keyword, dbConn) {
         return __awaiter(this, void 0, void 0, function* () {
             let packageInfos = [];
-            let spmPackageList = yield dbConn
+            let spmPackageList;
+            spmPackageList = yield dbConn
                 .getRepository(SpmPackage_1.SpmPackage)
                 .createQueryBuilder('package')
                 .where('package.name LIKE :keyword', { keyword: `%${keyword}%` })
@@ -76,7 +72,7 @@ class PostSearch extends ApiBase_1.ApiBase {
             let spmPackageVersionList = yield dbConn
                 .getRepository(SpmPackageVersion_1.SpmPackageVersion)
                 .createQueryBuilder('version')
-                .where('version.name=:name', { name: spmPackage.name })
+                .where('version.pid=:pid', { pid: spmPackage.id })
                 .getMany();
             for (let spmPackageVersion of spmPackageVersionList) {
                 packageInfos.push([spmPackage, spmPackageVersion]);
@@ -86,4 +82,3 @@ class PostSearch extends ApiBase_1.ApiBase {
     }
 }
 exports.api = new PostSearch();
-//# sourceMappingURL=postSearch.js.map

@@ -95,6 +95,26 @@ export namespace Spm {
     }
 
     /**
+     * Replace string in file
+     *
+     * @param {string} filePath
+     * @param {Array<[RegExp, any]>} conditions
+     * @returns {Promise<void>}
+     */
+    export async function replaceStringInFile(filePath: string, conditions: Array<[RegExp, any]>): Promise<void> {
+        try {
+            let buffer = await LibFs.readFile(filePath);
+            let content = buffer.toString();
+            for (let [reg, word] of conditions) {
+                content = content.replace(reg, word);
+            }
+            await LibFs.writeFile(filePath, Buffer.from(content));
+        } catch (e) {
+            throw e;
+        }
+    }
+
+    /**
      * Get Spm config
      *
      * @returns {SpmConfig}
@@ -149,22 +169,29 @@ export namespace Spm {
     }
 
     /**
-     * Replace string in file
-     *
-     * @param {string} filePath
-     * @param {Array<[RegExp, any]>} conditions
+     * Check if local version of package is the latest version
      * @returns {Promise<void>}
      */
-    export async function replaceStringInFile(filePath: string, conditions: Array<[RegExp, any]>): Promise<void> {
-        try {
-            let buffer = await LibFs.readFile(filePath);
-            let content = buffer.toString();
-            for (let [reg, word] of conditions) {
-                content = content.replace(reg, word);
+    export async function checkVersion(): Promise<void> {
+        let spmPackageInstalled = await Spm.getInstalledSpmPackageMap();
+        let flag = 0;
+        for (let packageName of Object.keys(spmPackageInstalled)) {
+            if (/.*?__v\d+/.test(packageName)) {
+                continue;
             }
-            await LibFs.writeFile(filePath, Buffer.from(content));
-        } catch (e) {
-            throw e;
+            let remoteLatestVersion: string = await HttpRequest.post('/v1/search_latest', {packageName});
+            let localVersion: string = spmPackageInstalled[packageName].version;
+            if (localVersion !== remoteLatestVersion) {
+                flag = 1;
+                console.log(
+                    `Warning: Your local version of package [${packageName}] is [${localVersion}], but remote latest version is [${remoteLatestVersion}].`
+                );
+            }
+        }
+        if (flag === 0) {
+            console.log('Congratulations, every package is uptodate!');
+        } else {
+            console.log('Use [sasdn-pm update] to update package.');
         }
     }
 }
@@ -185,16 +212,18 @@ export namespace SpmPackageRequest {
     }
 }
 
-
 export namespace HttpRequest {
-    export async function post(uri: string, params: {[key: string]: any}): Promise<any> {
+    export async function post(uri: string, params: { [key: string]: any }): Promise<any> {
         return new Promise((resolve, reject) => {
             request.post(`${Spm.getConfig().remote_repo}${uri}`)
                 .form(params)
                 .on('response', (response) => {
+                    let resStrList = [];
                     response.on('data', (chunk) => {
+                        resStrList.push(chunk.toString());
+                    }).on('end', () => {
                         try {
-                            resolve(SpmPackageRequest.parseResponse(chunk));
+                            resolve(SpmPackageRequest.parseResponse(resStrList.join('')));
                         } catch (e) {
                             reject(e);
                         }
@@ -206,7 +235,7 @@ export namespace HttpRequest {
         });
     }
 
-    export async function download(uri: string, params: {[key: string]: any}, filePath: string): Promise<any> {
+    export async function download(uri: string, params: { [key: string]: any }, filePath: string): Promise<any> {
         return new Promise((resolve, reject) => {
             request.post(`${Spm.getConfig().remote_repo}${uri}`)
                 .form(params)
@@ -229,7 +258,7 @@ export namespace HttpRequest {
         });
     }
 
-    export async function upload(uri: string, params: {[key: string]: any}, fileUploadStream: LibFs.ReadStream): Promise<any> {
+    export async function upload(uri: string, params: { [key: string]: any }, fileUploadStream: LibFs.ReadStream): Promise<any> {
         return new Promise((resolve, reject) => {
             let req = request.post(`${Spm.getConfig().remote_repo}${uri}`, (e, response) => {
                 if (e) {

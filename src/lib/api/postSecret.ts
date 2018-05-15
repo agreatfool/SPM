@@ -5,6 +5,7 @@ import Database from '../Database';
 import {Context as KoaContext} from 'koa';
 import {SpmPackageSecret} from '../entity/SpmPackageSecret';
 import {ApiBase, MiddlewareNext, ResponseSchema} from '../ApiBase';
+import {SpmPackage} from '../entity/SpmPackage';
 
 interface SecretParams {
     name: string;
@@ -31,11 +32,19 @@ class PostSecret extends ApiBase {
             const params = (ctx.request as any).body as SecretParams;
             const dbConn = Database.instance().conn;
 
-            // find package
+            // 查询 spmPackage
+            const spmPackage = await dbConn
+                .getRepository(SpmPackage)
+                .findOne({name: params.name})
+            if (!spmPackage) {
+              return this.buildResponse(`package ${params.name} does not exist.`, -1);
+            }
+
+            // find package secret
             let spmPackageSecret = await dbConn
                 .getRepository(SpmPackageSecret)
-                .createQueryBuilder('user')
-                .where('user.name=:name', {name: params.name})
+                .createQueryBuilder('pkgSecret')
+                .where('pkgSecret.pid=:pid', {pid: spmPackage.id})
                 .getOne();
 
             // if package is not found, create package
@@ -44,7 +53,7 @@ class PostSecret extends ApiBase {
             }
 
             let entity = new SpmPackageSecret();
-            entity.name = params.name;
+            entity.pid = spmPackage.id;
             entity.secret = ApiBase.genSecretToken(params.name, Config.instance().options.secret, Math.round(new Date().getTime() / 1000));
             spmPackageSecret = await dbConn.manager.save(entity);
 

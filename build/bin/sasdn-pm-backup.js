@@ -15,6 +15,8 @@ const archiver = require("archiver");
 const lib_1 = require("./lib/lib");
 const pkg = require('../../package.json');
 program.version(pkg.version)
+    .description('backup store dir and sqlite db file')
+    .usage('<path>')
     .parse(process.argv);
 const OUTPUT_PATH = program.args[0] === undefined ? undefined : program.args[0];
 class BackupCLI {
@@ -126,4 +128,3 @@ exports.BackupCLI = BackupCLI;
 BackupCLI.instance().run().catch((err) => {
     console.log('error:', err.message);
 });
-//# sourceMappingURL=sasdn-pm-backup.js.map

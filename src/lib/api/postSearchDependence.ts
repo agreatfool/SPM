@@ -1,12 +1,12 @@
-import "reflect-metadata";
-import * as _ from "underscore";
-import Database from "../Database";
-import {Context as KoaContext} from "koa";
-import {SpmPackage} from "../entity/SpmPackage";
-import {SpmPackageVersion} from "../entity/SpmPackageVersion";
-import {SpmPackageMap} from "../../bin/lib/lib";
-import {ApiBase, MiddlewareNext, ResponseSchema} from "../ApiBase";
-import {Connection} from "typeorm";
+import 'reflect-metadata';
+import * as _ from 'underscore';
+import Database from '../Database';
+import {Context as KoaContext} from 'koa';
+import {SpmPackage} from '../entity/SpmPackage';
+import {SpmPackageVersion} from '../entity/SpmPackageVersion';
+import {SpmPackageMap} from '../../bin/lib/lib';
+import {ApiBase, MiddlewareNext, ResponseSchema} from '../ApiBase';
+import {Connection} from 'typeorm';
 
 type SheetColumnWhereSchema = [string, any];
 
@@ -44,7 +44,7 @@ class PostSearchDependence extends ApiBase {
 
     public async findDependencies(dbConn: Connection, name: string, version: string, dependencies: SpmPackageMap, isDependencies: boolean = false): Promise<SpmPackageMap> {
 
-        // if dependencies is exist, return ..
+        // if dependencies exist, return ..
         if (dependencies.hasOwnProperty(`${name}@${version}`)) {
             return dependencies;
         }
@@ -63,7 +63,7 @@ class PostSearchDependence extends ApiBase {
         // build spm package version query
         let sheetName = 'version';
         let spmPackageVersion: SpmPackageVersion;
-        let columnNameWhereQuery = [`${sheetName}.name=:name`, {name: spmPackage.name}] as SheetColumnWhereSchema;
+        let columnNameWhereQuery = [`${sheetName}.pid=:pid`, {pid: spmPackage.id}] as SheetColumnWhereSchema;
 
         if (!_.isEmpty(version)) {
             const [major, minor, patch] = version.split('.');
@@ -101,7 +101,7 @@ class PostSearchDependence extends ApiBase {
             version: `${spmPackageVersion.major}.${spmPackageVersion.minor}.${spmPackageVersion.patch}`,
             dependencies: pkgDependencies,
             downloadUrl: spmPackageVersion.filePath,
-            isDependencies: isDependencies
+            isDependencies: isDependencies,
         };
 
         // deep loop
