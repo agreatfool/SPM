@@ -12,6 +12,8 @@ const program = require("commander");
 const lib_1 = require("./lib/lib");
 const pkg = require('../../package.json');
 program.version(pkg.version)
+    .usage('[Options]')
+    .description('show all remote proto')
     .parse(process.argv);
 class ListCLI {
     static instance() {
@@ -33,7 +35,7 @@ class ListCLI {
         return __awaiter(this, void 0, void 0, function* () {
             console.log('ListCLI search.');
             let params = {
-                keyword: 'all',
+                keyword: '',
             };
             try {
                 let response = yield lib_1.HttpRequest.post('/v1/search', params);

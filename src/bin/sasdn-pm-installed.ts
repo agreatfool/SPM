@@ -4,9 +4,11 @@ import {Spm, SpmPackageMap} from './lib/lib';
 const pkg = require('../../package.json');
 
 program.version(pkg.version)
+    .usage('[Options] [package]')
+    .description('show all installed proto or specific proto')
     .parse(process.argv);
 
-const KEYWORK_VALUE = program.args[0]
+const KEYWORK_VALUE = program.args[0];
 
 export class InstalledCLI {
     private _projectDir: string;
@@ -67,7 +69,7 @@ export class InstalledCLI {
     private _displayPackage(packageName: string, spmPackageMap: SpmPackageMap): void {
         let spmPackage = spmPackageMap[packageName];
         if (!spmPackage) {
-          throw new Error(`${packageName} not exist in SpmPackageList.`);
+            throw new Error(`${packageName} not exist in SpmPackageList.`);
         }
         let depLength = Object.keys(spmPackage.dependencies).length;
         if (depLength !== 0) {

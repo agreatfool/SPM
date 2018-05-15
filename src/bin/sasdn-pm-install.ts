@@ -11,6 +11,8 @@ import {HttpRequest, mkdir, rmdir, Spm, SpmPackage, SpmPackageConfig, SpmPackage
 const pkg = require('../../package.json');
 
 program.version(pkg.version)
+    .usage('[Options] [<package>[@version]]')
+    .description('install proto from spm server')
     .parse(process.argv);
 
 const PKG_NAME_VALUE = program.args[0] === undefined ? undefined : program.args[0];
@@ -190,7 +192,7 @@ export class InstallCLI {
                     `while your local version is [${this._spmPackageInstalled[dirname].version}], which causes confict.` +
                     `There are two ways to resolve the confict: 1. Overwrite current package 2. Rename new version.` +
                     `If you overwrite the current package, you should change logic of some interface. If you choose [n],` +
-                    `the two version will coexist and the new installed one will be renamed. ChangeLog in spm.json may be helpful.\n`
+                    `the two version will coexist and the new installed one will be renamed. ChangeLog in spm.json may be helpful.\n`,
                 );
                 let flag: string = '';
                 while (['y', 'yes', 'n', 'no'].indexOf(flag) === -1) {
@@ -328,7 +330,7 @@ export class InstallCLI {
                 if (LibPath.basename(file).match(/.+\.proto/) !== null) {
                     if (spmPackage.name != dirname) {
                         await Spm.replaceStringInFile(file, [
-                            [new RegExp(`package ${spmPackage.name};`, 'g'), `package ${dirname};`]
+                            [new RegExp(`package ${spmPackage.name};`, 'g'), `package ${dirname};`],
                         ]);
                     }
 
@@ -337,7 +339,7 @@ export class InstallCLI {
                         await Spm.replaceStringInFile(file, [
                             [new RegExp(`import "${oldString}/`, 'g'), `import "${newString}/`],
                             [new RegExp(`\\((${oldString}.*?)\\)`, 'g'), (word) => word.replace(oldString, newString)],
-                            [new RegExp(` (${oldString}.*?) `, 'g'), (word) => word.replace(oldString, newString)]
+                            [new RegExp(` (${oldString}.*?) `, 'g'), (word) => word.replace(oldString, newString)],
                         ]);
                     }
                 }

@@ -13,8 +13,10 @@ const _ = require("underscore");
 const lib_1 = require("./lib/lib");
 const pkg = require('../../package.json');
 program.version(pkg.version)
-    .option('-i, --info', 'show proto version info of specific proto package')
-    .option('-d, --dependence', 'show dependences of specific version proto, default is latest')
+    .description('search proto from spm server')
+    .usage('[Options] <<package>[@version]>')
+    .option('-i, --info', 'add -i to show proto version info of specific proto package')
+    .option('-d, --dependence', 'add -d to show dependences of specific version proto, default is latest')
     .parse(process.argv);
 const INFO_VALUE = program.info === undefined ? undefined : program.info;
 const KEYWORD_VALUE = program.args[0] === undefined ? undefined : program.args[0];
@@ -38,8 +40,11 @@ class ListCLI {
     _displaySearchResult() {
         return __awaiter(this, void 0, void 0, function* () {
             console.log('SearchCLI search.');
+            if (!KEYWORD_VALUE) {
+                throw new Error('Package name is required.');
+            }
             let params = {
-                keyword: KEYWORD_VALUE && KEYWORD_VALUE.split('@')[0] || 'all',
+                keyword: KEYWORD_VALUE && KEYWORD_VALUE.split('@')[0],
                 info: !!(INFO_VALUE),
             };
             try {

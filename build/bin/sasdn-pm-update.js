@@ -18,6 +18,8 @@ const readlineSync = require("readline-sync");
 const lib_1 = require("./lib/lib");
 const pkg = require('../../package.json');
 program.version(pkg.version)
+    .description('update proto to latest version')
+    .usage('[Options] [package]')
     .parse(process.argv);
 const PKG_NAME = program.args[0];
 class UpdateCLI {

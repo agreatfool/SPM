@@ -21,12 +21,7 @@ class PostSearch extends ApiBase {
         this.type = 'application/json; charset=utf-8';
     }
 
-    public async paramsValidate(ctx: KoaContext) {
-        const params = (ctx.request as any).body as SearchParams;
-        if (!params.keyword || _.isEmpty(params.keyword)) {
-            throw new Error('keyword is required!');
-        }
-    }
+    public async paramsValidate(ctx: KoaContext) {}
 
     public async handle(ctx: KoaContext, next: MiddlewareNext): Promise<ResponseSchema> {
         try {
@@ -45,19 +40,12 @@ class PostSearch extends ApiBase {
     public async fuzzyQuery(keyword: string, dbConn: Connection): Promise<Array<SpmPackage>> {
         let packageInfos = [] as Array<SpmPackage>;
         let spmPackageList: Array<SpmPackage>;
-        if (keyword === 'all') {
-            spmPackageList = await dbConn
-                .getRepository(SpmPackage)
-                .createQueryBuilder('package')
-                .getMany();
-        } else {
-            spmPackageList = await dbConn
-                .getRepository(SpmPackage)
-                .createQueryBuilder('package')
-                .where('package.name LIKE :keyword', {keyword: `%${keyword}%`})
-                .orWhere('package.description LIKE :keyword', {keyword: `%${keyword}%`})
-                .getMany();
-        }
+        spmPackageList = await dbConn
+            .getRepository(SpmPackage)
+            .createQueryBuilder('package')
+            .where('package.name LIKE :keyword', {keyword: `%${keyword}%`})
+            .orWhere('package.description LIKE :keyword', {keyword: `%${keyword}%`})
+            .getMany();
         for (let spmPackage of spmPackageList) {
             packageInfos.push(spmPackage);
         }

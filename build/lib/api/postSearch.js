@@ -22,12 +22,7 @@ class PostSearch extends ApiBase_1.ApiBase {
         this.type = 'application/json; charset=utf-8';
     }
     paramsValidate(ctx) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const params = ctx.request.body;
-            if (!params.keyword || _.isEmpty(params.keyword)) {
-                throw new Error('keyword is required!');
-            }
-        });
+        return __awaiter(this, void 0, void 0, function* () { });
     }
     handle(ctx, next) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -51,20 +46,12 @@ class PostSearch extends ApiBase_1.ApiBase {
         return __awaiter(this, void 0, void 0, function* () {
             let packageInfos = [];
             let spmPackageList;
-            if (keyword === 'all') {
-                spmPackageList = yield dbConn
-                    .getRepository(SpmPackage_1.SpmPackage)
-                    .createQueryBuilder('package')
-                    .getMany();
-            }
-            else {
-                spmPackageList = yield dbConn
-                    .getRepository(SpmPackage_1.SpmPackage)
-                    .createQueryBuilder('package')
-                    .where('package.name LIKE :keyword', { keyword: `%${keyword}%` })
-                    .orWhere('package.description LIKE :keyword', { keyword: `%${keyword}%` })
-                    .getMany();
-            }
+            spmPackageList = yield dbConn
+                .getRepository(SpmPackage_1.SpmPackage)
+                .createQueryBuilder('package')
+                .where('package.name LIKE :keyword', { keyword: `%${keyword}%` })
+                .orWhere('package.description LIKE :keyword', { keyword: `%${keyword}%` })
+                .getMany();
             for (let spmPackage of spmPackageList) {
                 packageInfos.push(spmPackage);
             }

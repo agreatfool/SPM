@@ -5,6 +5,8 @@ import {SpmPackage} from '../lib/entity/SpmPackage';
 const pkg = require('../../package.json');
 
 program.version(pkg.version)
+    .usage('[Options]')
+    .description('show all remote proto')
     .parse(process.argv);
 
 export class ListCLI {
@@ -28,7 +30,7 @@ export class ListCLI {
         console.log('ListCLI search.');
 
         let params = {
-            keyword: 'all',
+            keyword: '',
         };
 
         try {

@@ -4,6 +4,8 @@ import {HttpRequest} from './lib/lib';
 const pkg = require('../../package.json');
 
 program.version(pkg.version)
+    .description('delete proto package in spm server')
+    .usage('[Options] <package>')
     .parse(process.argv);
 
 const PKG_NAME: string = program.args[0];

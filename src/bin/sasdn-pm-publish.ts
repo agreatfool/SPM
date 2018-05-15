@@ -8,6 +8,8 @@ import {Spm, SpmPackageConfig, mkdir, HttpRequest} from './lib/lib';
 const pkg = require('../../package.json');
 
 program.version(pkg.version)
+    .description('publish proto dir to spm server')
+    .usage('[Options]')
     .parse(process.argv);
 
 export class PublishCLI {

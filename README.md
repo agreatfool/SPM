@@ -112,69 +112,178 @@ npm start
 ### 2.2 客户端命令行工具
 
 #### 2.2.1 命令行
+所有命令的主命令均为`sasdn-pm`，子命令以及说明如下
 
 ##### 2.2.1.1 installed
-包管理工具下所有已安装的 proto 包名与版本号，以及依赖的包。
+显示包管理工具下所有已安装的 proto 包名与版本号，以及依赖的包。
 
 ```
-sasdn-pm installed [包名] // 如果输入包名，则查询特定包名的已安装的包，否则查询所有已安装的包
+> sasdn-pm installed -h
+
+  Usage: sasdn-pm-installed [Options] [package]
+
+  show all installed proto or specific proto
+
+
+  Options:
+
+    -V, --version  output the version number
+    -h, --help     output usage information
 ```
 
+##### 2.2.1.2 list
 列出中心节点所有的 proto 包名与描述
 
 ```
-sasdn-pm list
+> sasdn-pm list -h
+
+  Usage: sasdn-pm-list [Options]
+
+  show all remote proto
+
+
+  Options:
+
+    -V, --version  output the version number
+    -h, --help     output usage information
 ```
 
+##### 2.2.1.3 search
 通过关键字在中心节点搜索匹配的 proto 包。
 
 ```
-sasdn-pm search [包名<@version>] [-i --info] [-d --dependence]
-// 如果输入包名，则从中心节点查询特定包名的包，否则查询所有在中心节点注册的包
-// 启用 -i 参数，则是通过精确查找包名，并返回该包所有的版本（此种模式下必须输入包名），如果指定了版本（@latest 为最新版本），则仅显示指定版本的信息
-// -d 参数必须和 -i 参数配合使用，返回特定包名的包的依赖包以及版本信息
+> sasdn-pm search -h
+
+  Usage: sasdn-pm-search [Options] <<package>[@version]>
+
+  search proto from spm server
+
+
+  Options:
+
+    -V, --version     output the version number
+    -i, --info        add -i to show proto version info of specific proto package
+    -d, --dependence  add -d to show dependences of specific version proto, default is latest
+    -h, --help        output usage information
 ```
 
+##### 2.2.1.4 install
 从中心节点安装指定的 proto 包，不填写包名，则通过根目录spm.json安装所有依赖
 
 ```
-sasdn-pm install [包名<@version>]      // XXX@1.0.0, 则是指定安装XXX包的1.0.0版本
+> sasdn-pm install -h
+
+  Usage: sasdn-pm-install [Options] [<package>[@version]]
+
+  install proto from spm server
+
+
+  Options:
+
+    -V, --version  output the version number
+    -h, --help     output usage information
 ```
 
+##### 2.2.1.5 uninstall
 卸载本地已安装的 proto 包，只能卸载顶级依赖
 
 ```
-sasdn-pm uninstall 包名
+> sasdn-pm uninstall -h
+
+  Usage: sasdn-pm-uninstall [Options] <package>
+
+  uninstall local proto
+
+
+  Options:
+
+    -V, --version  output the version number
+    -h, --help     output usage information
 ```
 
+##### 2.2.1.6 publish
 将根目录下 proto 文件夹与包管理配置文件 spm.json 打包成 proto 包并发布到中心节点服务
 
 ```
-sasdn-pm publish
+> sasdn-pm publish -h
+
+  Usage: sasdn-pm-publish [Options]
+
+  publish proto dir to spm server
+
+
+  Options:
+
+    -V, --version  output the version number
+    -h, --help     output usage information
 ```
-    
+
+##### 2.2.1.7 secret
 向中心节点申请获取 secret，并更新到本地文件
 
 ```
-sasdn-pm secret
+> sasdn-pm secret -h
+
+  Usage: sasdn-pm-secret [Options]
+
+  set secret key in spm commander
+
+
+  Options:
+
+    -V, --version  output the version number
+    -h, --help     output usage information
 ```
 
+##### 2.2.1.8 check
 检测本地的依赖包是否和线上的最新版本一致，如果不一致，则警告
 
 ```
-sasdn-pm check
+> sasdn-pm check -h
+
+  Usage: sasdn-pm-check [Options]
+
+  check if version of packages installed in local is latest
+
+
+  Options:
+
+    -V, --version  output the version number
+    -h, --help     output usage information
 ```
 
+##### 2.2.1.9 update
 将顶级依赖升级到可兼容的最新版本（minor 号和 patch 号最高），不填包名，则将所有顶级依赖升级到可兼容的最新版本
 
 ```
-sasdn-pm update [包名]
+> sasdn-pm update -h
+
+  Usage: sasdn-pm-update [Options] [package]
+
+  update proto to latest version
+
+
+  Options:
+
+    -V, --version  output the version number
+    -h, --help     output usage information
 ```
 
+##### 2.2.1.10 delete
 删除中心节点的包
 
 ```
-sasdn-pm delete [包名] [用户密码]
+> sasdn-pm delete -h
+
+  Usage: sasdn-pm-delete [Options] <package>
+
+  delete proto package in spm server
+
+
+  Options:
+
+    -V, --version  output the version number
+    -h, --help     output usage information
 ```
 
 #### 2.2.2 Proto 包的安装流程设计
@@ -192,32 +301,36 @@ sasdn-pm delete [包名] [用户密码]
 通过 SPM 包管理工具下载安装 proto 包的过程中可能存在版本冲突，即本地 proto 包和将要安装的 proto 包的 major 版本不一致，有以下几种情况：
 
 #### 2.3.1 覆盖安装方案
-* 假设当前应用程序为`a`，另有一个依赖包为`m`
-* a 在之前的依赖安装中将 m 包安装为`1.x.x`版本
-* 此时，SPM上的 m 包已经升级到了`2.x.x`版本
+* 假设当前应用程序为`a`，另有一个依赖包（微服务）为`m`
+* `a`在之前的依赖安装中将`m`安装为`1.x.x`版本
+* SPM上的`m`已经升级到了`2.x.x`版本
 * 此时可能会有两种情况：
-	1. 开发环境下，m 包的1.x.x的版本是没有单独进行部署的，只有一份最新的2.x.x是有部署运行的
-	2. 真实生产环境下，m 包的2.x.x和1.x.x两个都会在生产环境上共存
+	1. 开发环境下，`m`的`1.x.x`的版本是没有单独进行部署的，只有一份最新的`2.x.x`是有部署运行的
+	2. 真实生产环境下，`m`的`2.x.x`和`1.x.x`两个版本都会在生产环境上共存
 * 当前的例子选择`情况1`，只有最新版本的运行实例存在
-* 在这种情况下，要想 a 微服务成功调用 m 包对应微服务的接口而不出错，a 包需要覆盖安装 m 包依赖，并且根据 m 包 `spm.json` 中的 `changeLog` 修改可能造成冲突的代码
+* 在这种情况下，要想`a`成功调用`m`对应微服务的接口而不出错，`a`需要覆盖安装`m`依赖，并且根据`m`的`spm.json`中的`changeLog`修改可能造成冲突的代码
 
 #### 2.3.2 重命名新包方案
-2. 重命名新包方案：存在这种情况，线上正在运行的一个微服务 m 的版本是 1.x.x，并且正在运行的另一个微服务 a 依赖 1.x.x 版本的 m 微服务。
-开发过程中，微服务 m 升级到了 2.x.x 版本，并且微服务 b 依赖 2.x.x 版本的微服务 m，以及依赖 1.x.x 版本的微服务 m 的微服务 a。此时微服务 b
-直接依赖 1.x.x 版本的微服务 m，（通过微服务 a）间接依赖 2.x.x 版本的微服务 m。这种情况下，需要将 b 直接依赖的 m 包重命名为 m__v2。
+* 考虑`情况2`：真实生产环境下，依赖包（微服务）`m`的`2.x.x`和`1.x.x`两个版本都会在生产环境上共存
+* 应用程序`a`依赖`1.x.x`版本的`m`，应用程序`b`依赖`a`
+* 在`b`的开发过程中，需要依赖`2.x.x`版本的`m`，且同时需要依赖`a`
+* 此时`b`直接依赖`2.x.x`版本的`m`，通过依赖`a`间接依赖`1.x.x`版本的`m`，产生版本冲突
+* 这种情况下，需要将`b`直接依赖的`m`重命名为`m__v2`。
 
 ### 2.4 权限控制
+权限控制分为仓库密钥(Repository Secret)控制和管理员密码(Admin Password)控制
+
 #### 2.4.1 Repository Secret
-每个仓库都要....
+每个仓库都要申请一个仓库密钥，用来发布新版的 proto 包。具体流程如下：
 
 * 创建微服务代码库
 * 在代码库根目录下使用`sasdn-pm secret`申请该仓库的秘钥，秘钥会以文件的形式（./.spmlrc）保存在该仓库的根目录下
 * 后续发布命令`sasdn-pm publish`会读取该仓库根目录下的秘钥文件，如果文件不存在则无法进行发布操作
 
 #### 2.4.2 Admin Password
-* 全局 secret 在初始化数据库表 `spm_global_secret` 时手动填入，之后每次执行 `sasdn-pm delete [包名] [用户密码]`
-操作，都会校验该 secret
-* 通常只有一个 admin 用户拥有全局 secret，若其它人想要删除中心节点的 proto 包，需要通知 admin 用户，让其帮助删除
+* 管理员密码在初始化数据库表`spm_global_secret`时手动填入，之后每次执行`sasdn-pm delete`
+操作，都会校验该密码
+* 通常只有一个管理员用户拥有管理员密码，若其它人想要删除中心节点的 proto 包，需要通知管理员，让其帮助删除
 
 ### 2.5 备注（未开发）
 1. 包备份脚本( crontab )

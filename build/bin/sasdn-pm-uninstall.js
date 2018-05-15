@@ -15,6 +15,8 @@ const _ = require("underscore");
 const lib_1 = require("./lib/lib");
 const pkg = require('../../package.json');
 program.version(pkg.version)
+    .description('uninstall local proto')
+    .usage('[Options] <package>')
     .parse(process.argv);
 const PKG_NAME_VALUE = program.args[0] === undefined ? undefined : program.args[0];
 class UninstallCLI {

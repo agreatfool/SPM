@@ -12,6 +12,8 @@ const program = require("commander");
 const lib_1 = require("./lib/lib");
 const pkg = require('../../package.json');
 program.version(pkg.version)
+    .description('delete proto package in spm server')
+    .usage('[Options] <package>')
     .parse(process.argv);
 const PKG_NAME = program.args[0];
 const SECRET = program.args[1];

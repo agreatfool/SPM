@@ -18,6 +18,8 @@ const readlineSync = require("readline-sync");
 const lib_1 = require("./lib/lib");
 const pkg = require('../../package.json');
 program.version(pkg.version)
+    .usage('[Options] [<package>[@version]]')
+    .description('install proto from spm server')
     .parse(process.argv);
 const PKG_NAME_VALUE = program.args[0] === undefined ? undefined : program.args[0];
 class InstallCLI {
@@ -318,7 +320,7 @@ class InstallCLI {
                     if (LibPath.basename(file).match(/.+\.proto/) !== null) {
                         if (spmPackage.name != dirname) {
                             yield lib_1.Spm.replaceStringInFile(file, [
-                                [new RegExp(`package ${spmPackage.name};`, 'g'), `package ${dirname};`]
+                                [new RegExp(`package ${spmPackage.name};`, 'g'), `package ${dirname};`],
                             ]);
                         }
                         for (let oldString in spmPackage.dependenciesChanged) {
@@ -326,7 +328,7 @@ class InstallCLI {
                             yield lib_1.Spm.replaceStringInFile(file, [
                                 [new RegExp(`import "${oldString}/`, 'g'), `import "${newString}/`],
                                 [new RegExp(`\\((${oldString}.*?)\\)`, 'g'), (word) => word.replace(oldString, newString)],
-                                [new RegExp(` (${oldString}.*?) `, 'g'), (word) => word.replace(oldString, newString)]
+                                [new RegExp(` (${oldString}.*?) `, 'g'), (word) => word.replace(oldString, newString)],
                             ]);
                         }
                     }
