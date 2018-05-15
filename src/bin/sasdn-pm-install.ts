@@ -11,7 +11,7 @@ import {HttpRequest, mkdir, rmdir, Spm, SpmPackage, SpmPackageConfig, SpmPackage
 const pkg = require('../../package.json');
 
 program.version(pkg.version)
-    .usage('[Options] [<package>[@version]]')
+    .usage('[<package>[@version]]')
     .description('install proto from spm server')
     .parse(process.argv);
 

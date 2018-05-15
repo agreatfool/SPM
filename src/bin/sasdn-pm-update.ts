@@ -12,7 +12,7 @@ const pkg = require('../../package.json');
 
 program.version(pkg.version)
     .description('update proto to latest version')
-    .usage('[Options] [package]')
+    .usage('[package]')
     .parse(process.argv);
 
 const PKG_NAME = program.args[0];

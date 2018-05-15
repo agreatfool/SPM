@@ -12,8 +12,8 @@ const program = require("commander");
 const lib_1 = require("./lib/lib");
 const pkg = require('../../package.json');
 program.version(pkg.version)
-    .usage('[Options]')
-    .description('show all remote proto')
+    .usage(' ')
+    .description('show all remote protos registered in SPM')
     .parse(process.argv);
 class ListCLI {
     static instance() {

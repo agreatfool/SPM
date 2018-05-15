@@ -5,7 +5,7 @@ const pkg = require('../../package.json');
 
 program.version(pkg.version)
     .description('check if version of packages installed in local is latest')
-    .usage('[Options]')
+    .usage(' ')
     .parse(process.argv);
 
 export class CheckCLI {

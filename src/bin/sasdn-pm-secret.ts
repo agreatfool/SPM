@@ -8,7 +8,7 @@ const pkg = require('../../package.json');
 
 program.version(pkg.version)
     .description('set secret key in spm commander')
-    .usage('[Options]')
+    .usage(' ')
     .parse(process.argv);
 
 export class SecretCLI {

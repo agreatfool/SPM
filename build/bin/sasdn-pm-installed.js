@@ -12,8 +12,8 @@ const program = require("commander");
 const lib_1 = require("./lib/lib");
 const pkg = require('../../package.json');
 program.version(pkg.version)
-    .usage('[Options] [package]')
-    .description('show all installed proto or specific proto')
+    .usage('[package]')
+    .description('show all installed protos or specified proto if package name provided')
     .parse(process.argv);
 const KEYWORK_VALUE = program.args[0];
 class InstalledCLI {

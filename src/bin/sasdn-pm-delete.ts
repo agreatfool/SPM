@@ -5,7 +5,7 @@ const pkg = require('../../package.json');
 
 program.version(pkg.version)
     .description('delete proto package in spm server')
-    .usage('[Options] <package>')
+    .usage('<package> <password>')
     .parse(process.argv);
 
 const PKG_NAME: string = program.args[0];

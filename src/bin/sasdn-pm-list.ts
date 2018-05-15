@@ -5,8 +5,8 @@ import {SpmPackage} from '../lib/entity/SpmPackage';
 const pkg = require('../../package.json');
 
 program.version(pkg.version)
-    .usage('[Options]')
-    .description('show all remote proto')
+    .usage(' ')
+    .description('show all remote protos registered in SPM')
     .parse(process.argv);
 
 export class ListCLI {

@@ -16,7 +16,7 @@ const lib_1 = require("./lib/lib");
 const pkg = require('../../package.json');
 program.version(pkg.version)
     .description('set secret key in spm commander')
-    .usage('[Options]')
+    .usage(' ')
     .parse(process.argv);
 class SecretCLI {
     static instance() {
