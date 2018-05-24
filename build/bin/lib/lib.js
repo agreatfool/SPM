@@ -142,7 +142,7 @@ var Spm;
                         spmPackageMap[dirname] = {
                             name: packageConfig.name,
                             version: packageConfig.version,
-                            dependencies: packageConfig.dependencies
+                            dependencies: packageConfig.dependencies,
                         };
                     }
                 }
@@ -161,9 +161,12 @@ var Spm;
     function checkVersion() {
         return __awaiter(this, void 0, void 0, function* () {
             let spmPackageInstalled = yield Spm.getInstalledSpmPackageMap();
+            let packageConfig = Spm.getSpmPackageConfig(LibPath.join(Spm.getProjectDir(), 'spm.json'));
             let flag = 0;
             for (let packageName of Object.keys(spmPackageInstalled)) {
-                if (/.*?__v\d+/.test(packageName)) {
+                // google 这个包是第三方的，不在我们的控制范围内
+                // 如果这个包不是顶级依赖，则不需要检测其是否是最新版本
+                if (/.*?__v\d+/.test(packageName) || packageName === 'google' || Object.keys(packageConfig.dependencies).indexOf(packageName) === -1) {
                     continue;
                 }
                 let remoteLatestVersion = yield HttpRequest.post('/v1/search_latest', { packageName });

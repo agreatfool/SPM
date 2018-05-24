@@ -76,6 +76,10 @@ export class InstallCLI {
         if (!PKG_NAME_VALUE) {
             // MODE ONE: npm install
             for (let name in this._packageConfig.dependencies) {
+                // google 这个包是第三方的，不在我们的控制范围内
+                if (name === 'google') {
+                    continue;
+                }
                 packageList.push(`${name}@${this._packageConfig.dependencies[name]}`);
             }
         } else {
@@ -174,16 +178,14 @@ export class InstallCLI {
         let dirname = (changeName) ? changeName : spmPackage.name;
 
         if (this._spmPackageInstalled.hasOwnProperty(dirname)) {
-            let [nextMajor, nextMinor, nextPatch] = spmPackage.version.split('.');
-            let [curMajor, curMinor, curPath] = this._spmPackageInstalled[dirname].version.split('.');
+            let [nextMajor, nextMinor, nextPatch] = spmPackage.version.split('.').map(item => parseInt(item));
+            let [curMajor, curMinor, curPath] = this._spmPackageInstalled[dirname].version.split('.').map(item => parseInt(item));
 
             if (nextMajor == curMajor) {
                 // 主版本号相同
-                if (nextMinor < curMinor || nextMinor == curMinor && nextPatch <= curPath) {
+                if (nextMinor < curMinor || (nextMinor == curMinor && nextPatch <= curPath)) {
                     // 依赖版本低于或等于当前版本，不处理，其他情况都要重新下载
                 } else {
-                    this._spmPackageInstalled[dirname] = spmPackage;
-                    this._spmPackageWillInstall[dirname] = spmPackage;
                 }
             } else if (nextMajor > curMajor) {
                 // 依赖版本 major 高于当前版本
