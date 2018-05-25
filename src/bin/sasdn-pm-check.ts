@@ -1,5 +1,5 @@
 import * as program from 'commander';
-import {Spm} from "./lib/lib";
+import {Spm} from './lib/lib';
 
 const pkg = require('../../package.json');
 

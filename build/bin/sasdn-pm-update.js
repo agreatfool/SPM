@@ -69,6 +69,10 @@ class UpdateCLI {
                 // MODE ONE: npm update
                 // 将依赖包的版本更新为相同 major 下的最新版本（minor 号和 patch 号最高）
                 for (let packageName of Object.keys(this._packageConfig.dependencies)) {
+                    // google 这个包是第三方的，不在我们的控制范围内
+                    if (packageName === 'google') {
+                        continue;
+                    }
                     let major = this._packageConfig.dependencies[packageName].split('.')[0];
                     let remoteLatestVersion = yield lib_1.HttpRequest.post('/v1/search_latest', { packageName, major });
                     this._packageConfig.dependencies[packageName] = remoteLatestVersion;
@@ -90,6 +94,10 @@ class UpdateCLI {
             yield LibFs.writeFile(LibPath.join(this._projectDir, 'spm.json'), Buffer.from(JSON.stringify(this._packageConfig, null, 2)));
             let packageList = [];
             for (let name in this._packageConfig.dependencies) {
+                // google 这个包是第三方的，不在我们的控制范围内
+                if (name === 'google') {
+                    continue;
+                }
                 packageList.push(`${name}@${this._packageConfig.dependencies[name]}`);
             }
             for (let pkgName of packageList) {
@@ -179,8 +187,8 @@ class UpdateCLI {
     _comparisonWillInstall(spmPackage, deepLevel = 0, changeName) {
         let dirname = (changeName) ? changeName : spmPackage.name;
         if (this._spmPackageInstalled.hasOwnProperty(dirname)) {
-            let [nextMajor, nextMinor, nextPatch] = spmPackage.version.split('.');
-            let [curMajor, curMinor, curPath] = this._spmPackageInstalled[dirname].version.split('.');
+            let [nextMajor, nextMinor, nextPatch] = spmPackage.version.split('.').map(item => parseInt(item));
+            let [curMajor, curMinor, curPath] = this._spmPackageInstalled[dirname].version.split('.').map(item => parseInt(item));
             if (nextMajor == curMajor) {
                 // 主版本号相同
                 if (nextMinor < curMinor || nextMinor == curMinor && nextPatch <= curPath) {
@@ -334,7 +342,7 @@ class UpdateCLI {
                     if (LibPath.basename(file).match(/.+\.proto/) !== null) {
                         if (spmPackage.name != dirname) {
                             yield lib_1.Spm.replaceStringInFile(file, [
-                                [new RegExp(`package ${spmPackage.name};`, 'g'), `package ${dirname};`]
+                                [new RegExp(`package ${spmPackage.name};`, 'g'), `package ${dirname};`],
                             ]);
                         }
                         for (let oldString in spmPackage.dependenciesChanged) {
@@ -342,7 +350,7 @@ class UpdateCLI {
                             yield lib_1.Spm.replaceStringInFile(file, [
                                 [new RegExp(`import "${oldString}/`, 'g'), `import "${newString}/`],
                                 [new RegExp(`\\((${oldString}.*?)\\)`, 'g'), (word) => word.replace(oldString, newString)],
-                                [new RegExp(` (${oldString}.*?) `, 'g'), (word) => word.replace(oldString, newString)]
+                                [new RegExp(` (${oldString}.*?) `, 'g'), (word) => word.replace(oldString, newString)],
                             ]);
                         }
                     }

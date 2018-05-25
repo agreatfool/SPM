@@ -76,6 +76,10 @@ export class UpdateCLI {
             // MODE ONE: npm update
             // 将依赖包的版本更新为相同 major 下的最新版本（minor 号和 patch 号最高）
             for (let packageName of Object.keys(this._packageConfig.dependencies)) {
+                // google 这个包是第三方的，不在我们的控制范围内
+                if (packageName === 'google') {
+                    continue;
+                }
                 let major = this._packageConfig.dependencies[packageName].split('.')[0];
                 let remoteLatestVersion: string = await HttpRequest.post('/v1/search_latest', {packageName, major});
                 this._packageConfig.dependencies[packageName] = remoteLatestVersion;
@@ -97,6 +101,10 @@ export class UpdateCLI {
 
         let packageList = [] as Array<string>;
         for (let name in this._packageConfig.dependencies) {
+            // google 这个包是第三方的，不在我们的控制范围内
+            if (name === 'google') {
+                continue;
+            }
             packageList.push(`${name}@${this._packageConfig.dependencies[name]}`);
         }
 
@@ -191,8 +199,8 @@ export class UpdateCLI {
         let dirname = (changeName) ? changeName : spmPackage.name;
 
         if (this._spmPackageInstalled.hasOwnProperty(dirname)) {
-            let [nextMajor, nextMinor, nextPatch] = spmPackage.version.split('.');
-            let [curMajor, curMinor, curPath] = this._spmPackageInstalled[dirname].version.split('.');
+            let [nextMajor, nextMinor, nextPatch] = spmPackage.version.split('.').map(item => parseInt(item));
+            let [curMajor, curMinor, curPath] = this._spmPackageInstalled[dirname].version.split('.').map(item => parseInt(item));
 
             if (nextMajor == curMajor) {
                 // 主版本号相同
@@ -208,7 +216,7 @@ export class UpdateCLI {
                     `\nWarning: The version of package [${spmPackage.name}] you are going to install is [${spmPackage.version}] ` +
                     `while your local version is [${this._spmPackageInstalled[dirname].version}], which causes confict.` +
                     `If you overwrite the current package, you should change logic of some interface. If you choose [n],` +
-                    `the two version will coexist and the new installed one will be renamed. ChangeLog in spm.json may be helpful.\n`
+                    `the two version will coexist and the new installed one will be renamed. ChangeLog in spm.json may be helpful.\n`,
                 );
                 let flag: string = '';
                 while (['y', 'yes', 'n', 'no'].indexOf(flag) === -1) {
@@ -345,7 +353,7 @@ export class UpdateCLI {
                 if (LibPath.basename(file).match(/.+\.proto/) !== null) {
                     if (spmPackage.name != dirname) {
                         await Spm.replaceStringInFile(file, [
-                            [new RegExp(`package ${spmPackage.name};`, 'g'), `package ${dirname};`]
+                            [new RegExp(`package ${spmPackage.name};`, 'g'), `package ${dirname};`],
                         ]);
                     }
 
@@ -354,7 +362,7 @@ export class UpdateCLI {
                         await Spm.replaceStringInFile(file, [
                             [new RegExp(`import "${oldString}/`, 'g'), `import "${newString}/`],
                             [new RegExp(`\\((${oldString}.*?)\\)`, 'g'), (word) => word.replace(oldString, newString)],
-                            [new RegExp(` (${oldString}.*?) `, 'g'), (word) => word.replace(oldString, newString)]
+                            [new RegExp(` (${oldString}.*?) `, 'g'), (word) => word.replace(oldString, newString)],
                         ]);
                     }
                 }

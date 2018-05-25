@@ -158,7 +158,7 @@ export namespace Spm {
                     spmPackageMap[dirname] = {
                         name: packageConfig.name,
                         version: packageConfig.version,
-                        dependencies: packageConfig.dependencies
+                        dependencies: packageConfig.dependencies,
                     };
                 }
             }
@@ -174,9 +174,12 @@ export namespace Spm {
      */
     export async function checkVersion(): Promise<void> {
         let spmPackageInstalled = await Spm.getInstalledSpmPackageMap();
+        let packageConfig = Spm.getSpmPackageConfig(LibPath.join(Spm.getProjectDir(), 'spm.json'));
         let flag = 0;
         for (let packageName of Object.keys(spmPackageInstalled)) {
-            if (/.*?__v\d+/.test(packageName)) {
+            // google 这个包是第三方的，不在我们的控制范围内
+            // 如果这个包不是顶级依赖，则不需要检测其是否是最新版本
+            if (/.*?__v\d+/.test(packageName) || packageName === 'google' || Object.keys(packageConfig.dependencies).indexOf(packageName) === -1) {
                 continue;
             }
             let remoteLatestVersion: string = await HttpRequest.post('/v1/search_latest', {packageName});
@@ -184,7 +187,7 @@ export namespace Spm {
             if (localVersion !== remoteLatestVersion) {
                 flag = 1;
                 console.log(
-                    `Warning: Your local version of package [${packageName}] is [${localVersion}], but remote latest version is [${remoteLatestVersion}].`
+                    `Warning: Your local version of package [${packageName}] is [${localVersion}], but remote latest version is [${remoteLatestVersion}].`,
                 );
             }
         }
