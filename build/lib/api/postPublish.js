@@ -72,10 +72,8 @@ class PostPublish extends ApiBase_1.ApiBase {
             const fileStream = LibFs.createReadStream(fileUpload.path).on('end', () => __awaiter(this, void 0, void 0, function* () {
                 yield LibFs.unlink(fileUpload.path);
             }));
-            // write file stream
+            // generate writeFilePath
             const writeFilePath = LibPath.join(storePath, `${params.name}@${params.version}.zip`);
-            const writeFileStream = LibFs.createWriteStream(writeFilePath);
-            yield fileStream.pipe(writeFileStream);
             try {
                 const [major, minor, patch] = params.version.split('.');
                 // find package
@@ -117,6 +115,9 @@ class PostPublish extends ApiBase_1.ApiBase {
                 entity.time = new Date().getTime();
                 entity.dependencies = params.dependencies;
                 yield dbConn.manager.save(entity);
+                // write file stream
+                const writeFileStream = LibFs.createWriteStream(writeFilePath);
+                yield fileStream.pipe(writeFileStream);
                 return this.buildResponse('succeed');
             }
             catch (err) {

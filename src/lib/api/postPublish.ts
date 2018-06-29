@@ -64,7 +64,7 @@ class PostPublish extends ApiBase {
         const spmPackageRepo = dbConn.getRepository(SpmPackage);
         const spmPackage = await spmPackageRepo.findOne({name: params.name});
         if (!spmPackage) {
-          return this.buildResponse(`Package ${params.name} does not exist.`, -1);
+            return this.buildResponse(`Package ${params.name} does not exist.`, -1);
         }
 
         // find package secret
@@ -90,10 +90,8 @@ class PostPublish extends ApiBase {
             await LibFs.unlink(fileUpload.path);
         });
 
-        // write file stream
+        // generate writeFilePath
         const writeFilePath = LibPath.join(storePath, `${params.name}@${params.version}.zip`);
-        const writeFileStream = LibFs.createWriteStream(writeFilePath);
-        await fileStream.pipe(writeFileStream);
 
         try {
             const [major, minor, patch] = params.version.split('.');
@@ -140,6 +138,10 @@ class PostPublish extends ApiBase {
             entity.time = new Date().getTime();
             entity.dependencies = params.dependencies;
             await dbConn.manager.save(entity);
+
+            // write file stream
+            const writeFileStream = LibFs.createWriteStream(writeFilePath);
+            await fileStream.pipe(writeFileStream);
 
             return this.buildResponse('succeed');
         } catch (err) {
