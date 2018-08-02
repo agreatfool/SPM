@@ -186,6 +186,8 @@ export class InstallCLI {
                 if (nextMinor < curMinor || (nextMinor == curMinor && nextPatch <= curPath)) {
                     // 依赖版本低于或等于当前版本，不处理，其他情况都要重新下载
                 } else {
+                    this._spmPackageInstalled[dirname] = spmPackage;
+                    this._spmPackageWillInstall[dirname] = spmPackage;
                 }
             } else if (nextMajor > curMajor) {
                 // 依赖版本 major 高于当前版本
